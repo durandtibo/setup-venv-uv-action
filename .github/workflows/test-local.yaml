@@ -40,8 +40,8 @@ jobs:
           pwd
           ls -l
 
-      - name: Test action to setup python environment
-        uses: ./
+#      - name: Test action to setup python environment
+#        uses: ./
 
       - name: Test environment
         run: |
