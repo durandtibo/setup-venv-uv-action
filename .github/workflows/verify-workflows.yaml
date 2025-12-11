@@ -27,12 +27,6 @@ jobs:
           ACTIONLINT_URL+="main/scripts/download-actionlint.bash"
           bash <(curl -sSL $ACTIONLINT_URL) latest
 
-      - name: Install actionlint
-        run: |
-          ACTIONLINT_URL=("https://raw.githubusercontent.com/rhysd/actionlint/"\
-          "main/scripts/download-actionlint.bash")
-          bash <(curl -sSL $ACTIONLINT_URL) latest
-
       - name: actionlint version
         run: |
           ./actionlint --version
