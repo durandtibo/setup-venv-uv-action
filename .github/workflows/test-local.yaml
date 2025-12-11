@@ -42,6 +42,12 @@ jobs:
           pwd
           ls -l
 
+      - name: Run local action in test_project
+        run: |
+          cd test_project  # Change to 'test_project' before running the action
+          # Now run the local action
+          uses: ./  # This runs your action defined at the root folder
+
       - name: Setup python environment
         uses: ./
 
