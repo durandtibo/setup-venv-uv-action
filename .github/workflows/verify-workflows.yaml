@@ -31,8 +31,8 @@ jobs:
 
       - name: actionlint version
         run: |
-          actionlint --version
+          ./actionlint --version
 
       - name: Run actionlint on workflow files
         run: |
-          actionlint .github/workflows/*
+          ./actionlint .github/workflows/*
