@@ -37,6 +37,8 @@ jobs:
       - name: Test action to setup python environment
         run: |
           cd test_project
+          ls -l
+          ls -l ..
           ../action
 
       - name: Test action to setup python environment
