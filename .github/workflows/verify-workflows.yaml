@@ -21,9 +21,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install Go
-        uses: actions/setup-go@v6
-
       - name: Install actionlint
         run: |
           bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) latest
