@@ -37,6 +37,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Test environment
+        run: |
+          pwd
+          ls -l
+
       - name: Setup python environment
         uses: ./
 
