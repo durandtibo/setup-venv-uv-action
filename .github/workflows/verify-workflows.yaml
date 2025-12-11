@@ -1,4 +1,4 @@
-name: Lint GitHub Actions Workflow
+name: Verify Workflows
 
 on:
   pull_request:
