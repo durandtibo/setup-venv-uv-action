@@ -1,5 +1,11 @@
 name: "Setup Python environment"
-description: "Checkout code and install dependencies"
+description: "Setup Python environment, install dependencies, and verify the environment"
+
+author: "Thibaut Durand"
+
+branding:
+  icon: "python"
+  color: "blue"
 
 inputs:
   python-version:
