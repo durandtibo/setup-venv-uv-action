@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 def install(c: Context) -> None:
     r"""Install packages."""
     c.run("uv sync --frozen", pty=True)
-    # c.run("uv pip install -e .", pty=True)
+    c.run("uv pip install -e .", pty=True)
     
 @task
 def show_installed_packages(c: Context) -> None:
