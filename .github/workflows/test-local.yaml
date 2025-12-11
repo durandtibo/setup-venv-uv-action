@@ -41,7 +41,7 @@ jobs:
           ls -l
 
       - name: Test action to setup python environment
-        uses: ./action.yml
+        uses: ../
 
       - name: Test environment
         run: |
