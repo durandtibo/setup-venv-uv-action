@@ -37,14 +37,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Test action to setup python environment
-        run: |
-          cd test_project
-          pwd
-          ls -l
-
-#      - name: Test action to setup python environment
-#        uses: ./
+      - name: Setup python environment
+        uses: durandtibo/setup-venv-uv-action@v0.0.1
 
       - name: Test environment
         run: |
