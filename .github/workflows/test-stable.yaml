@@ -18,16 +18,16 @@ jobs:
       matrix:
         os:
           [
-#            ubuntu-latest,
+            ubuntu-latest,
             ubuntu-24.04,
-#            ubuntu-22.04,
-#            ubuntu-24.04-arm,
-#            ubuntu-22.04-arm,
-#            macos-latest,
-#            macos-26,
-#            macos-15,
-#            macos-14,
-#            macos-15-intel,
+            ubuntu-22.04,
+            ubuntu-24.04-arm,
+            ubuntu-22.04-arm,
+            macos-latest,
+            macos-26,
+            macos-15,
+            macos-14,
+            macos-15-intel,
           ]
 
     steps:
@@ -40,5 +40,3 @@ jobs:
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
-
-
