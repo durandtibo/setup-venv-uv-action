@@ -1,0 +1,37 @@
+name: Lint GitHub Actions Workflow
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/*" # Trigger on changes to workflow files
+  push:
+    paths:
+      - ".github/workflows/*" # Trigger on changes to workflow files
+  workflow_dispatch: # to trigger manually
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Go
+        uses: actions/setup-go@v6
+
+      - name: Install actionlint
+        run: |
+          go get github.com/rhysd/actionlint
+
+      - name: actionlint version
+        run: |
+          actionlint --version
+
+      - name: Run actionlint on workflow files
+        run: |
+          actionlint .github/workflows/*
