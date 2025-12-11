@@ -35,6 +35,11 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Test action to setup python environment
+        run: |
+          cd test_project
+          ../action
+
+      - name: Test action to setup python environment
         uses: ./
 
       - name: Test environment
