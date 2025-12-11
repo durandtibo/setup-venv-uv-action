@@ -6,7 +6,7 @@ display configuration, and verify the environment setup.
 
 Example:
     Run tasks using the inv command:
-    
+
     $ inv install
     $ inv show-installed-packages
     $ inv show-python-config

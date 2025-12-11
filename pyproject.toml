@@ -9,10 +9,10 @@ description = "Example project for testing the setup-venv-uv-action GitHub Actio
 readme = "README.md"
 license = "BSD-3-Clause"
 authors = [
-    { name = "Thibaut Durand", email = "" }
+    { name = "Thibaut Durand" }
 ]
 maintainers = [
-    { name = "Thibaut Durand", email = "" }
+    { name = "Thibaut Durand" }
 ]
 keywords = ["github-actions", "uv", "python", "virtual-environment", "ci-cd"]
 classifiers = [
