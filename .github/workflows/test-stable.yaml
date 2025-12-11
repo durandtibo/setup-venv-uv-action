@@ -29,9 +29,6 @@ jobs:
 #            macos-14,
 #            macos-15-intel,
           ]
-    defaults:
-      run:
-        working-directory: test_project
 
     steps:
       - name: Checkout
@@ -42,8 +39,6 @@ jobs:
 
       - name: Test environment
         run: |
-          pwd
-          ls -l
           python -c "import myproject; print(myproject)"
 
 

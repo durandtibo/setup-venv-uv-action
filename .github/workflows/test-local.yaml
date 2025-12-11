@@ -29,30 +29,16 @@ jobs:
 #            macos-14,
 #            macos-15-intel,
           ]
-    defaults:
-      run:
-        working-directory: test_project
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Test environment
-        run: |
-          pwd
-          ls -l
-
-      - name: Run local action in test_project
-        run: |
-          uses: ./  # This runs your action defined at the root folder
 
       - name: Setup python environment
         uses: ./
 
       - name: Test environment
         run: |
-          pwd
-          ls -l
           python -c "import myproject; print(myproject)"
 
 
