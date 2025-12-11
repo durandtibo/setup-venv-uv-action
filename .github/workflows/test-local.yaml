@@ -37,15 +37,16 @@ jobs:
       - name: Test action to setup python environment
         run: |
           cd test_project
+          pwd
           ls -l
-          ls -l ..
-          ../action
 
       - name: Test action to setup python environment
-        uses: ./
+        uses: ./action.yml
 
       - name: Test environment
         run: |
+          pwd
+          ls -l
           python -c "import myproject; print(myproject)"
 
 
