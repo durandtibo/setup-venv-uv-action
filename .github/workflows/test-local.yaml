@@ -36,7 +36,6 @@ jobs:
 
       - name: Test action to setup python environment
         uses: ./
-        working-directory: ./test_project
 
       - name: Test environment
         run: |
