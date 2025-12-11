@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling >= 1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "myproject"
+version = "0.0.0a0"
+description = ""
+license = "BSD-3-Clause"
+
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+
+[dependency-groups]
+

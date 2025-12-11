@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# This script creates a minimal Makefile that can be used to test the action.
+#
 
 set -euo pipefail
 
