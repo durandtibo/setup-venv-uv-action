@@ -18,19 +18,5 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Install actionlint
-        run: |
-          ACTIONLINT_URL="https://raw.githubusercontent.com/rhysd/actionlint/"
-          ACTIONLINT_URL+="main/scripts/download-actionlint.bash"
-          bash <(curl -sSL $ACTIONLINT_URL) latest
-
-      - name: actionlint version
-        run: |
-          ./actionlint --version
-
-      - name: Run actionlint on workflow files
-        run: |
-          ./actionlint .github/workflows/*
+      - name: Verify GitHub Workflows
+        uses: durandtibo/verify-github-workflow-action@v0.0.1
