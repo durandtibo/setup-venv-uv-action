@@ -12,22 +12,18 @@ inputs:
     default: "3.13"
     description: "Python version to use"
     required: false
-    type: string
   package-name:
     default: ""
     description: "Optional package name to install"
     required: false
-    type: string
   package-version:
     default: ""
     description: "Optional package version to install"
     required: false
-    type: string
   install-args:
     default: ""
     description: "Optional arguments when installing dependencies"
     required: false
-    type: string
 
 runs:
   using: "composite"
