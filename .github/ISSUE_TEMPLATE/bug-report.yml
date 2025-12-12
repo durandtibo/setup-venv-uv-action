@@ -35,11 +35,12 @@ body:
 
         ```yaml
         # Your workflow configuration
-        - uses: durandtibo/setup-venv-uv-action@v1.7
+        - uses: durandtibo/setup-venv-uv-action@v0.0.1
           with:
-            github_token: ${{ secrets.GITHUB_TOKEN }}
-            repo: ${{ github.repository }}
-            max_age_hours: 24
+            python-version: "3.13"
+            package-name: "numpy"
+            package-version: "1.26.0"
+            install-args: "--all-extras"
         ```
 
         ```
@@ -52,14 +53,16 @@ body:
       label: Environment
       description: |
         Please provide information about your environment:
-        - Action version (e.g., v1.7)
-        - Runner OS (e.g., ubuntu-latest, macos-latest)
-        - GitHub CLI version (run `gh --version`)
+        - Action version (e.g., v0.0.1)
+        - Runner OS (e.g., ubuntu-latest, macos-latest, macos-14)
+        - Python version (e.g., 3.13, 3.12)
+        - uv version (if known)
         - Any other relevant environment details
       placeholder: |
-        - Action version: v1.7
+        - Action version: v0.0.1
         - Runner: ubuntu-latest
-        - GitHub CLI: gh version 2.40.0
+        - Python version: 3.13
+        - uv version: 0.5.0
     validations:
       required: true
   - type: markdown

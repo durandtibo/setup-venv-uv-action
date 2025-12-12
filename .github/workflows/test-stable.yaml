@@ -1,3 +1,31 @@
+# Test Stable Action
+#
+# This reusable workflow tests the published stable version of the action.
+# It ensures the released version continues to work correctly and detects regressions.
+#
+# Test Strategy:
+#   - Uses the published stable version (durandtibo/setup-venv-uv-action@v0.0.1)
+#   - Tests across multiple operating systems and architectures
+#   - Validates Python environment setup and package imports
+#
+# Matrix Strategy:
+#   - Ubuntu: Latest, 24.04, 22.04 (x64 and ARM)
+#   - macOS: Latest, 26, 15, 14 (Intel and Apple Silicon)
+#   - Total: 10 platform configurations
+#
+# Test Verification:
+#   - Imports myproject package to verify installation
+#   - Confirms Python environment is properly configured
+#
+# Purpose:
+#   - Regression testing: Ensures published version still works
+#   - Compatibility verification: Tests across multiple platforms
+#   - User experience validation: Tests what users actually consume
+#
+# Permissions:
+#   - actions: write - Required for workflow management
+#   - contents: read - Required to checkout repository code
+
 name: Test Stable Action
 
 on:

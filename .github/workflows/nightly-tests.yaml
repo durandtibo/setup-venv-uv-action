@@ -1,3 +1,27 @@
+# Nightly Tests
+#
+# This workflow runs the complete CI pipeline on a daily schedule to catch
+# issues early and ensure ongoing compatibility with external dependencies.
+#
+# Schedule:
+#   - Runs daily at 9:00 AM UTC
+#   - Can also be triggered manually via workflow_dispatch
+#
+# Jobs:
+#   - format: Validates code formatting and style
+#   - test-local: Tests current repository code
+#   - test-stable: Tests published stable version
+#
+# Purpose:
+#   - Early detection: Catches issues from external dependency updates
+#   - Continuous validation: Ensures action remains functional over time
+#   - Platform compatibility: Monitors OS and Python version compatibility
+#   - Regression prevention: Detects breaking changes early
+#
+# Permissions:
+#   - actions: write - Required for workflow management
+#   - contents: read - Required to checkout repository code
+
 name: Nightly Tests
 on:
   schedule:

@@ -1,0 +1,31 @@
+# Code Owners for setup-venv-uv-action
+# 
+# This file defines code ownership for automatic review requests.
+# When a PR is opened that modifies these files, the specified owners
+# will automatically be requested for review.
+#
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repo
+* @durandtibo
+
+# GitHub Actions and workflows
+/.github/ @durandtibo
+/.github/workflows/ @durandtibo
+
+# Core action definition
+/action.yaml @durandtibo
+
+# Python project configuration and tasks
+/pyproject.toml @durandtibo
+/tasks.py @durandtibo
+/uv.lock @durandtibo
+
+# Documentation
+/*.md @durandtibo
+/.github/*.md @durandtibo
+
+# Configuration files
+/.markdownlint.json @durandtibo
+/.yamllint.yaml @durandtibo
+/Makefile @durandtibo

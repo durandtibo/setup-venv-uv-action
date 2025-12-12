@@ -1,3 +1,32 @@
+# Verify Workflows
+#
+# This workflow validates GitHub Actions workflow files for syntax errors,
+# structure issues, and best practices. It runs automatically when workflow
+# files are modified to catch problems before they cause CI failures.
+#
+# Triggers:
+#   - Pull requests that modify .github/workflows/*
+#   - Pushes that modify .github/workflows/*
+#   - Manual workflow dispatch
+#
+# Validation:
+#   - YAML syntax correctness
+#   - GitHub Actions schema compliance
+#   - Required fields presence
+#   - Best practices adherence
+#
+# Uses:
+#   - durandtibo/verify-github-workflow-action@v0.0.2
+#     Specialized action for comprehensive workflow validation
+#
+# Purpose:
+#   - Prevent broken workflows: Catch errors before merge
+#   - Maintain quality: Enforce workflow best practices
+#   - Fast feedback: Validate changes immediately
+#
+# Permissions:
+#   - contents: read - Required to checkout repository code
+
 name: Verify Workflows
 
 on:
