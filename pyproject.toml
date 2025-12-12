@@ -5,38 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "myproject"
 version = "0.0.0a0"
-description = "Example project for testing the setup-venv-uv-action GitHub Action"
-readme = "README.md"
+description = ""
 license = "BSD-3-Clause"
-authors = [
-    { name = "Thibaut Durand" }
-]
-maintainers = [
-    { name = "Thibaut Durand" }
-]
-keywords = ["github-actions", "uv", "python", "virtual-environment", "ci-cd"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Software Development :: Build Tools",
-    "Topic :: Software Development :: Testing",
-]
 
 requires-python = ">=3.10"
 dependencies = []
-
-[project.urls]
-Homepage = "https://github.com/durandtibo/setup-venv-uv-action"
-Repository = "https://github.com/durandtibo/setup-venv-uv-action"
-Issues = "https://github.com/durandtibo/setup-venv-uv-action/issues"
-Changelog = "https://github.com/durandtibo/setup-venv-uv-action/releases"
 
 [project.optional-dependencies]
 
