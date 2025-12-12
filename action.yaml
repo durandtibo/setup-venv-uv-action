@@ -26,7 +26,7 @@ inputs:
   package-version:
     default: ""
     description:
-      "Optional package version to install (e.g., '1.0.0', '>=2.0'). Only used
+      "Optional package version to install (e.g., '1.0.0'). Only used
       when 'package-name' is specified. Leave empty to install latest version."
     required: false
   install-args:
