@@ -60,11 +60,10 @@ runs:
 
     # Step 3: Install invoke task runner
     # Invoke is used to run project management tasks defined in tasks.py
-    # The Makefile target ensures the correct version (>=2.2.0) is installed
     - name: Install invoke
       shell: bash
       run: |
-        make install-invoke
+        uv pip install "invoke>=2.2.0"
 
     # Step 4: Install project dependencies using the invoke install task
     # This typically runs 'uv sync --frozen' and 'uv pip install -e .'
