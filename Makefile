@@ -1,11 +1,19 @@
-SHELL=/bin/bash
-
 # Makefile for setup-venv-uv-action
 #
+# This Makefile provides convenient shortcuts for common development tasks.
+# All targets use uv for package management and various linters for code quality.
+#
 # Available targets:
-#   help           - Display this help message
-#   format         - Run all formatting and linting checks
-#   install-invoke - Install invoke package using uv
+#   make format          - Run all formatters and linters (markdown, prettier, YAML)
+#   make install-invoke  - Install the invoke task runner
+#
+# Requirements:
+#   - uv: Fast Python package installer (https://github.com/astral-sh/uv)
+#   - markdownlint: Markdown linter (npm install -g markdownlint-cli)
+#   - prettier: Code formatter (npm install -g prettier)
+#   - yamllint: YAML linter (pip install yamllint or apt-get install yamllint)
+
+SHELL=/bin/bash
 
 .PHONY : help
 help :
@@ -39,6 +47,8 @@ format :
 
 .PHONY : install-invoke
 install-invoke :
+	# Install invoke task runner for managing project tasks
+	# Version requirement: >= 2.2.0 for compatibility with current tasks
 	uv pip install "invoke>=2.2.0"
 
 .DEFAULT_GOAL := help
