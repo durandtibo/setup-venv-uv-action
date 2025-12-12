@@ -57,6 +57,12 @@ to uphold this code. Please read
 2. **Install invoke**:
 
    ```bash
+   uv pip install "invoke>=2.2.0"
+   ```
+
+   Or use the Makefile shortcut:
+
+   ```bash
    make install-invoke
    ```
 
@@ -68,10 +74,15 @@ to uphold this code. Please read
 
 ### Available Make Commands
 
+The Makefile is provided for convenience during local development:
+
 ```bash
 make format          # Format and lint all code (markdown, YAML)
-make install-invoke  # Install invoke task runner
+make install-invoke  # Install invoke task runner (optional shortcut)
 ```
+
+Note: The GitHub Action does not depend on the Makefile. It installs invoke
+directly using `uv pip install`.
 
 ### Available Invoke Tasks
 
