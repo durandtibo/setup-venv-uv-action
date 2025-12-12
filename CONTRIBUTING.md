@@ -82,7 +82,7 @@ make install-invoke  # Install invoke task runner (optional shortcut)
 ```
 
 Note: The GitHub Action does not depend on the Makefile. It installs invoke
-directly using `uv pip install`.
+directly using `uv pip install "invoke>=2.2.0"`.
 
 ### Available Invoke Tasks
 
