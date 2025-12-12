@@ -168,9 +168,20 @@ This action expects:
 
 - A `pyproject.toml` file in your repository root (for dependency management)
 - A `tasks.py` file with `invoke` tasks (specifically an `install` task)
+- `invoke>=2.2.0` in your project dependencies (e.g., in a dev dependency group)
 
-The action automatically installs `invoke>=2.2.0` so you don't need to include
-it in your project dependencies.
+Note: While the action installs invoke before running your tasks, it must be
+included in your project dependencies to ensure it remains available after the
+`uv sync` step.
+
+### Example `pyproject.toml`
+
+```toml
+[dependency-groups]
+dev = [
+    "invoke >=2.2.0,<3.0",
+]
+```
 
 ### Example `tasks.py`
 
