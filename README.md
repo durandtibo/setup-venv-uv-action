@@ -168,7 +168,20 @@ This action expects:
 
 - A `pyproject.toml` file in your repository root (for dependency management)
 - A `tasks.py` file with `invoke` tasks (specifically an `install` task)
-- A `Makefile` with an `install-invoke` target
+- `invoke>=2.2.0` in your project dependencies (e.g., in a dev dependency group)
+
+Note: While the action installs invoke before running your tasks, it must be
+included in your project dependencies to ensure it remains available after the
+`uv sync` step.
+
+### Example `pyproject.toml`
+
+```toml
+[dependency-groups]
+dev = [
+    "invoke >=2.2.0,<3.0",
+]
+```
 
 ### Example `tasks.py`
 
@@ -181,14 +194,6 @@ def install(c: Context) -> None:
     """Install packages."""
     c.run("uv sync --frozen", pty=True)
     c.run("uv pip install -e .", pty=True)
-```
-
-### Example `Makefile`
-
-```makefile
-.PHONY : install-invoke
-install-invoke :
-    uv pip install "invoke>=2.2.0"
 ```
 
 ## Troubleshooting
@@ -205,7 +210,6 @@ If the action fails during dependency installation, check:
 
 1. Your `pyproject.toml` has correct dependency specifications
 2. The `tasks.py` file exists and has an `install` task
-3. The `Makefile` exists with an `install-invoke` target
 
 ### Custom Install Arguments Not Working
 
