@@ -3,15 +3,17 @@ SHELL=/bin/bash
 # Makefile for setup-venv-uv-action
 #
 # Available targets:
-#   help    - Display this help message
-#   format  - Run all formatting and linting checks
+#   help           - Display this help message
+#   format         - Run all formatting and linting checks
+#   install-invoke - Install invoke package using uv
 
 .PHONY : help
 help :
-	@echo "verify-uv-build-action - Available Make Targets"
+	@echo "setup-venv-uv-action - Available Make Targets"
 	@echo ""
-	@echo "  make help    - Display this help message"
-	@echo "  make format  - Run formatting and linting checks"
+	@echo "  make help           - Display this help message"
+	@echo "  make format         - Run formatting and linting checks"
+	@echo "  make install-invoke - Install invoke package using uv"
 	@echo ""
 	@echo "Formatting tools used:"
 	@echo "  - markdownlint: Validates Markdown files"
