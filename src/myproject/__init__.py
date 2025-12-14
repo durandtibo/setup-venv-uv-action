@@ -12,5 +12,5 @@ Example:
     <module 'myproject' from '...'>
 """
 
-__version__ = "0.0.0a0"
+__version__ = "0.1.2"
 __all__: list[str] = []
