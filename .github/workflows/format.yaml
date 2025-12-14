@@ -1,3 +1,24 @@
+# Code Formatting and Linting Workflow
+#
+# This reusable workflow validates code formatting and style across the repository.
+# It runs as part of the CI pipeline and can also be triggered manually.
+#
+# Jobs:
+#   - markdown: Validates Markdown files using markdownlint
+#     - Checks formatting, line length, heading structure
+#     - Configuration: .markdownlint.json
+#
+#   - yaml: Validates YAML files using yamllint
+#     - Checks syntax, indentation, line length
+#     - Configuration: .yamllint.yaml
+#
+# Configuration Files:
+#   - .markdownlint.json: Markdown linting rules
+#   - .yamllint.yaml: YAML linting rules
+#
+# Permissions:
+#   - contents: read - Required to checkout repository code
+
 name: Format
 on:
   workflow_call:

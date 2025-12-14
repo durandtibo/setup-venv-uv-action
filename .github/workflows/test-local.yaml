@@ -1,3 +1,26 @@
+# Test Local Action
+#
+# This reusable workflow tests the action using the current repository code.
+# It validates that uncommitted changes work correctly before they are released.
+#
+# Test Strategy:
+#   - Uses the local action code (uses: ./)
+#   - Tests across multiple operating systems and architectures
+#   - Validates Python environment setup and package imports
+#
+# Matrix Strategy:
+#   - Ubuntu: Latest, 24.04, 22.04 (x64 and ARM)
+#   - macOS: Latest, 26, 15, 14 (Intel and Apple Silicon)
+#   - Total: 10 platform configurations
+#
+# Test Verification:
+#   - Imports myproject package to verify installation
+#   - Confirms Python environment is properly configured
+#
+# Permissions:
+#   - actions: write - Required for workflow management
+#   - contents: read - Required to checkout repository code
+
 name: Test Local Action
 
 on:

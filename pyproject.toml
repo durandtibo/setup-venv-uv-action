@@ -1,3 +1,8 @@
+# Project configuration for setup-venv-uv-action
+#
+# This is a minimal Python project used for testing the GitHub Action.
+# It demonstrates the expected structure for projects using this action.
+
 [build-system]
 requires = ["hatchling >= 1.27"]
 build-backend = "hatchling.build"
@@ -5,16 +10,18 @@ build-backend = "hatchling.build"
 [project]
 name = "myproject"
 version = "0.0.0a0"
-description = ""
+description = "Test project for setup-venv-uv-action"
 license = "BSD-3-Clause"
 
 requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
+# Optional dependencies can be installed with: uv sync --all-extras
 
 [dependency-groups]
+# Development dependencies installed during action testing
 dev = [
-    "invoke >=2.2.0,<3.0",
+    "invoke >=2.2.0,<3.0",  # Task runner for project management
 ]
 
