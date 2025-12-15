@@ -28,7 +28,7 @@ permissions:
   contents: read
 
 jobs:
-  markdown:
+  format:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -41,26 +41,20 @@ jobs:
         with:
           node-version: "latest"
 
-      - name: Install markdownlint-cli
-        run: npm install -g markdownlint-cli
-
-      - name: Run markdownlint
-        run: markdownlint -- **/*.md
-
-  yaml:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v6
-
-      - name: Install yamllint
+      - name: Install dependencies
         run: |
+          echo "📦 Installing all dependencies..."
+          npm install -g markdownlint-cli
           sudo apt-get update
           sudo apt-get install -y yamllint
+
+      - name: Run markdownlint
+        run: |
+          echo "📝 Running markdownlint..."
+          markdownlint -- **/*.md
 
       - name: Run yamllint
         run: |
           echo "🔍 Running yamllint..."
           yamllint -f colored .
+
