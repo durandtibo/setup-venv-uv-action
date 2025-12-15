@@ -125,11 +125,6 @@ users should:
 Our `.yamllint.yaml` helps prevent common YAML syntax issues that could lead to
 security misconfigurations.
 
-### Workflow Permissions
-
-All workflows follow the principle of least privilege and explicitly declare
-required permissions.
-
 ## Additional Resources
 
 - [GitHub Actions Security Best

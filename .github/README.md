@@ -130,7 +130,7 @@ nightly-tests.yaml
 The repository uses a dual-testing approach:
 
 1. **Local Testing** (`test-local.yaml`): Tests uncommitted changes using `uses:
-   ./`
+./`
 2. **Stable Testing** (`test-stable.yaml`): Tests the published action version
    for regression detection
 

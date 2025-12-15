@@ -57,4 +57,3 @@ jobs:
         run: |
           echo "🔍 Running yamllint..."
           yamllint -f colored .
-
