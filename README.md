@@ -233,12 +233,3 @@ details.
 
 This project is licensed under the BSD 3-Clause License - see the
 [LICENSE](LICENSE) file for details.
-
-## Author
-
-Thibaut Durand
-
-## Acknowledgments
-
-- Built with [uv](https://github.com/astral-sh/uv) by Astral
-- Inspired by the need for faster Python environment setup in CI/CD pipelines

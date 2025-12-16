@@ -31,13 +31,13 @@ help :
 
 .PHONY : format
 format :
-	@echo "🔍 Running markdownlint on Markdown files..."
-	markdownlint **/*.md
-	@echo "✅ Markdownlint passed"
-	@echo ""
 	@echo "✨ Running prettier to format files..."
 	prettier --write .
 	@echo "✅ Prettier formatting complete"
+	@echo ""
+	@echo "🔍 Running markdownlint on Markdown files..."
+	markdownlint **/*.md
+	@echo "✅ Markdownlint passed"
 	@echo ""
 	@echo "🔍 Running yamllint on YAML files..."
 	yamllint -f colored .
