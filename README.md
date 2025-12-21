@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
 
       - name: Run tests
         run: |
@@ -46,7 +46,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment
-  uses: durandtibo/setup-venv-uv-action@v0.0.1
+  uses: durandtibo/setup-venv-uv-action@v0.0.2
   with:
     python-version: "3.11"
 ```
@@ -55,7 +55,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with numpy
-  uses: durandtibo/setup-venv-uv-action@v0.0.1
+  uses: durandtibo/setup-venv-uv-action@v0.0.2
   with:
     python-version: "3.12"
     package-name: "numpy"
@@ -66,19 +66,20 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with extras
-  uses: durandtibo/setup-venv-uv-action@v0.0.1
+  uses: durandtibo/setup-venv-uv-action@v0.0.2
   with:
     install-args: "--all-extras"
 ```
 
 ## Inputs
 
-| Input             | Description                                         | Required | Default  |
-| ----------------- | --------------------------------------------------- | -------- | -------- |
-| `python-version`  | Python version to use (e.g., "3.13", "3.12")        | No       | `"3.13"` |
-| `package-name`    | Optional package name for dependency testing        | No       | `""`     |
-| `package-version` | Optional package version (used with `package-name`) | No       | `""`     |
-| `install-args`    | Additional arguments for the install command        | No       | `""`     |
+| Input                  | Description                                          | Required | Default  |
+| ---------------------- | ---------------------------------------------------- | -------- | -------- |
+| `python-version`       | Python version to use (e.g., "3.13", "3.12")         | No       | `"3.13"` |
+| `package-name`         | Optional package name for dependency testing         | No       | `""`     |
+| `package-version`      | Optional package version (used with `package-name`)  | No       | `""`     |
+| `install-args`         | Additional arguments for the install command         | No       | `""`     |
+| `package-install-args` | Additional arguments for the package install command | No       | `""`     |
 
 ## What This Action Does
 
@@ -113,7 +114,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -134,7 +135,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup with specific dependency version
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
         with:
           package-name: "requests"
           package-version: ${{ matrix.package-version }}
@@ -156,7 +157,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
 
       - name: Run tests
         run: python -m pytest
@@ -188,6 +189,7 @@ dev = [
 ```python
 from invoke.tasks import task
 from invoke.context import Context
+
 
 @task
 def install(c: Context) -> None:
