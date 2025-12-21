@@ -73,12 +73,13 @@ jobs:
 
 ## Inputs
 
-| Input             | Description                                         | Required | Default  |
-| ----------------- | --------------------------------------------------- | -------- | -------- |
-| `python-version`  | Python version to use (e.g., "3.13", "3.12")        | No       | `"3.13"` |
-| `package-name`    | Optional package name for dependency testing        | No       | `""`     |
-| `package-version` | Optional package version (used with `package-name`) | No       | `""`     |
-| `install-args`    | Additional arguments for the install command        | No       | `""`     |
+| Input                  | Description                                          | Required | Default  |
+| ---------------------- | ---------------------------------------------------- | -------- | -------- |
+| `python-version`       | Python version to use (e.g., "3.13", "3.12")         | No       | `"3.13"` |
+| `package-name`         | Optional package name for dependency testing         | No       | `""`     |
+| `package-version`      | Optional package version (used with `package-name`)  | No       | `""`     |
+| `install-args`         | Additional arguments for the install command         | No       | `""`     |
+| `package-install-args` | Additional arguments for the package install command | No       | `""`     |
 
 ## What This Action Does
 
@@ -188,6 +189,7 @@ dev = [
 ```python
 from invoke.tasks import task
 from invoke.context import Context
+
 
 @task
 def install(c: Context) -> None:
