@@ -34,6 +34,10 @@ inputs:
       "Optional arguments passed to 'inv install' command (e.g., '--all-extras',
       '--no-dev', custom flags supported by your tasks.py install task)."
     required: false
+  package-install-args:
+    default: ""
+    description: "Optional arguments passed to 'uv pip install' command (e.g., '--upgrade')."
+    required: false
 
 runs:
   using: "composite"
@@ -85,6 +89,7 @@ runs:
         package-name: ${{ inputs.package-name }}
         package-version: ${{ inputs.package-version }}
         python-version: ${{ inputs.python-version }}
+        uv-args: ${{ inputs.package-install-args }}
 
     # Step 6: Display Python configuration for debugging and verification
     # Shows:
