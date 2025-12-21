@@ -4,7 +4,7 @@
 # It ensures the released version continues to work correctly and detects regressions.
 #
 # Test Strategy:
-#   - Uses the published stable version (durandtibo/setup-venv-uv-action@v0.0.1)
+#   - Uses the published stable version (durandtibo/setup-venv-uv-action@v0.0.2)
 #   - Tests across multiple operating systems and architectures
 #   - Validates Python environment setup and package imports
 #
@@ -63,7 +63,44 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+
+  test-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup python environment
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
+        with:
+          package-name: numpy
+          package-version: 2.4.0
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+
+  test-package-args:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup python environment
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
+        with:
+          package-name: numpy
+          package-version: 2.4.0
+          package-install-args: "--upgrade"
 
       - name: Test environment
         run: |

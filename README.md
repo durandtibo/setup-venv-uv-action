@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
 
       - name: Run tests
         run: |
@@ -46,7 +46,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment
-  uses: durandtibo/setup-venv-uv-action@v0.0.1
+  uses: durandtibo/setup-venv-uv-action@v0.0.2
   with:
     python-version: "3.11"
 ```
@@ -55,7 +55,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with numpy
-  uses: durandtibo/setup-venv-uv-action@v0.0.1
+  uses: durandtibo/setup-venv-uv-action@v0.0.2
   with:
     python-version: "3.12"
     package-name: "numpy"
@@ -66,7 +66,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with extras
-  uses: durandtibo/setup-venv-uv-action@v0.0.1
+  uses: durandtibo/setup-venv-uv-action@v0.0.2
   with:
     install-args: "--all-extras"
 ```
@@ -113,7 +113,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -134,7 +134,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup with specific dependency version
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
         with:
           package-name: "requests"
           package-version: ${{ matrix.package-version }}
@@ -156,7 +156,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.1
+        uses: durandtibo/setup-venv-uv-action@v0.0.2
 
       - name: Run tests
         run: python -m pytest
