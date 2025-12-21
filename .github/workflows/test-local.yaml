@@ -77,13 +77,12 @@ jobs:
         with:
           package-name: numpy
           package-version: 2.4.0
-          package-install-args: "--upgrade"
 
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
 
-  test-package-name:
+  test-package-args:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -95,6 +94,8 @@ jobs:
         uses: ./
         with:
           package-name: numpy
+          package-version: 2.4.0
+          package-install-args: "--upgrade"
 
       - name: Test environment
         run: |
