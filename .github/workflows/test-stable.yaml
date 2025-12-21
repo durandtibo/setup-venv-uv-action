@@ -39,7 +39,7 @@ permissions:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 2
     strategy:
       max-parallel: 8
       fail-fast: false
@@ -71,7 +71,7 @@ jobs:
 
   test-package:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 2
 
     steps:
       - name: Checkout
@@ -89,7 +89,7 @@ jobs:
 
   test-package-args:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 2
 
     steps:
       - name: Checkout
