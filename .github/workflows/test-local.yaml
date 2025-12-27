@@ -100,3 +100,15 @@ jobs:
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
+
+  test-progress-bar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup python environment
+        uses: ./
+        with:
+          uv-no-progress: "false"

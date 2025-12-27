@@ -38,6 +38,10 @@ inputs:
     default: ""
     description: "Optional arguments passed to 'uv pip install' command (e.g., '--upgrade')."
     required: false
+  uv-no-progress:
+    default: "true"
+    description: "Disable UV progress bars"
+    required: false
 
 runs:
   using: "composite"
@@ -68,6 +72,8 @@ runs:
       shell: bash
       run: |
         uv pip install "invoke>=2.2.0"
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
     # Step 4: Install project dependencies using the invoke install task
     # This typically runs 'uv sync --frozen' and 'uv pip install -e .'
@@ -77,6 +83,8 @@ runs:
       shell: bash
       run: |
         inv install ${{ inputs.install-args }}
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
     # Step 5 (Optional): Install a specific package version for compatibility testing
     # This step only runs if package-name is provided
@@ -90,6 +98,8 @@ runs:
         package-version: ${{ inputs.package-version }}
         python-version: ${{ inputs.python-version }}
         uv-args: ${{ inputs.package-install-args }}
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
     # Step 6: Display Python configuration for debugging and verification
     # Shows:
