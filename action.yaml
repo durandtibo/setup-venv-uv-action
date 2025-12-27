@@ -39,7 +39,7 @@ inputs:
     description: "Optional arguments passed to 'uv pip install' command (e.g., '--upgrade')."
     required: false
   uv-no-progress:
-    default: "false"
+    default: "true"
     description: "Disable UV progress bars"
     required: false
 

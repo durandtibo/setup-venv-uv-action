@@ -111,4 +111,4 @@ jobs:
       - name: Setup python environment
         uses: ./
         with:
-          uv-no-progress: "true"
+          uv-no-progress: "false"
