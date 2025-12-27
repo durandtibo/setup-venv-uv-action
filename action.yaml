@@ -72,6 +72,8 @@ runs:
       shell: bash
       run: |
         uv pip install "invoke>=2.2.0"
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
     # Step 4: Install project dependencies using the invoke install task
     # This typically runs 'uv sync --frozen' and 'uv pip install -e .'
@@ -80,8 +82,6 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        echo "UV_NO_PROGRESS input: ${{ inputs.uv-no-progress }}"
-        echo "UV_NO_PROGRESS env: $UV_NO_PROGRESS"
         inv install ${{ inputs.install-args }}
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
@@ -98,6 +98,8 @@ runs:
         package-version: ${{ inputs.package-version }}
         python-version: ${{ inputs.python-version }}
         uv-args: ${{ inputs.package-install-args }}
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
     # Step 6: Display Python configuration for debugging and verification
     # Shows:
