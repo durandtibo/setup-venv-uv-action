@@ -80,6 +80,8 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
+        echo "UV_NO_PROGRESS input: ${{ inputs.uv-no-progress }}"
+        echo "UV_NO_PROGRESS env: $UV_NO_PROGRESS"
         inv install ${{ inputs.install-args }}
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
