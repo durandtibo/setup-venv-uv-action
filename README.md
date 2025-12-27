@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.2
+        uses: durandtibo/setup-venv-uv-action@v0.0.3
 
       - name: Run tests
         run: |
@@ -46,7 +46,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment
-  uses: durandtibo/setup-venv-uv-action@v0.0.2
+  uses: durandtibo/setup-venv-uv-action@v0.0.3
   with:
     python-version: "3.11"
 ```
@@ -55,7 +55,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with numpy
-  uses: durandtibo/setup-venv-uv-action@v0.0.2
+  uses: durandtibo/setup-venv-uv-action@v0.0.3
   with:
     python-version: "3.12"
     package-name: "numpy"
@@ -66,7 +66,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with extras
-  uses: durandtibo/setup-venv-uv-action@v0.0.2
+  uses: durandtibo/setup-venv-uv-action@v0.0.3
   with:
     install-args: "--all-extras"
 ```
@@ -80,6 +80,7 @@ jobs:
 | `package-version`      | Optional package version (used with `package-name`)  | No       | `""`     |
 | `install-args`         | Additional arguments for the install command         | No       | `""`     |
 | `package-install-args` | Additional arguments for the package install command | No       | `""`     |
+| `uv-no-progress`       | Disable UV progress bars                             | No       | `"true"` |
 
 ## What This Action Does
 
@@ -114,7 +115,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: durandtibo/setup-venv-uv-action@v0.0.2
+        uses: durandtibo/setup-venv-uv-action@v0.0.3
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -135,7 +136,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup with specific dependency version
-        uses: durandtibo/setup-venv-uv-action@v0.0.2
+        uses: durandtibo/setup-venv-uv-action@v0.0.3
         with:
           package-name: "requests"
           package-version: ${{ matrix.package-version }}
@@ -157,7 +158,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.2
+        uses: durandtibo/setup-venv-uv-action@v0.0.3
 
       - name: Run tests
         run: python -m pytest
