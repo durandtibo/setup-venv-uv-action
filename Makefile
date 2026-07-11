@@ -48,8 +48,8 @@ format :
 .PHONY : install-invoke
 install-invoke :
 	# Install invoke task runner for managing project tasks
-	# Version requirement: >= 2.2.0 for compatibility with current tasks
-	uv pip install "invoke>=2.2.0"
+	# Version requirement: >= 3.0 for compatibility with current tasks
+	uv pip install "invoke>=3.0"
 
 .DEFAULT_GOAL := help
 

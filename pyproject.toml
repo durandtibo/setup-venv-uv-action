@@ -4,7 +4,7 @@
 # It demonstrates the expected structure for projects using this action.
 
 [build-system]
-requires = ["hatchling >= 1.27"]
+requires = ["hatchling >= 1.30"]
 build-backend = "hatchling.build"
 
 [project]
@@ -22,6 +22,6 @@ dependencies = []
 [dependency-groups]
 # Development dependencies installed during action testing
 dev = [
-    "invoke >=2.2.0,<3.0",  # Task runner for project management
+    "invoke >=3.0,<4.0",  # Task runner for project management
 ]
 
