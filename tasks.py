@@ -22,22 +22,34 @@ if TYPE_CHECKING:
     from invoke.context import Context
 
 
-@task
-def install(c: Context) -> None:
+@task(
+    help={
+        "all_extras": "Install all optional dependency groups.",
+        "no_dev": "Skip installing development dependencies.",
+    }
+)
+def install(c: Context, all_extras: bool = False, no_dev: bool = False) -> None:
     r"""Install project packages and dependencies.
-    
+
     This task performs a two-step installation process:
     1. Syncs dependencies from uv.lock (frozen install for reproducibility)
     2. Installs the current project in editable mode
-    
+
     Args:
         c: The invoke context object for running commands.
-    
+        all_extras: If ``True``, pass ``--all-extras`` to ``uv sync``.
+        no_dev: If ``True``, pass ``--no-dev`` to ``uv sync``.
+
     Note:
         The --frozen flag ensures dependencies match uv.lock exactly,
         preventing unexpected version changes during installation.
     """
-    c.run("uv sync --frozen", pty=True)
+    sync_args = ["uv", "sync", "--frozen"]
+    if all_extras:
+        sync_args.append("--all-extras")
+    if no_dev:
+        sync_args.append("--no-dev")
+    c.run(" ".join(sync_args), pty=True)
     c.run("uv pip install -e .", pty=True)
 
 
