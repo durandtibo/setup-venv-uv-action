@@ -75,7 +75,7 @@ jobs:
       - name: Setup python environment
         uses: ./
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Test environment
         run: |

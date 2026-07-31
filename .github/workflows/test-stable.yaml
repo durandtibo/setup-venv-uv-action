@@ -80,7 +80,7 @@ jobs:
       - name: Setup python environment
         uses: durandtibo/setup-venv-uv-action@v0.0.4
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Test environment
         run: |
