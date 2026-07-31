@@ -81,10 +81,11 @@ runs:
     # (e.g., --all-extras to install optional dependencies)
     - name: Install dependencies
       shell: bash
-      run: |
-        inv install ${{ inputs.install-args }}
       env:
+        INSTALL_ARGS: ${{ inputs.install-args }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
+      run: |
+        inv install ${INSTALL_ARGS}
 
     # Step 5 (Optional): Install a specific package version for compatibility testing
     # This step only runs if package-name is provided
