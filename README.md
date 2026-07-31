@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.3
+        uses: durandtibo/setup-venv-uv-action@v0.0.5
 
       - name: Run tests
         run: |
@@ -46,7 +46,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment
-  uses: durandtibo/setup-venv-uv-action@v0.0.3
+  uses: durandtibo/setup-venv-uv-action@v0.0.5
   with:
     python-version: "3.11"
 ```
@@ -55,7 +55,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with numpy
-  uses: durandtibo/setup-venv-uv-action@v0.0.3
+  uses: durandtibo/setup-venv-uv-action@v0.0.5
   with:
     python-version: "3.12"
     package-name: "numpy"
@@ -66,7 +66,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with extras
-  uses: durandtibo/setup-venv-uv-action@v0.0.3
+  uses: durandtibo/setup-venv-uv-action@v0.0.5
   with:
     install-args: "--all-extras"
 ```
@@ -75,7 +75,7 @@ jobs:
 
 | Input                  | Description                                          | Required | Default  |
 | ---------------------- | ---------------------------------------------------- | -------- | -------- |
-| `python-version`       | Python version to use (e.g., "3.13", "3.12")         | No       | `"3.13"` |
+| `python-version`       | Python version to use (e.g., "3.13", "3.12")         | No       | `"3.14"` |
 | `package-name`         | Optional package name for dependency testing         | No       | `""`     |
 | `package-version`      | Optional package version (used with `package-name`)  | No       | `""`     |
 | `install-args`         | Additional arguments for the install command         | No       | `""`     |
@@ -115,7 +115,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: durandtibo/setup-venv-uv-action@v0.0.3
+        uses: durandtibo/setup-venv-uv-action@v0.0.5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -136,7 +136,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup with specific dependency version
-        uses: durandtibo/setup-venv-uv-action@v0.0.3
+        uses: durandtibo/setup-venv-uv-action@v0.0.5
         with:
           package-name: "requests"
           package-version: ${{ matrix.package-version }}
@@ -158,7 +158,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.0.3
+        uses: durandtibo/setup-venv-uv-action@v0.0.5
 
       - name: Run tests
         run: python -m pytest
@@ -170,7 +170,7 @@ This action expects:
 
 - A `pyproject.toml` file in your repository root (for dependency management)
 - A `tasks.py` file with `invoke` tasks (specifically an `install` task)
-- `invoke>=2.2.0` in your project dependencies (e.g., in a dev dependency group)
+- `invoke>=3.0` in your project dependencies (e.g., in a dev dependency group)
 
 Note: While the action installs invoke before running your tasks, it must be
 included in your project dependencies to ensure it remains available after the
@@ -181,7 +181,7 @@ included in your project dependencies to ensure it remains available after the
 ```toml
 [dependency-groups]
 dev = [
-    "invoke >=2.2.0,<3.0",
+    "invoke >=3.0,<4.0",
 ]
 ```
 
