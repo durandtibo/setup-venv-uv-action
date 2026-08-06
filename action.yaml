@@ -1,7 +1,6 @@
 name: "Setup Python environment"
 description:
-  "Setup Python environment using uv, install dependencies, and verify the
-  environment with comprehensive diagnostics"
+  "Setup Python environment and install dependencies using uv"
 
 author: "Thibaut Durand"
 
