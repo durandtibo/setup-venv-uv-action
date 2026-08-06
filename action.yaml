@@ -1,7 +1,6 @@
 name: "Setup Python environment"
 description:
-  "Setup Python environment using uv, install dependencies, and verify the
-  environment with comprehensive diagnostics"
+  "Setup Python environment and install dependencies using uv"
 
 author: "Thibaut Durand"
 
@@ -93,7 +92,7 @@ runs:
     # Example: Test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy
     - name: Install valid package version
       if: ${{ inputs.package-name != '' }}
-      uses: durandtibo/uv-install-package-action@v0.1.2
+      uses: durandtibo/uv-install-package-action@v0.2.0
       with:
         package-name: ${{ inputs.package-name }}
         package-version: ${{ inputs.package-version }}
