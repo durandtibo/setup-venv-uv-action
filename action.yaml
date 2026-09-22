@@ -71,7 +71,7 @@ runs:
     - name: Install invoke-tasklib
       shell: bash
       run: |
-        uv pip install "invoke-tasklib>=0.0.2"
+        uv pip install "invoke-tasklib>=0.0.2,<1.0.0"
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
@@ -110,6 +110,7 @@ runs:
     # Useful for troubleshooting version-related issues
     - name: Show python config
       shell: bash
+      continue-on-error: true
       run: |
         inv env.show-python-config
 
@@ -118,6 +119,7 @@ runs:
     # Helpful for debugging dependency issues and verifying installations
     - name: Show installed packages
       shell: bash
+      continue-on-error: true
       run: |
         inv env.show-installed-packages
 
@@ -129,6 +131,7 @@ runs:
     # Useful for understanding dependency relationships and conflicts
     - name: Show dependency tree
       shell: bash
+      continue-on-error: true
       run: |
         uv pip tree --show-version-specifiers
 
