@@ -22,6 +22,6 @@ dependencies = []
 [dependency-groups]
 # Development dependencies installed during action testing
 dev = [
-    "invoke-tasklib >=0.0.2,<0.1.0",  # Shared invoke tasks for project management
+    "invoke-tasklib >=0.0.2,<1.0.0",  # Shared invoke tasks for project management
 ]
 

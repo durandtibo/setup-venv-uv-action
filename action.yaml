@@ -71,7 +71,7 @@ runs:
     - name: Install invoke-tasklib
       shell: bash
       run: |
-        uv pip install "invoke-tasklib>=0.0.2"
+        uv pip install "invoke-tasklib>=0.0.2,<1.0.0"
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
