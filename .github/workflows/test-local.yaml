@@ -42,6 +42,7 @@ jobs:
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
+          python --version | grep -q "3\.14\." || (echo "expected default python 3.14.x" && exit 1)
 
   test-python-version:
     runs-on: ubuntu-latest
@@ -60,6 +61,7 @@ jobs:
         run: |
           python --version
           python -c "import myproject; print(myproject)"
+          python --version | grep -q "3\.13\." || (echo "expected python 3.13.x" && exit 1)
 
   test-install-args:
     runs-on: ubuntu-latest
@@ -95,6 +97,7 @@ jobs:
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
+          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
 
   test-package-args:
     runs-on: ubuntu-latest
@@ -114,6 +117,7 @@ jobs:
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
+          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
 
   test-progress-bar:
     runs-on: ubuntu-latest
@@ -126,3 +130,7 @@ jobs:
         uses: ./
         with:
           uv-no-progress: "false"
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
