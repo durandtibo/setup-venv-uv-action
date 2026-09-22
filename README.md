@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@v0.2.0
 
       - name: Run tests
         run: |
@@ -46,7 +46,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment
-  uses: durandtibo/setup-venv-uv-action@v0.1.0
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
   with:
     python-version: "3.11"
 ```
@@ -55,7 +55,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with numpy
-  uses: durandtibo/setup-venv-uv-action@v0.1.0
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
   with:
     python-version: "3.12"
     package-name: "numpy"
@@ -66,7 +66,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment without optional dependencies
-  uses: durandtibo/setup-venv-uv-action@v0.1.0
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
   with:
     install-args: "--no-optional-deps"
 ```
@@ -75,7 +75,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment and upgrade a specific package
-  uses: durandtibo/setup-venv-uv-action@v0.1.0
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
   with:
     package-name: "numpy"
     package-install-args: "--upgrade"
@@ -85,7 +85,7 @@ jobs:
 
 ```yaml
 - name: Setup Python environment with uv progress bars
-  uses: durandtibo/setup-venv-uv-action@v0.1.0
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
   with:
     uv-no-progress: "false"
 ```
@@ -147,7 +147,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@v0.2.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -168,7 +168,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup with specific dependency version
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@v0.2.0
         with:
           package-name: "requests"
           package-version: ${{ matrix.package-version }}
@@ -190,7 +190,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@v0.2.0
 
       - name: Run tests
         run: python -m pytest
