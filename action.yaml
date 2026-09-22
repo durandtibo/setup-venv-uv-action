@@ -10,28 +10,19 @@ branding:
 inputs:
   python-version:
     default: "3.14"
-    description:
-      "Python version to use (e.g., '3.13', '3.12', '3.11', '3.10'). Defaults
-      to Python 3.14."
+    description: "Python version to use (e.g., '3.13', '3.12', '3.11', '3.10'). Defaults to Python 3.14."
     required: false
   package-name:
     default: ""
-    description:
-      "Optional package name to install for dependency compatibility testing.
-      Use with 'package-version' to test specific versions. Leave empty to
-      skip."
+    description: "Optional package name to install for dependency compatibility testing. Use with 'package-version' to test specific versions. Leave empty to skip."
     required: false
   package-version:
     default: ""
-    description: "Optional package version to install (e.g., '1.0.0'). Only used
-      when 'package-name' is specified. Leave empty to install latest version."
+    description: "Optional package version to install (e.g., '1.0.0'). Only used when 'package-name' is specified. Leave empty to install latest version."
     required: false
   install-args:
     default: ""
-    description:
-      "Optional arguments passed to the 'inv env.install' command (e.g.,
-      '--no-optional-deps', '--groups=dev,docs', or custom flags supported by
-      your invoke-tasklib configuration)."
+    description: "Optional arguments passed to the 'inv env.install' command (e.g., '--no-optional-deps', '--groups=dev,docs', or custom flags supported by your invoke-tasklib configuration)."
     required: false
   package-install-args:
     default: ""
@@ -41,7 +32,6 @@ inputs:
     default: "true"
     description: "Disable UV progress bars"
     required: false
-
 runs:
   using: "composite"
   steps:
@@ -51,11 +41,11 @@ runs:
     # - Sets up the specified Python version
     # - Activates the Python environment so subsequent steps can use 'python' and 'pip'
     - name: Install uv and set the python version
-      uses: astral-sh/setup-uv@v7
+
+      uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # ratchet:astral-sh/setup-uv@v7
       with:
         python-version: ${{ inputs.python-version }}
         activate-environment: true
-
     # Step 2: Verify that uv and python are properly installed and available in PATH
     # This is a safety check to ensure the environment setup succeeded
     # Outputs the full paths to both executables for debugging
@@ -64,8 +54,8 @@ runs:
       run: |
         which uv
         which python
-
     # Step 3: Install invoke-tasklib
+
     # invoke-tasklib provides the shared invoke tasks (env.install,
     # env.show-python-config, env.show-installed-packages, ...) used below
     - name: Install invoke-tasklib
@@ -84,24 +74,24 @@ runs:
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
+
       run: |
         inv env.install ${INSTALL_ARGS}
-
     # Step 5 (Optional): Install a specific package version for compatibility testing
     # This step only runs if package-name is provided
     # Useful for testing your project against different versions of a dependency
     # Example: Test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy
     - name: Install valid package version
       if: ${{ inputs.package-name != '' }}
-      uses: durandtibo/uv-install-package-action@v0.2.0
+      uses: durandtibo/uv-install-package-action@fe64eac38f69e851b5e79b74ee255ed95a159bc0 # ratchet:durandtibo/uv-install-package-action@v0.2.0
       with:
         package-name: ${{ inputs.package-name }}
+
         package-version: ${{ inputs.package-version }}
         python-version: ${{ inputs.python-version }}
         uv-args: ${{ inputs.package-install-args }}
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
-
     # Step 6: Display Python configuration for debugging and verification
     # Shows:
     # - All Python versions managed by uv
@@ -111,9 +101,9 @@ runs:
     - name: Show python config
       shell: bash
       continue-on-error: true
+
       run: |
         inv env.show-python-config
-
     # Step 7: Display all installed packages with their versions
     # Provides a complete inventory of the Python environment
     # Helpful for debugging dependency issues and verifying installations
@@ -122,8 +112,8 @@ runs:
       continue-on-error: true
       run: |
         inv env.show-installed-packages
-
     # Step 8: Display the dependency tree with version constraints
+
     # Shows the full dependency graph including:
     # - Direct dependencies
     # - Transitive (indirect) dependencies
@@ -132,9 +122,9 @@ runs:
     - name: Show dependency tree
       shell: bash
       continue-on-error: true
+
       run: |
         uv pip tree --show-version-specifiers
-
     # Step 9: Verify environment integrity
     # Runs 'uv pip check' to detect:
     # - Missing dependencies
@@ -144,6 +134,7 @@ runs:
     # (conflicts are logged for debugging but don't fail the build)
     - name: Verify the current environment
       shell: bash
+
       continue-on-error: true
       run: |
         uv pip check
