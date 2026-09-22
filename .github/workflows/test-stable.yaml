@@ -1,30 +1,5 @@
-# Test Stable Action
-#
-# This reusable workflow tests the published stable version of the action.
-# It ensures the released version continues to work correctly and detects regressions.
-#
-# Test Strategy:
-#   - Uses the published stable version (durandtibo/setup-venv-uv-action@v0.0.3)
-#   - Tests across multiple operating systems and architectures
-#   - Validates Python environment setup and package imports
-#
-# Matrix Strategy:
-#   - Ubuntu: Latest, 24.04, 22.04 (x64 and ARM)
-#   - macOS: Latest, 26, 15, 14 (Intel and Apple Silicon)
-#   - Total: 10 platform configurations
-#
-# Test Verification:
-#   - Imports myproject package to verify installation
-#   - Confirms Python environment is properly configured
-#
-# Purpose:
-#   - Regression testing: Ensures published version still works
-#   - Compatibility verification: Tests across multiple platforms
-#   - User experience validation: Tests what users actually consume
-#
-# Permissions:
-#   - actions: write - Required for workflow management
-#   - contents: read - Required to checkout repository code
+# Tests the last stable release (durandtibo/setup-venv-uv-action@v0.1.0) across
+# Linux/macOS, python/install/package input variants. Detects regressions in the published action.
 
 name: Test Stable Action
 
@@ -37,33 +12,32 @@ permissions:
   contents: read
 
 jobs:
+  config:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    outputs:
+      os_unix: ${{ steps.cfg.outputs.os_unix }}
+    steps:
+      - name: Load workflow config
+        uses: durandtibo/workflow-config-action@8c406999ac8ac3cafe656c263759d8ddea3a4edb # ratchet:durandtibo/workflow-config-action@v0.2
+        id: cfg
+
   test:
+    needs: config
     runs-on: ${{ matrix.os }}
     timeout-minutes: 2
     strategy:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os:
-          [
-            ubuntu-latest,
-            ubuntu-24.04,
-            ubuntu-22.04,
-            ubuntu-24.04-arm,
-            ubuntu-22.04-arm,
-            macos-latest,
-            macos-26,
-            macos-15,
-            macos-14,
-            macos-15-intel,
-          ]
+        os: ${{ fromJSON(needs.config.outputs.os_unix) }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@59716ab8fb83cc7025548b3831c06b6f5c268f4f # ratchet:durandtibo/setup-venv-uv-action@v0.1.0
 
       - name: Test environment
         run: |
@@ -75,10 +49,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@59716ab8fb83cc7025548b3831c06b6f5c268f4f # ratchet:durandtibo/setup-venv-uv-action@v0.1.0
         with:
           python-version: "3.13"
 
@@ -93,10 +67,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@59716ab8fb83cc7025548b3831c06b6f5c268f4f # ratchet:durandtibo/setup-venv-uv-action@v0.1.0
         with:
           install-args: "--all-extras"
 
@@ -110,10 +84,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@59716ab8fb83cc7025548b3831c06b6f5c268f4f # ratchet:durandtibo/setup-venv-uv-action@v0.1.0
         with:
           package-name: numpy
           package-version: 2.4.0
@@ -128,10 +102,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
-        uses: durandtibo/setup-venv-uv-action@v0.1.0
+        uses: durandtibo/setup-venv-uv-action@59716ab8fb83cc7025548b3831c06b6f5c268f4f # ratchet:durandtibo/setup-venv-uv-action@v0.1.0
         with:
           package-name: numpy
           package-version: 2.4.0
