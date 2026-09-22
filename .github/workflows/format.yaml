@@ -1,23 +1,4 @@
-# Code Formatting and Linting Workflow
-#
-# This reusable workflow validates code formatting and style across the repository.
-# It runs as part of the CI pipeline and can also be triggered manually.
-#
-# Jobs:
-#   - markdown: Validates Markdown files using markdownlint
-#     - Checks formatting, line length, heading structure
-#     - Configuration: .markdownlint.json
-#
-#   - yaml: Validates YAML files using yamllint
-#     - Checks syntax, indentation, line length
-#     - Configuration: .yamllint.yaml
-#
-# Configuration Files:
-#   - .markdownlint.json: Markdown linting rules
-#   - .yamllint.yaml: YAML linting rules
-#
-# Permissions:
-#   - contents: read - Required to checkout repository code
+# Checks that YAML, Makefile, shell, and Markdown files follow the repo's formatting rules.
 
 name: Format
 on:
@@ -29,31 +10,15 @@ permissions:
 
 jobs:
   format:
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v7
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "latest"
+      - name: Format
+        run: make format
 
-      - name: Install dependencies
-        run: |
-          echo "📦 Installing all dependencies..."
-          npm install -g markdownlint-cli
-          sudo apt-get update
-          sudo apt-get install -y yamllint
-
-      - name: Run markdownlint
-        run: |
-          echo "📝 Running markdownlint..."
-          markdownlint -- **/*.md
-
-      - name: Run yamllint
-        run: |
-          echo "🔍 Running yamllint..."
-          yamllint -f colored .
+      - name: Check for changes
+        run: git diff --exit-code
