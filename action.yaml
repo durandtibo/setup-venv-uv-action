@@ -1,6 +1,5 @@
 name: "Setup Python environment"
-description:
-  "Setup Python environment and install dependencies using uv"
+description: "Setup Python environment and install dependencies using uv"
 
 author: "Thibaut Durand"
 
