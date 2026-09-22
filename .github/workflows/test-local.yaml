@@ -93,7 +93,7 @@ jobs:
       - name: Setup python environment
         uses: ./
         with:
-          install-args: "--all-extras"
+          install-args: "--no-optional-deps"
 
       - name: Test environment
         run: |

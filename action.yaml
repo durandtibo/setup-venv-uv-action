@@ -29,8 +29,9 @@ inputs:
   install-args:
     default: ""
     description:
-      "Optional arguments passed to 'inv install' command (e.g., '--all-extras',
-      '--no-dev', custom flags supported by your tasks.py install task)."
+      "Optional arguments passed to the 'inv env.install' command (e.g.,
+      '--no-optional-deps', '--groups=dev,docs', or custom flags supported by
+      your invoke-tasklib configuration)."
     required: false
   package-install-args:
     default: ""
@@ -64,26 +65,27 @@ runs:
         which uv
         which python
 
-    # Step 3: Install invoke task runner
-    # Invoke is used to run project management tasks defined in tasks.py
-    - name: Install invoke
+    # Step 3: Install invoke-tasklib
+    # invoke-tasklib provides the shared invoke tasks (env.install,
+    # env.show-python-config, env.show-installed-packages, ...) used below
+    - name: Install invoke-tasklib
       shell: bash
       run: |
-        uv pip install "invoke>=3.0"
+        uv pip install "invoke-tasklib>=0.0.2"
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
-    # Step 4: Install project dependencies using the invoke install task
+    # Step 4: Install project dependencies using the env.install task
     # This typically runs 'uv sync --frozen' and 'uv pip install -e .'
     # Optional install-args can be passed to customize the installation
-    # (e.g., --all-extras to install optional dependencies)
+    # (e.g., --no-optional-deps to skip installing optional dependencies)
     - name: Install dependencies
       shell: bash
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
-        inv install ${INSTALL_ARGS}
+        inv env.install ${INSTALL_ARGS}
 
     # Step 5 (Optional): Install a specific package version for compatibility testing
     # This step only runs if package-name is provided
@@ -109,7 +111,7 @@ runs:
     - name: Show python config
       shell: bash
       run: |
-        inv show-python-config
+        inv env.show-python-config
 
     # Step 7: Display all installed packages with their versions
     # Provides a complete inventory of the Python environment
@@ -117,7 +119,7 @@ runs:
     - name: Show installed packages
       shell: bash
       run: |
-        inv show-installed-packages
+        inv env.show-installed-packages
 
     # Step 8: Display the dependency tree with version constraints
     # Shows the full dependency graph including:
