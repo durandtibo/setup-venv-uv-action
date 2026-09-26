@@ -54,17 +54,17 @@ runs:
       run: |
         which uv
         which python
-    # Step 3: Install invoke-tasklib
-
     # invoke-tasklib provides the shared invoke tasks (env.install,
+
     # env.show-python-config, env.show-installed-packages, ...) used below
     - name: Install invoke-tasklib
+      # Step 3: Install invoke-tasklib
+
       shell: bash
       run: |
         uv pip install "invoke-tasklib>=0.0.2,<1.0.0"
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
-
     # Step 4: Install project dependencies using the env.install task
     # This typically runs 'uv sync --frozen' and 'uv pip install -e .'
     # Optional install-args can be passed to customize the installation
@@ -73,8 +73,8 @@ runs:
       shell: bash
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         inv env.install ${INSTALL_ARGS}
     # Step 5 (Optional): Install a specific package version for compatibility testing
@@ -86,7 +86,6 @@ runs:
       uses: durandtibo/uv-install-package-action@fe64eac38f69e851b5e79b74ee255ed95a159bc0 # ratchet:durandtibo/uv-install-package-action@v0.2.0
       with:
         package-name: ${{ inputs.package-name }}
-
         package-version: ${{ inputs.package-version }}
         python-version: ${{ inputs.python-version }}
         uv-args: ${{ inputs.package-install-args }}
@@ -100,8 +99,8 @@ runs:
     # Useful for troubleshooting version-related issues
     - name: Show python config
       shell: bash
-      continue-on-error: true
 
+      continue-on-error: true
       run: |
         inv env.show-python-config
     # Step 7: Display all installed packages with their versions
@@ -112,7 +111,6 @@ runs:
       continue-on-error: true
       run: |
         inv env.show-installed-packages
-    # Step 8: Display the dependency tree with version constraints
 
     # Shows the full dependency graph including:
     # - Direct dependencies
@@ -120,9 +118,10 @@ runs:
     # - Version specifiers (e.g., >=1.0.0, <2.0)
     # Useful for understanding dependency relationships and conflicts
     - name: Show dependency tree
+      # Step 8: Display the dependency tree with version constraints
+
       shell: bash
       continue-on-error: true
-
       run: |
         uv pip tree --show-version-specifiers
     # Step 9: Verify environment integrity
@@ -132,9 +131,10 @@ runs:
     # - Broken installations
     # Uses continue-on-error so the workflow continues even with conflicts
     # (conflicts are logged for debugging but don't fail the build)
+
     - name: Verify the current environment
       shell: bash
-
       continue-on-error: true
+
       run: |
         uv pip check
