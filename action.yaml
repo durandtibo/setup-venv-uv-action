@@ -54,11 +54,12 @@ runs:
       run: |
         which uv
         which python
-    # invoke-tasklib provides the shared invoke tasks (env.install,
-
     # env.show-python-config, env.show-installed-packages, ...) used below
+
     - name: Install invoke-tasklib
       # Step 3: Install invoke-tasklib
+
+      # invoke-tasklib provides the shared invoke tasks (env.install,
 
       shell: bash
       run: |
@@ -71,9 +72,9 @@ runs:
     # (e.g., --no-optional-deps to skip installing optional dependencies)
     - name: Install dependencies
       shell: bash
+
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
-
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         inv env.install ${INSTALL_ARGS}
@@ -97,9 +98,9 @@ runs:
     # - The active Python interpreter
     # - Full path to the python executable
     # Useful for troubleshooting version-related issues
+
     - name: Show python config
       shell: bash
-
       continue-on-error: true
       run: |
         inv env.show-python-config
@@ -109,14 +110,15 @@ runs:
     - name: Show installed packages
       shell: bash
       continue-on-error: true
+
       run: |
         inv env.show-installed-packages
-
     # Shows the full dependency graph including:
     # - Direct dependencies
     # - Transitive (indirect) dependencies
     # - Version specifiers (e.g., >=1.0.0, <2.0)
     # Useful for understanding dependency relationships and conflicts
+
     - name: Show dependency tree
       # Step 8: Display the dependency tree with version constraints
 
@@ -124,17 +126,18 @@ runs:
       continue-on-error: true
       run: |
         uv pip tree --show-version-specifiers
-    # Step 9: Verify environment integrity
-    # Runs 'uv pip check' to detect:
-    # - Missing dependencies
-    # - Version conflicts
-    # - Broken installations
-    # Uses continue-on-error so the workflow continues even with conflicts
-    # (conflicts are logged for debugging but don't fail the build)
-
     - name: Verify the current environment
+      # Step 9: Verify environment integrity
+      # Runs 'uv pip check' to detect:
+      # - Missing dependencies
+
+      # - Version conflicts
+      # - Broken installations
+      # Uses continue-on-error so the workflow continues even with conflicts
+
+      # (conflicts are logged for debugging but don't fail the build)
+
       shell: bash
       continue-on-error: true
-
       run: |
         uv pip check
