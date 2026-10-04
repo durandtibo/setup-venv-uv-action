@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 
 [[package]]
@@ -13,14 +13,14 @@ wheels = [
 
 [[package]]
 name = "invoke-tasklib"
-version = "0.0.2"
+version = "0.0.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "invoke" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d2/74/3535e027a5b53aa44d46e4fb2868c705cd28eb22921a47109671d075c7ad/invoke_tasklib-0.0.2.tar.gz", hash = "sha256:f565c639ac4cd689641740a4de4d48993b2138806a4e6774fe9fc70612853b9b", size = 14295, upload-time = "2026-09-22T21:03:13.412Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/a9/fb6fe70dfce0ec5989f1f6805976c68ffeb21e8735686fa8657d01b5afac/invoke_tasklib-0.0.8.tar.gz", hash = "sha256:3f98f6878245bf3865ab135636dc44e4362383559249f4fd7df40cda1e8dc1e1", size = 15061, upload-time = "2026-10-03T22:29:32.961Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/62/6c/0148ced71b7ed43662297dbfe9cfd06c5ccaf094b20e57dbd17bc2f74102/invoke_tasklib-0.0.2-py3-none-any.whl", hash = "sha256:ca6ab6e4886837696614ba800c2a210e8b2f8cf9c2b38da14030a18607b7d6d3", size = 15446, upload-time = "2026-09-22T21:03:12.104Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/9c/82d875cc426d18bf62fd7d3ace326e0d808aea867eed48547359c66842ea/invoke_tasklib-0.0.8-py3-none-any.whl", hash = "sha256:2a36e4c11150b73fabf2f9c930aeb66f183ce07a0b6e6de28fc9c08cdaf69d60", size = 16683, upload-time = "2026-10-03T22:29:31.787Z" },
 ]
 
 [[package]]
@@ -36,4 +36,4 @@ dev = [
 [package.metadata]
 
 [package.metadata.requires-dev]
-dev = [{ name = "invoke-tasklib", specifier = ">=0.0.2,<0.1.0" }]
+dev = [{ name = "invoke-tasklib", specifier = ">=0.0.8,<1.0.0" }]
