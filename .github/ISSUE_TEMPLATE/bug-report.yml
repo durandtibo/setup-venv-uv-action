@@ -5,64 +5,39 @@ body:
   - type: markdown
     attributes:
       value: >
-        #### Before submitting a bug, please make sure the issue hasn't been already addressed
-        by searching through [the existing and past issues]
-        (https://github.com/durandtibo/setup-venv-uv-action/issues?q=is%3Aissue).
+        #### Before submitting a bug, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/durandtibo/shared-makefiles/issues?q=is%3Aissue).
   - type: textarea
     attributes:
       label: 🐛 Describe the bug
       description: |
         Please provide a clear and concise description of what the bug is.
 
-        If relevant, add a minimal example so that we can reproduce the error by running the action.
-        It is very important for the example to be as succinct (minimal) as possible,
-        so please take time to trim down any irrelevant configuration to help us debug efficiently.
+        If relevant, add a minimal example so that we can reproduce the error by running the code. It is very important for the snippet to be as succinct (minimal) as possible, so please take time to trim down any irrelevant code to help us debug efficiently. We are going to copy-paste your code and we expect to get the same result as you did: avoid any external data, and include the relevant imports, etc. For example:
 
-        Please include:
-        - Your workflow YAML configuration
-        - The action logs showing the error
-        - Expected behavior vs actual behavior
+        If the code is too long (hopefully, it isn't), feel free to put it in a public gist and link it in the issue: https://gist.github.com.
 
-        If the workflow is too long, feel free to put it in a public gist
-        and link it in the issue: https://gist.github.com.
-
-        Please also paste or describe the results you observe instead of the expected results.
-        If you observe an error, please paste the error message including the **full** output
-        from the action logs.
-        It may be relevant to wrap output in ```` ```triple quotes blocks``` ````.
+        Please also paste or describe the results you observe instead of the expected results. If you observe an error, please paste the error message including the **full** traceback of the exception. It may be relevant to wrap error messages in ```` ```triple quotes blocks``` ````.
       placeholder: |
         A clear and concise description of what the bug is.
 
-        ```yaml
-        # Your workflow configuration
-        - uses: durandtibo/setup-venv-uv-action@v0.0.3
-          with:
-            python-version: "3.13"
-            package-name: "numpy"
-            package-version: "1.26.0"
-            install-args: "--all-extras"
+        ```python
+        # Sample code to reproduce the problem
         ```
 
         ```
-        The error message or unexpected output from the action logs.
+        The error message you got, with the full traceback.
         ```
     validations:
       required: true
   - type: textarea
     attributes:
-      label: Environment
+      label: Versions
       description: |
-        Please provide information about your environment:
-        - Action version (e.g., v0.0.1)
-        - Runner OS (e.g., ubuntu-latest, macos-latest, macos-14)
-        - Python version (e.g., 3.13, 3.12)
-        - uv version (if known)
-        - Any other relevant environment details
-      placeholder: |
-        - Action version: v0.0.1
-        - Runner: ubuntu-latest
-        - Python version: 3.13
-        - uv version: 0.5.0
+        Please indicate the versions of the packages used. If you are using a conda environment,
+        you can run the following and paste the output below.
+        ```sh
+        conda list
+        ```
     validations:
       required: true
   - type: markdown
