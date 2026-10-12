@@ -54,13 +54,13 @@ runs:
       run: |
         which uv
         which python
-    # env.show-python-config, env.show-installed-packages, ...) used below
-
     - name: Install invoke-tasklib
+
       # Step 3: Install invoke-tasklib
 
-      # invoke-tasklib provides the shared invoke tasks (env.install,
+      # env.show-python-config, env.show-installed-packages, ...) used below
 
+      # invoke-tasklib provides the shared invoke tasks (env.install,
       shell: bash
       run: |
         uv pip install "invoke-tasklib>=0.0.8,<1.0.0"
@@ -71,8 +71,8 @@ runs:
     # Optional install-args can be passed to customize the installation
     # (e.g., --no-optional-deps to skip installing optional dependencies)
     - name: Install dependencies
-      shell: bash
 
+      shell: bash
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
@@ -92,14 +92,15 @@ runs:
         uv-args: ${{ inputs.package-install-args }}
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
-    # Step 6: Display Python configuration for debugging and verification
-    # Shows:
-    # - All Python versions managed by uv
-    # - The active Python interpreter
-    # - Full path to the python executable
-    # Useful for troubleshooting version-related issues
-
     - name: Show python config
+      # Step 6: Display Python configuration for debugging and verification
+      # Shows:
+      # - All Python versions managed by uv
+      # - The active Python interpreter
+
+      # - Full path to the python executable
+      # Useful for troubleshooting version-related issues
+
       shell: bash
       continue-on-error: true
       run: |
@@ -108,27 +109,30 @@ runs:
     # Provides a complete inventory of the Python environment
     # Helpful for debugging dependency issues and verifying installations
     - name: Show installed packages
+
       shell: bash
       continue-on-error: true
-
       run: |
         inv env.show-installed-packages
-    # Shows the full dependency graph including:
-    # - Direct dependencies
-    # - Transitive (indirect) dependencies
-    # - Version specifiers (e.g., >=1.0.0, <2.0)
-    # Useful for understanding dependency relationships and conflicts
-
     - name: Show dependency tree
       # Step 8: Display the dependency tree with version constraints
+
+      # Shows the full dependency graph including:
+      # - Direct dependencies
+
+      # - Transitive (indirect) dependencies
+      # - Version specifiers (e.g., >=1.0.0, <2.0)
+      # Useful for understanding dependency relationships and conflicts
 
       shell: bash
       continue-on-error: true
       run: |
         uv pip tree --show-version-specifiers
+
     - name: Verify the current environment
       # Step 9: Verify environment integrity
       # Runs 'uv pip check' to detect:
+
       # - Missing dependencies
 
       # - Version conflicts
@@ -136,7 +140,6 @@ runs:
       # Uses continue-on-error so the workflow continues even with conflicts
 
       # (conflicts are logged for debugging but don't fail the build)
-
       shell: bash
       continue-on-error: true
       run: |
