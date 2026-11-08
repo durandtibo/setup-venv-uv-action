@@ -429,3 +429,46 @@ jobs:
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), sys.version"
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
+
+  test-invalid-working-directory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Copy the project outside of the workspace
+        run: |
+          cp -r . ../outside-project
+
+      - name: Setup python environment with a project outside of the workspace
+        id: outside
+        uses: ./
+        continue-on-error: true
+        with:
+          working-directory: ../outside-project
+
+      - name: Setup python environment with an absolute path
+        id: absolute
+        uses: ./
+        continue-on-error: true
+        with:
+          working-directory: ${{ github.workspace }}
+
+      - name: Setup python environment with a missing directory
+        id: missing
+        uses: ./
+        continue-on-error: true
+        with:
+          working-directory: missing-directory
+
+      - name: Test that the actions failed
+        env:
+          OUTCOME_OUTSIDE: ${{ steps.outside.outcome }}
+          OUTCOME_ABSOLUTE: ${{ steps.absolute.outcome }}
+          OUTCOME_MISSING: ${{ steps.missing.outcome }}
+        run: |
+          for outcome in "${OUTCOME_OUTSIDE}" "${OUTCOME_ABSOLUTE}" "${OUTCOME_MISSING}"; do
+            test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
+          done
