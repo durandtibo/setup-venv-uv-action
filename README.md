@@ -99,6 +99,15 @@ jobs:
     invoke-tasklib-version: "==0.0.8"
 ```
 
+### With a Project in a Subfolder
+
+```yaml
+- name: Setup Python environment for a project in a subfolder
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+  with:
+    working-directory: "python"
+```
+
 ## Inputs
 
 | Input                    | Description                                                                                                                                          | Required | Default            |

@@ -32,6 +32,10 @@ inputs:
     default: ">=0.0.8,<1.0.0"
     description: "Version specifier of 'invoke-tasklib' installed before running the project tasks (e.g., '>=0.0.8,<1.0.0', '==0.0.8'). It must be a valid PEP 440 specifier, including the operator."
     required: false
+  working-directory:
+    default: "."
+    description: "Directory that contains the project ('pyproject.toml', 'tasks.py', 'invoke.yaml'), relative to the workspace. Use it for repositories where the Python project is in a subfolder."
+    required: false
   uv-no-progress:
     default: "true"
     description: "Disable uv progress bars ('true' or 'false'). Defaults to 'true'."
@@ -45,10 +49,12 @@ runs:
     # - Installs uv (ultra-fast Python package installer and resolver)
     # - Sets up the specified Python version
     # - Activates the virtual environment so subsequent steps can use 'python' and 'uv pip'
+    # The project files are searched in the working-directory input
     - name: Install uv and set the python version
       uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # ratchet:astral-sh/setup-uv@v10.3.3
       with:
         python-version: ${{ inputs.python-version }}
+        working-directory: ${{ github.workspace }}/${{ inputs.working-directory }}
         activate-environment: true
 
     # Step 2: Verify that uv and python are available in PATH
@@ -73,10 +79,12 @@ runs:
         uv pip install "invoke-tasklib${TASKLIB_VERSION}"
 
     # Step 4: Install project dependencies using the env.install task
+    # The task is executed in the working-directory input
     # Optional install-args can be passed to customize the installation
     # (e.g., --no-optional-deps to skip installing optional dependencies)
     - name: Install dependencies
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
@@ -99,10 +107,12 @@ runs:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
     # Step 6: Display the Python configuration for debugging and verification
+    # The task is executed in the working-directory input
     # Useful for troubleshooting version-related issues
     # Uses continue-on-error so a reporting failure does not fail the workflow
     - name: Show python config
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
       run: |
         inv env.show-python-config
@@ -113,6 +123,7 @@ runs:
     # Uses continue-on-error so a reporting failure does not fail the workflow
     - name: Show installed packages
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
       run: |
         inv env.show-installed-packages
@@ -126,6 +137,7 @@ runs:
     # Uses continue-on-error so a reporting failure does not fail the workflow
     - name: Show dependency tree
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
       run: |
         uv pip tree --show-version-specifiers
@@ -139,6 +151,7 @@ runs:
     # (conflicts are logged for debugging but don't fail the build)
     - name: Verify the current environment
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
       run: |
         uv pip check
