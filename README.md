@@ -178,6 +178,7 @@ jobs:
 | Output           | Description                                                                                |
 | ---------------- | ------------------------------------------------------------------------------------------ |
 | `cache-hit`      | Whether the `uv` cache was restored (`true` or `false`). Empty when the cache is disabled. |
+| `uv-version`     | Version of `uv` that was installed (`0.9.0`).                                              |
 | `python-version` | Full version of the Python interpreter of the environment (`3.14.0`)                       |
 
 Example:
@@ -187,8 +188,10 @@ Example:
   id: setup
   uses: durandtibo/setup-venv-uv-action@v0.2.0
 
-- name: Show the Python version
-  run: echo "Python ${{ steps.setup.outputs.python-version }}"
+- name: Show the Python and uv versions
+  run: |
+    echo "Python ${{ steps.setup.outputs.python-version }}"
+    echo "uv ${{ steps.setup.outputs.uv-version }}"
 ```
 
 ## What This Action Does
@@ -232,6 +235,7 @@ This action performs the following steps:
     `continue-on-error: true`) to detect missing dependencies, version
     conflicts, or broken installations without failing the workflow
 13. **Sets Outputs**: Exposes the full `python-version` of the environment
+    (the `uv-version` output comes from `astral-sh/setup-uv`)
 
 ## Failure Behavior
 

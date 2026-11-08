@@ -509,13 +509,18 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment with a pinned uv version
+        id: setup
         uses: ./
         with:
           uv-version: "0.12.0"
 
       - name: Test environment
+        env:
+          OUTPUT_VERSION: ${{ steps.setup.outputs.uv-version }}
         run: |
           python -c "import myproject; print(myproject)"
           uv --version
           # the pinned version is installed, not the latest one
           uv --version | grep -qE "^uv 0\.12\.0( |$)" || (echo "expected uv 0.12.0" && exit 1)
+          # the output is the installed version
+          test "${OUTPUT_VERSION}" = "0.12.0" || (echo "expected output 0.12.0, got '${OUTPUT_VERSION}'" && exit 1)
