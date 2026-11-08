@@ -43,13 +43,13 @@ there.
   inside the comment block. Keep the numbering in sync with the order of the
   steps.
 - Pin every third-party action to a commit SHA followed by a `#
-  ratchet:<owner>/<repo>@<tag>` comment, as the existing steps do. Do not use a
+ratchet:<owner>/<repo>@<tag>` comment, as the existing steps do. Do not use a
   tag or a branch.
 - Pass inputs to shell scripts through `env:`, never by interpolating `${{
-  inputs.* }}` in `run:`.
+inputs.* }}` in `run:`.
 - Every `run:` step sets `shell: bash` (required in composite actions).
 - Reporting steps (show config, packages, tree, check) use `continue-on-error:
-  true`. Installation steps must fail the action.
+true`. Installation steps must fail the action.
 
 ## Tests
 
@@ -63,7 +63,7 @@ The action is tested by `.github/workflows/test-local.yaml` (`uses: ./`) and
 - Read OS and Python version lists from `durandtibo/workflow-config-action`
   outputs; do not hardcode them.
 - Assert the expected value with an explicit check (for example `assert
-  numpy.__version__ == '2.4.0'`), and pass matrix values to scripts through
+numpy.__version__ == '2.4.0'`), and pass matrix values to scripts through
   `env:`.
 - Keep each job independent and short; set `timeout-minutes`.
 - Test-stable runs the released version, so new checks may fail there for a real
