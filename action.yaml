@@ -262,6 +262,7 @@ runs:
         fi
 
     # Steps 9 to 12 are diagnostic steps: they are skipped when verbose is 'false'
+    # Like every step that runs uv, they receive UV_NO_PROGRESS (uv-no-progress)
     # Step 9: Display the Python configuration for debugging and verification
     # The task is executed in the working-directory input
     # Useful for troubleshooting version-related issues
@@ -271,6 +272,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         inv env.show-python-config
 
@@ -283,6 +286,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         inv env.show-installed-packages
 
@@ -298,6 +303,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip tree --show-version-specifiers
 
@@ -313,6 +320,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip check
 
@@ -325,6 +334,8 @@ runs:
     - name: Set outputs
       id: python-version
       shell: bash
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         python_bin="$(uv python find)"
         python_version="$("${python_bin}" -c 'import platform; print(platform.python_version())')"
