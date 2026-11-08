@@ -175,35 +175,39 @@ Example:
 
 This action performs the following steps:
 
-1. **Installs uv and Python**: Uses
+1. **Validates Inputs**: Fails with a clear message when a boolean-like input
+   (`uv-no-progress`, `verbose`, `enable-cache`) is invalid, and warns about
+   inputs that are ignored (`package-version` or `package-install-args`
+   without `package-name`)
+2. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager, set up the requested `python-version`, and activate
    the environment, and restores the `uv` cache (see `enable-cache`)
-2. **Verifies Installation**: Checks that `uv` and `python` are available in
+3. **Verifies Installation**: Checks that `uv` and `python` are available in
    PATH
-3. **Installs Task Runner**: Installs
+4. **Installs Task Runner**: Installs
    [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) for
    running project tasks
-4. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
+5. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
    or the `env.install` task is missing
-5. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
+6. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
    `uv sync --frozen` and install the current project in editable mode
-6. **Optional Package**: If `package-name` is set, installs that specific
+7. **Optional Package**: If `package-name` is set, installs that specific
    package/version via
    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
    (useful for dependency compatibility testing)
-7. **Extra Packages**: If `extra-packages` is set, installs each listed
+8. **Extra Packages**: If `extra-packages` is set, installs each listed
    requirement with `uv pip install`
-8. **Shows Python Config**: Runs `inv env.show-python-config` to display all
+9. **Shows Python Config**: Runs `inv env.show-python-config` to display all
    Python versions managed by `uv`, the active interpreter, and its full path
-9. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
-   list every installed package and version
-10. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
+10. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
+    list every installed package and version
+11. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
     display the full dependency graph
-11. **Verifies Environment**: Runs `uv pip check` (with
+12. **Verifies Environment**: Runs `uv pip check` (with
     `continue-on-error: true`) to detect missing dependencies, version
     conflicts, or broken installations without failing the workflow
-12. **Sets Outputs**: Exposes the full `python-version` of the environment
+13. **Sets Outputs**: Exposes the full `python-version` of the environment
 
 ## Advanced Usage
 
