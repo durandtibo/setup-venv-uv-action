@@ -58,6 +58,9 @@ The action is tested by `.github/workflows/test-local.yaml` (`uses: ./`) and
 
 - The two files must stay identical except for the header comment, the `name`
   and the `uses:` line. Change one, then apply the same change to the other.
+  Exception: a job that tests an input added after the latest release goes only
+  in `test-local.yaml`, because the stable release does not know the input. Add
+  it to `test-stable.yaml` when the release in `test-stable.yaml` is bumped.
 - Every input of the action needs a job that sets it and asserts its effect (not
   only that the action succeeds). Add a job when adding an input.
 - Read OS and Python version lists from `durandtibo/workflow-config-action`

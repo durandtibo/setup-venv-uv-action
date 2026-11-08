@@ -151,6 +151,45 @@ jobs:
           python -c "import myproject; print(myproject)"
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
 
+  test-tasklib-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment
+        uses: ./
+        with:
+          invoke-tasklib-version: "==0.0.8"
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$" || (echo "expected invoke-tasklib 0.0.8" && exit 1)
+
+  test-tasklib-version-unsatisfiable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment with an unsatisfiable invoke-tasklib version
+        id: setup
+        uses: ./
+        continue-on-error: true
+        with:
+          invoke-tasklib-version: ">=999.0.0"
+
+      - name: Test that the action failed
+        env:
+          OUTCOME: ${{ steps.setup.outcome }}
+        run: |
+          test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+
   test-progress-bar:
     runs-on: ubuntu-latest
     timeout-minutes: 5

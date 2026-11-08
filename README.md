@@ -90,16 +90,26 @@ jobs:
     uv-no-progress: "false"
 ```
 
+### With a Specific invoke-tasklib Version
+
+```yaml
+- name: Setup Python environment with a pinned invoke-tasklib
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+  with:
+    invoke-tasklib-version: "==0.0.8"
+```
+
 ## Inputs
 
-| Input                  | Description                                                                                                                       | Required | Default  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
-| `python-version`       | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`)                                                              | No       | `"3.14"` |
-| `package-name`         | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.          | No       | `""`     |
-| `package-version`      | Optional package version to install (e.g., `"1.0.0"`). Only used when `package-name` is specified. Leave empty to install latest. | No       | `""`     |
-| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`).                     | No       | `""`     |
-| `package-install-args` | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`).                                 | No       | `""`     |
-| `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the install steps).                                             | No       | `"true"` |
+| Input                    | Description                                                                                                                                          | Required | Default            |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
+| `python-version`         | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`)                                                                                 | No       | `"3.14"`           |
+| `package-name`           | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                             | No       | `""`               |
+| `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Only used when `package-name` is specified. Leave empty to install latest.                    | No       | `""`               |
+| `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`).                                        | No       | `""`               |
+| `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`).                                                    | No       | `""`               |
+| `invoke-tasklib-version` | Version specifier of `invoke-tasklib` installed before running the project tasks (e.g., `">=0.0.8,<1.0.0"`, `"==0.0.8"`). Must include the operator. | No       | `">=0.0.8,<1.0.0"` |
+| `uv-no-progress`         | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the install steps).                                                                | No       | `"true"`           |
 
 This action does not define any outputs.
 
