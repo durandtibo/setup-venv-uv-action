@@ -226,7 +226,7 @@ This action performs the following steps:
    `uv sync --frozen` and install the current project in editable mode. If
    `invoke-tasklib` is no longer installed afterwards, because it is not a
    dependency of the project, installs it again (see
-   `invoke-tasklib-version`) and, when `verbose` is `"true"`, warns about it
+   `invoke-tasklib-version`) and reports it with a notice
 10. **Optional Package**: If `package-name` is set, installs that specific
     package/version via
     [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
@@ -403,7 +403,7 @@ subfolder) and contains:
 from invoke_tasklib import ns
 ```
 
-### Warning: `invoke-tasklib reinstalled`
+### Notice: `invoke-tasklib reinstalled`
 
 The action installs `invoke-tasklib` before your project dependencies, and
 `inv env.install` runs `uv sync --frozen`, which removes every package that is
@@ -414,7 +414,7 @@ it is removed, so the action installs it again with the version of
 
 Add `invoke-tasklib` to a dependency group installed by `inv env.install` (the
 `dev` group by default), then update `uv.lock`. Its version is then locked and
-the warning disappears:
+the notice disappears:
 
 ```toml
 [dependency-groups]
@@ -423,8 +423,7 @@ dev = [
 ]
 ```
 
-The warning is only emitted when `verbose` is `"true"`, but the reinstallation
-always happens.
+The notice and the reinstallation do not depend on `verbose`.
 
 ### Error: `Invalid input`
 
