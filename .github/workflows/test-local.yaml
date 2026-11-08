@@ -187,11 +187,25 @@ jobs:
         with:
           invoke-tasklib-version: ">=999.0.0"
 
-      - name: Test that the action failed
+      - name: Test that the action failed while installing invoke-tasklib
         env:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+          # uv and the virtual environment (step 2) are available: the failure
+          # is not in the first steps
+          uv --version
+          python --version
+          # invoke-tasklib could not be installed: step 4 failed
+          if uv pip show --quiet invoke-tasklib; then
+            echo "invoke-tasklib is installed: the failure is not in step 4"
+            exit 1
+          fi
+          # the dependencies were not installed: step 6 did not run
+          if python -c "import myproject" 2> /dev/null; then
+            echo "myproject is installed: the action did not stop earlier"
+            exit 1
+          fi
 
   test-working-directory:
     runs-on: ubuntu-latest
@@ -233,11 +247,25 @@ jobs:
         uses: ./
         continue-on-error: true
 
-      - name: Test that the action failed
+      - name: Test that the action failed while verifying the project tasks
         env:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+          # uv and the virtual environment (step 2) are available: the failure
+          # is not in the first steps
+          uv --version
+          python --version
+          # invoke-tasklib was installed (step 4): the failure is in step 5
+          if ! uv pip show --quiet invoke-tasklib; then
+            echo "invoke-tasklib is not installed: the action failed too early"
+            exit 1
+          fi
+          # the dependencies were not installed: step 6 did not run
+          if python -c "import myproject" 2> /dev/null; then
+            echo "myproject is installed: the action did not stop earlier"
+            exit 1
+          fi
 
   test-cache:
     runs-on: ubuntu-latest
@@ -321,6 +349,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
+      - name: Test that uv is not installed before the action
+        run: |
+          if command -v uv; then
+            echo "uv is already installed, the test is not valid"
+            exit 1
+          fi
+
       - name: Setup python environment with an invalid uv-no-progress
         id: uv-no-progress
         uses: ./
@@ -342,7 +377,7 @@ jobs:
         with:
           enable-cache: "maybe"
 
-      - name: Test that the actions failed
+      - name: Test that the actions failed in the validation
         env:
           OUTCOME_UV_NO_PROGRESS: ${{ steps.uv-no-progress.outcome }}
           OUTCOME_VERBOSE: ${{ steps.verbose.outcome }}
@@ -351,6 +386,11 @@ jobs:
           for outcome in "${OUTCOME_UV_NO_PROGRESS}" "${OUTCOME_VERBOSE}" "${OUTCOME_ENABLE_CACHE}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
+          # the validation (step 1) failed: uv was not installed yet
+          if command -v uv; then
+            echo "uv is installed: the action did not fail in the validation"
+            exit 1
+          fi
 
   test-ignored-inputs:
     runs-on: ubuntu-latest
@@ -438,6 +478,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
+      - name: Test that uv is not installed before the action
+        run: |
+          if command -v uv; then
+            echo "uv is already installed, the test is not valid"
+            exit 1
+          fi
+
       - name: Copy the project outside of the workspace
         run: |
           cp -r . ../outside-project
@@ -463,7 +510,7 @@ jobs:
         with:
           working-directory: missing-directory
 
-      - name: Test that the actions failed
+      - name: Test that the actions failed in the validation
         env:
           OUTCOME_OUTSIDE: ${{ steps.outside.outcome }}
           OUTCOME_ABSOLUTE: ${{ steps.absolute.outcome }}
@@ -472,6 +519,11 @@ jobs:
           for outcome in "${OUTCOME_OUTSIDE}" "${OUTCOME_ABSOLUTE}" "${OUTCOME_MISSING}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
+          # the validation (step 1) failed: uv was not installed yet
+          if command -v uv; then
+            echo "uv is installed: the action did not fail in the validation"
+            exit 1
+          fi
 
   test-install-args-glob:
     runs-on: ubuntu-latest
