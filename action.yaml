@@ -61,6 +61,9 @@ outputs:
   cache-hit:
     description: "Whether the uv cache was restored ('true' or 'false'). Empty when the cache is disabled."
     value: ${{ steps.setup-uv.outputs.cache-hit }}
+  uv-version:
+    description: "Version of uv that was installed (e.g., '0.9.0'). Useful when 'uv-version' is empty or a range."
+    value: ${{ steps.setup-uv.outputs.uv-version }}
   python-version:
     description: "Full version of the Python interpreter of the environment (e.g., '3.14.0')."
     value: ${{ steps.python-version.outputs.python-version }}
