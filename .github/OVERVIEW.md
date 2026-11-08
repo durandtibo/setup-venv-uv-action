@@ -55,7 +55,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Jobs**: One job per input or behavior of the action:
   - `test`: default inputs, on every Unix OS of the config
   - `test-python-version`: every standard Python version of the config
-  - `test-install-args`, `test-package`, `test-package-latest`,
+  - `test-install-args`, `test-install-args-glob`, `test-package`, `test-package-latest`,
     `test-package-args`, `test-package-python-specifier`,
     `test-extra-packages`: installation inputs
   - `test-tasklib-version`, `test-tasklib-version-unsatisfiable`,

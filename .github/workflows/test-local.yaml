@@ -472,3 +472,30 @@ jobs:
           for outcome in "${OUTCOME_OUTSIDE}" "${OUTCOME_ABSOLUTE}" "${OUTCOME_MISSING}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
+
+  test-install-args-glob:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Create a file that matches the glob pattern of the argument
+        run: |
+          touch ./--no-optional-deps
+
+      - name: Setup python environment with a glob character in install-args
+        id: setup
+        uses: ./
+        continue-on-error: true
+        with:
+          install-args: "--no-optional-dep?"
+
+      - name: Test that the argument was not expanded
+        env:
+          OUTCOME: ${{ steps.setup.outcome }}
+        run: |
+          # expanded to the valid flag '--no-optional-deps', the action would succeed;
+          # passed as is, 'inv env.install' rejects the unknown flag
+          test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
