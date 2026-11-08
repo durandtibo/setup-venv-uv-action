@@ -213,6 +213,29 @@ jobs:
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.prefix.endswith('/subproject/.venv'), sys.prefix"
 
+  test-missing-tasks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Remove tasks.py
+        run: |
+          rm tasks.py
+
+      - name: Setup python environment without tasks.py
+        id: setup
+        uses: ./
+        continue-on-error: true
+
+      - name: Test that the action failed
+        env:
+          OUTCOME: ${{ steps.setup.outcome }}
+        run: |
+          test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+
   test-progress-bar:
     runs-on: ubuntu-latest
     timeout-minutes: 5

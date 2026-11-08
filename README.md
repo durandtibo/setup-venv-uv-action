@@ -136,21 +136,23 @@ This action performs the following steps:
 3. **Installs Task Runner**: Installs
    [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) for
    running project tasks
-4. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
+4. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
+   or the `env.install` task is missing
+5. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
    `uv sync --frozen` and install the current project in editable mode
-5. **Optional Package**: If `package-name` is set, installs that specific
+6. **Optional Package**: If `package-name` is set, installs that specific
    package/version via
    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
    (useful for dependency compatibility testing)
-6. **Shows Python Config**: Runs `inv env.show-python-config` to display all
+7. **Shows Python Config**: Runs `inv env.show-python-config` to display all
    Python versions managed by `uv`, the active interpreter, and its full path
-7. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
+8. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
    list every installed package and version
-8. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
+9. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
    display the full dependency graph
-9. **Verifies Environment**: Runs `uv pip check` (with
-   `continue-on-error: true`) to detect missing dependencies, version
-   conflicts, or broken installations without failing the workflow
+10. **Verifies Environment**: Runs `uv pip check` (with
+    `continue-on-error: true`) to detect missing dependencies, version
+    conflicts, or broken installations without failing the workflow
 
 ## Advanced Usage
 

@@ -78,7 +78,35 @@ runs:
       run: |
         uv pip install "invoke-tasklib${TASKLIB_VERSION}"
 
-    # Step 4: Install project dependencies using the env.install task
+    # Step 4: Verify that the project defines the invoke tasks used by this action
+    # Fails early with a clear message when 'tasks.py' or the 'env.install' task is
+    # missing, instead of an obscure error from 'inv' in the next step
+    # A missing show task only emits a warning because these tasks are optional
+    - name: Verify project tasks
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ ! -f tasks.py ]; then
+          echo "::error title=Missing tasks.py::No 'tasks.py' found in '$(pwd)'. It must expose the invoke-tasklib task collection (see the README)."
+          exit 1
+        fi
+        if ! tasks=$(inv --list 2>&1); then
+          echo "${tasks}"
+          echo "::error title=Invalid tasks.py::'inv --list' failed in '$(pwd)'. Check that 'tasks.py' and 'invoke.yaml' are valid."
+          exit 1
+        fi
+        echo "${tasks}"
+        if ! grep -qE '(^|[[:space:]])env\.install([[:space:]]|$)' <<< "${tasks}"; then
+          echo "::error title=Missing env.install task::The 'env.install' task is not defined in 'tasks.py'. Expose the invoke-tasklib collection: 'from invoke_tasklib import ns'."
+          exit 1
+        fi
+        for task in env.show-python-config env.show-installed-packages; do
+          if ! grep -qF "${task}" <<< "${tasks}"; then
+            echo "::warning title=Missing ${task} task::The '${task}' task is not defined; the corresponding diagnostic step will fail."
+          fi
+        done
+
+    # Step 5: Install project dependencies using the env.install task
     # The task is executed in the working-directory input
     # Optional install-args can be passed to customize the installation
     # (e.g., --no-optional-deps to skip installing optional dependencies)
@@ -91,7 +119,7 @@ runs:
       run: |
         inv env.install ${INSTALL_ARGS}
 
-    # Step 5 (Optional): Install a specific package version for compatibility testing
+    # Step 6 (Optional): Install a specific package version for compatibility testing
     # Only runs if package-name is provided
     # Useful for testing your project against different versions of a dependency
     # (e.g., test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy)
@@ -106,7 +134,7 @@ runs:
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
-    # Step 6: Display the Python configuration for debugging and verification
+    # Step 7: Display the Python configuration for debugging and verification
     # The task is executed in the working-directory input
     # Useful for troubleshooting version-related issues
     # Uses continue-on-error so a reporting failure does not fail the workflow
@@ -117,7 +145,7 @@ runs:
       run: |
         inv env.show-python-config
 
-    # Step 7: Display all installed packages with their versions
+    # Step 8: Display all installed packages with their versions
     # Provides a complete inventory of the Python environment
     # Helpful for debugging dependency issues and verifying installations
     # Uses continue-on-error so a reporting failure does not fail the workflow
@@ -128,7 +156,7 @@ runs:
       run: |
         inv env.show-installed-packages
 
-    # Step 8: Display the dependency tree with version constraints
+    # Step 9: Display the dependency tree with version constraints
     # Shows the full dependency graph including:
     # - Direct dependencies
     # - Transitive (indirect) dependencies
@@ -142,7 +170,7 @@ runs:
       run: |
         uv pip tree --show-version-specifiers
 
-    # Step 9: Verify environment integrity
+    # Step 10: Verify environment integrity
     # Runs 'uv pip check' to detect:
     # - Missing dependencies
     # - Version conflicts
