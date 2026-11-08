@@ -33,7 +33,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Python environment
         uses: durandtibo/setup-venv-uv-action@v0.2.0
@@ -261,7 +261,7 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: durandtibo/setup-venv-uv-action@v0.2.0
@@ -282,7 +282,7 @@ jobs:
       matrix:
         package-version: ["1.0.0", "2.0.0"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup with specific dependency version
         uses: durandtibo/setup-venv-uv-action@v0.2.0
@@ -306,7 +306,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Python environment
         uses: durandtibo/setup-venv-uv-action@v0.2.0
