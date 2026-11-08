@@ -370,9 +370,12 @@ runs:
     # 'uv python find' returns the interpreter of the active virtual environment,
     # and the version is read before writing the output so that a failure fails
     # the step instead of silently setting an empty output
+    # It runs in the working-directory input, like the other steps that use uv,
+    # so that the interpreter is found in the same project as the install
     - name: Set outputs
       id: python-version
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
