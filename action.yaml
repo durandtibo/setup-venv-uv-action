@@ -32,6 +32,10 @@ inputs:
     default: ">=0.0.8,<1.0.0"
     description: "Version specifier of 'invoke-tasklib' installed before running the project tasks (e.g., '>=0.0.8,<1.0.0', '==0.0.8'). It must be a valid PEP 440 specifier, including the operator."
     required: false
+  extra-packages:
+    default: ""
+    description: "Optional additional packages to install after the project dependencies, one requirement per line (e.g., 'pytest-xdist' or 'requests>=2.31'). Leave empty to skip."
+    required: false
   enable-cache:
     default: "auto"
     description: "Enable the GitHub Actions cache of uv ('true', 'false' or 'auto'). 'auto' (default) enables the cache on GitHub-hosted runners and disables it elsewhere, like astral-sh/setup-uv. The cache is keyed on the lock files of the project."
@@ -149,7 +153,30 @@ runs:
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
-    # Step 7: Display the Python configuration for debugging and verification
+    # Step 7 (Optional): Install additional packages
+    # Only runs if extra-packages is provided, with one requirement per line
+    # Useful for tools that are not dependencies of the project (e.g., pytest-xdist)
+    # Blank lines are ignored and every line is passed to uv as a single argument
+    - name: Install extra packages
+      if: ${{ inputs.extra-packages != '' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        EXTRA_PACKAGES: ${{ inputs.extra-packages }}
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
+      run: |
+        packages=()
+        while IFS= read -r line; do
+          line="$(printf '%s' "${line}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          if [ -n "${line}" ]; then
+            packages+=("${line}")
+          fi
+        done <<< "${EXTRA_PACKAGES}"
+        if [ "${#packages[@]}" -gt 0 ]; then
+          uv pip install "${packages[@]}"
+        fi
+
+    # Step 8: Display the Python configuration for debugging and verification
     # The task is executed in the working-directory input
     # Useful for troubleshooting version-related issues
     # Uses continue-on-error so a reporting failure does not fail the workflow
@@ -160,7 +187,7 @@ runs:
       run: |
         inv env.show-python-config
 
-    # Step 8: Display all installed packages with their versions
+    # Step 9: Display all installed packages with their versions
     # Provides a complete inventory of the Python environment
     # Helpful for debugging dependency issues and verifying installations
     # Uses continue-on-error so a reporting failure does not fail the workflow
@@ -171,7 +198,7 @@ runs:
       run: |
         inv env.show-installed-packages
 
-    # Step 9: Display the dependency tree with version constraints
+    # Step 10: Display the dependency tree with version constraints
     # Shows the full dependency graph including:
     # - Direct dependencies
     # - Transitive (indirect) dependencies
@@ -185,7 +212,7 @@ runs:
       run: |
         uv pip tree --show-version-specifiers
 
-    # Step 10: Verify environment integrity
+    # Step 11: Verify environment integrity
     # Runs 'uv pip check' to detect:
     # - Missing dependencies
     # - Version conflicts
@@ -199,7 +226,7 @@ runs:
       run: |
         uv pip check
 
-    # Step 11: Set the outputs of the action
+    # Step 12: Set the outputs of the action
     # Reads the version from the interpreter that is active at the end of the
     # action (after the dependencies are installed), not from the requested input
     - name: Set outputs
