@@ -176,12 +176,17 @@ runs:
           exit 1
         fi
         echo "${tasks}"
-        if ! grep -qE '(^|[[:space:]])env\.install([[:space:]]|$)' <<< "${tasks}"; then
+        # Match whole task names only, so that 'env.show-python-config-extra' is
+        # not mistaken for 'env.show-python-config'
+        has_task() {
+          grep -qE "(^|[[:space:]])${1//./[.]}([[:space:]]|\$)" <<< "${tasks}"
+        }
+        if ! has_task env.install; then
           echo "::error title=Missing env.install task::The 'env.install' task is not defined in 'tasks.py'. Expose the invoke-tasklib collection: 'from invoke_tasklib import ns'."
           exit 1
         fi
         for task in env.show-python-config env.show-installed-packages; do
-          if ! grep -qF "${task}" <<< "${tasks}"; then
+          if ! has_task "${task}"; then
             echo "::warning title=Missing ${task} task::The '${task}' task is not defined; the corresponding diagnostic step will fail."
           fi
         done
