@@ -499,3 +499,23 @@ jobs:
           # expanded to the valid flag '--no-optional-deps', the action would succeed;
           # passed as is, 'inv env.install' rejects the unknown flag
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+
+  test-uv-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment with a pinned uv version
+        uses: ./
+        with:
+          uv-version: "0.12.0"
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          uv --version
+          # the pinned version is installed, not the latest one
+          uv --version | grep -qE "^uv 0\.12\.0( |$)" || (echo "expected uv 0.12.0" && exit 1)

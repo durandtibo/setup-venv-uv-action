@@ -61,6 +61,15 @@ jobs:
     python-version: ">=3.12,<3.14"
 ```
 
+### With a Specific uv Version
+
+```yaml
+- name: Setup Python environment with a pinned uv version
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+  with:
+    uv-version: "0.9.0"
+```
+
 ### With Specific Package Installation
 
 ```yaml
@@ -152,6 +161,7 @@ jobs:
 | Input                    | Description                                                                                                                                          | Required | Default            |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
 | `python-version`         | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)               | No       | `"3.14"`           |
+| `uv-version`             | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.   | No       | `""`               |
 | `package-name`           | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                             | No       | `""`               |
 | `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Only used when `package-name` is specified. Leave empty to install latest.                    | No       | `""`               |
 | `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.      | No       | `""`               |
@@ -192,8 +202,9 @@ This action performs the following steps:
    `package-install-args` without `package-name`)
 2. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
-   `uv` package manager, set up the requested `python-version`, and activate
-   the environment, and restores the `uv` cache (see `enable-cache`)
+   `uv` package manager (see `uv-version`), set up the requested
+   `python-version`, and activate the environment, and restores the `uv` cache
+   (see `enable-cache`)
 3. **Verifies Installation**: Checks that `uv` and `python` are available in
    PATH
 4. **Installs Task Runner**: Installs
