@@ -108,6 +108,17 @@ jobs:
     working-directory: "python"
 ```
 
+### With Extra Packages
+
+```yaml
+- name: Setup Python environment with extra tools
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+  with:
+    extra-packages: |
+      pytest-xdist
+      requests>=2.31
+```
+
 ### Without the uv Cache
 
 ```yaml
@@ -170,16 +181,18 @@ This action performs the following steps:
    package/version via
    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
    (useful for dependency compatibility testing)
-7. **Shows Python Config**: Runs `inv env.show-python-config` to display all
+7. **Extra Packages**: If `extra-packages` is set, installs each listed
+   requirement with `uv pip install`
+8. **Shows Python Config**: Runs `inv env.show-python-config` to display all
    Python versions managed by `uv`, the active interpreter, and its full path
-8. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
+9. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
    list every installed package and version
-9. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
-   display the full dependency graph
-10. **Verifies Environment**: Runs `uv pip check` (with
+10. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
+    display the full dependency graph
+11. **Verifies Environment**: Runs `uv pip check` (with
     `continue-on-error: true`) to detect missing dependencies, version
     conflicts, or broken installations without failing the workflow
-11. **Sets Outputs**: Exposes the full `python-version` of the environment
+12. **Sets Outputs**: Exposes the full `python-version` of the environment
 
 ## Advanced Usage
 
