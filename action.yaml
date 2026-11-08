@@ -178,12 +178,14 @@ runs:
 
     # Step 3: Verify that uv and python are available in PATH
     # Safety check to ensure the environment setup succeeded
-    # Outputs the full paths to both executables for debugging
+    # Outputs the full paths and the versions of both executables for debugging
     - name: Verify uv and python installation
       shell: bash
       run: |
         which uv
+        uv --version
         which python
+        python --version
 
     # Step 4: Install invoke-tasklib
     # invoke-tasklib provides the shared invoke tasks used below

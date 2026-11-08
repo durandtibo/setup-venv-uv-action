@@ -211,7 +211,7 @@ This action performs the following steps:
    `python-version`, and activate the environment, and restores the `uv` cache
    (see `enable-cache`)
 3. **Verifies Installation**: Checks that `uv` and `python` are available in
-   PATH
+   PATH, and logs their paths and versions
 4. **Installs Task Runner**: Installs
    [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) for
    running project tasks
