@@ -223,9 +223,10 @@ This action performs the following steps:
 8. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
    or the `env.install` task is missing
 9. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
-   `uv sync --frozen` and install the current project in editable mode. When
-   `verbose` is `"true"`, it warns if `invoke-tasklib` is no longer installed
-   afterwards, because it is not a dependency of the project
+   `uv sync --frozen` and install the current project in editable mode. If
+   `invoke-tasklib` is no longer installed afterwards, because it is not a
+   dependency of the project, installs it again (see
+   `invoke-tasklib-version`) and, when `verbose` is `"true"`, warns about it
 10. **Optional Package**: If `package-name` is set, installs that specific
     package/version via
     [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
@@ -345,9 +346,11 @@ The action uses the following tasks of the collection:
 | `env.show-python-config`      | Shows the Python config      | A warning, then the diagnostic step fails but does not fail the action |
 | `env.show-installed-packages` | Shows the installed packages | A warning, then the diagnostic step fails but does not fail the action |
 
-Note: While the action installs `invoke-tasklib` before running your tasks, it
-must be included in your project dependencies to ensure it remains available
-after the `uv sync` step. Use the `invoke-tasklib-version` input to change the
+Note: The action installs `invoke-tasklib` before running your tasks. The
+`uv sync` step removes it when it is not in your lock file, and the action then
+installs it again, so `inv` stays available. Including `invoke-tasklib` in your
+project dependencies is still recommended: its version is then locked with the
+other dependencies. Use the `invoke-tasklib-version` input to change the
 version installed by the action.
 
 ### Example `pyproject.toml`
@@ -400,17 +403,18 @@ subfolder) and contains:
 from invoke_tasklib import ns
 ```
 
-### Warning: `invoke-tasklib removed`
+### Warning: `invoke-tasklib reinstalled`
 
 The action installs `invoke-tasklib` before your project dependencies, and
 `inv env.install` runs `uv sync --frozen`, which removes every package that is
 not in your lock file. If `invoke-tasklib` is not a dependency of your project,
-it is removed and the diagnostic steps (`inv env.show-python-config`,
-`inv env.show-installed-packages`) fail. Their failure is only logged, so the
-only visible signs are this warning and the errors in these steps.
+it is removed, so the action installs it again with the version of
+`invoke-tasklib-version`. The diagnostic steps and your own later steps that use
+`inv` keep working, but the version of `invoke-tasklib` is not locked.
 
 Add `invoke-tasklib` to a dependency group installed by `inv env.install` (the
-`dev` group by default), then update `uv.lock`:
+`dev` group by default), then update `uv.lock`. Its version is then locked and
+the warning disappears:
 
 ```toml
 [dependency-groups]
@@ -419,9 +423,8 @@ dev = [
 ]
 ```
 
-The warning is only emitted when `verbose` is `"true"`. With `verbose: "false"`,
-the diagnostic steps are skipped, but your own later steps that use `inv` would
-fail for the same reason.
+The warning is only emitted when `verbose` is `"true"`, but the reinstallation
+always happens.
 
 ### Error: `Invalid input`
 
