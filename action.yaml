@@ -10,7 +10,7 @@ branding:
 inputs:
   python-version:
     default: "3.14"
-    description: "Python version to use (e.g., '3.13', '3.12', '3.11', '3.10'). Defaults to Python 3.14."
+    description: "Python version to use (e.g., '3.13', '3.12', '3.11', '3.10') or any version request supported by uv (e.g., '>=3.12,<3.14'). Defaults to Python 3.14."
     required: false
   package-name:
     default: ""
@@ -196,13 +196,15 @@ runs:
     # Only runs if package-name is provided
     # Useful for testing your project against different versions of a dependency
     # (e.g., test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy)
+    # The python-version input is not forwarded: uv-install-package-action only
+    # accepts 'X.Y' versions, whereas python-version can be any uv version
+    # request (e.g., '>=3.12'). It detects the version of the active interpreter
     - name: Install specific package version
       if: ${{ inputs.package-name != '' }}
       uses: durandtibo/uv-install-package-action@fe64eac38f69e851b5e79b74ee255ed95a159bc0 # ratchet:durandtibo/uv-install-package-action@v0.2.0
       with:
         package-name: ${{ inputs.package-name }}
         package-version: ${{ inputs.package-version }}
-        python-version: ${{ inputs.python-version }}
         uv-args: ${{ inputs.package-install-args }}
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
