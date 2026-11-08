@@ -190,6 +190,29 @@ jobs:
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
 
+  test-working-directory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Move the project to a subfolder
+        run: |
+          mkdir subproject
+          mv pyproject.toml uv.lock tasks.py invoke.yaml src subproject/
+
+      - name: Setup python environment
+        uses: ./
+        with:
+          working-directory: subproject
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import sys; assert sys.prefix.endswith('/subproject/.venv'), sys.prefix"
+
   test-progress-bar:
     runs-on: ubuntu-latest
     timeout-minutes: 5
