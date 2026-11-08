@@ -729,3 +729,51 @@ jobs:
             echo "uv is installed: the action did not fail in the validation"
             exit 1
           fi
+
+  test-invalid-package-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Test that uv is not installed before the action
+        run: |
+          if command -v uv; then
+            echo "uv is already installed, the test is not valid"
+            exit 1
+          fi
+
+      - name: Setup python environment with a specifier as package-version
+        id: specifier
+        uses: ./
+        continue-on-error: true
+        with:
+          package-name: numpy
+          package-version: ">=2.0"
+
+      - name: Setup python environment with an option in package-version
+        id: option
+        uses: ./
+        continue-on-error: true
+        with:
+          package-name: numpy
+          package-version: "2.4.0 --pre"
+
+      - name: Test that the actions failed in the validation
+        env:
+          OUTCOME_SPECIFIER: ${{ steps.specifier.outcome }}
+          OUTCOME_OPTION: ${{ steps.option.outcome }}
+        run: |
+          for outcome in "${OUTCOME_SPECIFIER}" "${OUTCOME_OPTION}"; do
+            if [ "${outcome}" != "failure" ]; then
+              echo "expected the action to fail, got '${outcome}'"
+              exit 1
+            fi
+          done
+          # the validation (steps 1 to 4) failed: uv was not installed yet
+          if command -v uv; then
+            echo "uv is installed: the action did not fail in the validation"
+            exit 1
+          fi
