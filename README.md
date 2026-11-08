@@ -198,47 +198,49 @@ Example:
 
 This action performs the following steps:
 
-1. **Validates Inputs**: Fails with a clear message when a boolean-like input
-   (`uv-no-progress`, `verbose`, `enable-cache`) is invalid, when
-   `working-directory` is absolute, outside of the workspace or not an existing
-   directory, when `invoke-tasklib-version` is not a version specifier that
-   starts with an operator, or when `package-name` is not a package name. It
-   warns about inputs that are ignored
-   (`package-version` or `package-install-args` without `package-name`)
-2. **Installs uv and Python**: Uses
+1. **Validates Boolean Inputs**: Fails with a clear message when
+   `uv-no-progress`, `verbose` or `enable-cache` is invalid
+2. **Validates the Working Directory**: Fails when `working-directory` is
+   absolute, outside of the workspace or not an existing directory
+3. **Validates the invoke-tasklib Version**: Fails when `invoke-tasklib-version`
+   is not a version specifier that starts with an operator
+4. **Validates Python and Package Inputs**: Fails when `package-name` is not a
+   package name. It warns about inputs that are ignored (`package-version` or
+   `package-install-args` without `package-name`)
+5. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager (see `uv-version`), set up the requested
    `python-version`, and activate the environment, and restores the `uv` cache
    (see `enable-cache`)
-3. **Verifies Installation**: Checks that `uv` and `python` are available in
+6. **Verifies Installation**: Checks that `uv` and `python` are available in
    PATH, and logs their paths and versions
-4. **Installs Task Runner**: Installs
+7. **Installs Task Runner**: Installs
    [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) for
    running project tasks
-5. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
+8. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
    or the `env.install` task is missing
-6. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
+9. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
    `uv sync --frozen` and install the current project in editable mode. When
    `verbose` is `"true"`, it warns if `invoke-tasklib` is no longer installed
    afterwards, because it is not a dependency of the project
-7. **Optional Package**: If `package-name` is set, installs that specific
-   package/version via
-   [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
-   (useful for dependency compatibility testing)
-8. **Extra Packages**: If `extra-packages` is set, installs each listed
-   requirement with `uv pip install`
-9. **Shows Python Config**: Runs `inv env.show-python-config` to display all
-   Python versions managed by `uv`, the active interpreter, and its full path
-10. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
+10. **Optional Package**: If `package-name` is set, installs that specific
+    package/version via
+    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
+    (useful for dependency compatibility testing)
+11. **Extra Packages**: If `extra-packages` is set, installs each listed
+    requirement with `uv pip install`
+12. **Shows Python Config**: Runs `inv env.show-python-config` to display all
+    Python versions managed by `uv`, the active interpreter, and its full path
+13. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
     list every installed package and version
-11. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
+14. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
     display the full dependency graph
-12. **Verifies Environment**: Runs `uv pip check` to detect missing
+15. **Verifies Environment**: Runs `uv pip check` to detect missing
     dependencies, version conflicts, or broken installations
-13. **Sets Outputs**: Exposes the full `python-version` of the environment
+16. **Sets Outputs**: Exposes the full `python-version` of the environment
     (the `uv-version` output comes from `astral-sh/setup-uv`)
 
-Steps 9 to 12 are diagnostic steps: they only run when `verbose` is `"true"`,
+Steps 12 to 15 are diagnostic steps: they only run when `verbose` is `"true"`,
 and they use `continue-on-error: true`, so a failure is logged but does not fail
 the action (see [Failure Behavior](#failure-behavior)).
 
