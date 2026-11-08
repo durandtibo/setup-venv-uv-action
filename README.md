@@ -154,7 +154,7 @@ jobs:
 | `python-version`         | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)               | No       | `"3.14"`           |
 | `package-name`           | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                             | No       | `""`               |
 | `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Only used when `package-name` is specified. Leave empty to install latest.                    | No       | `""`               |
-| `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`).                                        | No       | `""`               |
+| `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.      | No       | `""`               |
 | `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`).                                                    | No       | `""`               |
 | `invoke-tasklib-version` | Version specifier of `invoke-tasklib` installed before running the project tasks (e.g., `">=0.0.8,<1.0.0"`, `"==0.0.8"`). Must include the operator. | No       | `">=0.0.8,<1.0.0"` |
 | `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                        | No       | `"."`              |
@@ -391,7 +391,10 @@ set. Set `package-name` or remove the input.
 ### Custom Install Arguments Not Working
 
 The `install-args` input is passed directly to the `inv env.install` command
-(e.g., `--no-optional-deps`, `--groups=dev,docs`). See the
+(e.g., `--no-optional-deps`, `--groups=dev,docs`). The value is split on
+whitespace: quotes are not interpreted, so an argument cannot contain a space,
+and glob characters (`*`, `?`, `[`) are passed as is instead of being expanded
+to file names. See the
 [invoke-tasklib documentation](https://durandtibo.github.io/invoke-tasklib/)
 for the full list of supported options.
 

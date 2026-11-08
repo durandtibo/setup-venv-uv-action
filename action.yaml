@@ -22,7 +22,7 @@ inputs:
     required: false
   install-args:
     default: ""
-    description: "Optional arguments passed to the 'inv env.install' command (e.g., '--no-optional-deps', '--groups=dev,docs', or custom flags supported by your invoke-tasklib configuration)."
+    description: "Optional arguments passed to the 'inv env.install' command (e.g., '--no-optional-deps', '--groups=dev,docs', or custom flags supported by your invoke-tasklib configuration). The value is split on whitespace: quotes are not interpreted and glob characters are kept as is."
     required: false
   package-install-args:
     default: ""
@@ -195,6 +195,7 @@ runs:
     # The task is executed in the working-directory input
     # Optional install-args can be passed to customize the installation
     # (e.g., --no-optional-deps to skip installing optional dependencies)
+    # The arguments are split on whitespace (no quoting) and are not glob-expanded
     # 'uv sync --frozen' removes the packages that are not in the lock file, so
     # invoke-tasklib (installed in step 4) is removed when the project does not
     # depend on it: warn, because the diagnostic steps need it
@@ -206,7 +207,10 @@ runs:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
         VERBOSE: ${{ inputs.verbose }}
       run: |
+        # install-args is split on whitespace but not expanded as a glob
+        set -f
         inv env.install ${INSTALL_ARGS}
+        set +f
         if [ "${VERBOSE}" = "true" ] &&
           ! uv pip show --quiet invoke-tasklib; then
           echo "::warning title=invoke-tasklib removed::'invoke-tasklib' was" \
