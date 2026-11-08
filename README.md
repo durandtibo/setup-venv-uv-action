@@ -16,8 +16,8 @@ and resolver.
   installations, and additional install arguments
 - **Environment Verification**: Automatically verifies the environment setup
   with dependency checks and diagnostics
-- **Cross-Platform**: Tested on the Linux and macOS GitHub-hosted runners
-  (Windows is not tested)
+- **Linux and macOS**: Tested on the Linux and macOS GitHub-hosted runners.
+  Windows runners are not tested and not supported
 - **Debug-Friendly**: Provides detailed output of Python configuration,
   installed packages, and dependency tree
 
@@ -291,14 +291,16 @@ jobs:
         run: python -m pytest
 ```
 
-### Cross-Platform Testing
+### Testing on Linux and macOS
+
+Windows runners are not tested, so they are not part of this example.
 
 ```yaml
 jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
