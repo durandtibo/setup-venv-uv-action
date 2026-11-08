@@ -201,8 +201,9 @@ This action performs the following steps:
 1. **Validates Inputs**: Fails with a clear message when a boolean-like input
    (`uv-no-progress`, `verbose`, `enable-cache`) is invalid, when
    `working-directory` is absolute, outside of the workspace or not an existing
-   directory, or when `invoke-tasklib-version` is not a version specifier that
-   starts with an operator. It warns about inputs that are ignored
+   directory, when `invoke-tasklib-version` is not a version specifier that
+   starts with an operator, or when `package-name` is not a package name. It
+   warns about inputs that are ignored
    (`package-version` or `package-install-args` without `package-name`)
 2. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
@@ -431,6 +432,11 @@ The input `invoke-tasklib-version` must be a version specifier whose clauses
 start with an operator, separated by commas (e.g., `">=0.0.8,<1.0.0"` or
 `"==0.0.8"`). A bare version such as `"0.0.8"` is rejected: use `"==0.0.8"`. An
 empty value is accepted and installs the latest version of `invoke-tasklib`.
+
+The input `package-name` must be a package name made of letters, digits, `.`,
+`_` and `-`, optionally followed by extras in brackets (e.g., `"numpy"` or
+`"uvicorn[standard]"`). Put the version in `package-version` and the options in
+`package-install-args`, not in `package-name`.
 
 ### Warning: `Ignored input`
 

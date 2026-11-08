@@ -77,6 +77,8 @@ runs:
     # - working-directory must be an existing directory inside the workspace
     # - invoke-tasklib-version must be a version specifier that starts with an
     #   operator (an empty value is accepted: the latest version is installed)
+    # - package-name must be a package name, optionally followed by extras
+    #   (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
     # - package-version and package-install-args are ignored without package-name: warn
     # - An empty python-version is valid (uv uses the version of the project): notice
     - name: Validate inputs
@@ -132,6 +134,17 @@ runs:
             "'invoke-tasklib-version' must be a version specifier that" \
             "starts with an operator (e.g., '>=0.0.8,<1.0.0' or '==0.0.8')," \
             "got '${TASKLIB_VERSION}'."
+          status=1
+        fi
+        distribution='[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?'
+        extras='(\[[A-Za-z0-9._,-]+\])?'
+        package_name="^${distribution}${extras}\$"
+        if [ -n "${PACKAGE_NAME}" ] &&
+          ! [[ "${PACKAGE_NAME}" =~ ${package_name} ]]; then
+          echo "::error title=Invalid input::The input 'package-name' must be" \
+            "a package name, optionally followed by extras (e.g., 'numpy' or" \
+            "'uvicorn[standard]'), got '${PACKAGE_NAME}'. The version goes in" \
+            "'package-version' and the options in 'package-install-args'."
           status=1
         fi
         if [ -z "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_VERSION}" ]; then

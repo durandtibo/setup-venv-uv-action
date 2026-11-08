@@ -159,6 +159,27 @@ jobs:
           assert not u.find_spec('numpy'), 'numpy should not be installed'
           "
 
+  test-package-extras:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment
+        uses: ./
+        with:
+          package-name: "requests[socks]"
+          package-version: 2.32.5
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import requests; assert requests.__version__ == '2.32.5'"
+          # PySocks is only installed with the 'socks' extra
+          python -c "import socks"
+
   test-tasklib-version:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -389,18 +410,28 @@ jobs:
         with:
           invoke-tasklib-version: "0.0.8"
 
+      - name: Setup python environment with an invalid package-name
+        id: package-name
+        uses: ./
+        continue-on-error: true
+        with:
+          package-name: "--upgrade"
+          package-version: 2.4.0
+
       - name: Test that the actions failed in the validation
         env:
           OUTCOME_UV_NO_PROGRESS: ${{ steps.uv-no-progress.outcome }}
           OUTCOME_VERBOSE: ${{ steps.verbose.outcome }}
           OUTCOME_ENABLE_CACHE: ${{ steps.enable-cache.outcome }}
           OUTCOME_TASKLIB_VERSION: ${{ steps.tasklib-version.outcome }}
+          OUTCOME_PACKAGE_NAME: ${{ steps.package-name.outcome }}
         run: |
           for outcome in \
             "${OUTCOME_UV_NO_PROGRESS}" \
             "${OUTCOME_VERBOSE}" \
             "${OUTCOME_ENABLE_CACHE}" \
-            "${OUTCOME_TASKLIB_VERSION}"; do
+            "${OUTCOME_TASKLIB_VERSION}" \
+            "${OUTCOME_PACKAGE_NAME}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
           # the validation (step 1) failed: uv was not installed yet
