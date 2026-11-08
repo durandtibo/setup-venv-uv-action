@@ -62,7 +62,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
     `test-tasklib-not-a-dependency`
   - `test-working-directory`, `test-invalid-working-directory`,
     `test-missing-tasks`
-  - `test-cache`, `test-not-verbose`, `test-progress-bar`
+  - `test-uv-version`, `test-cache`, `test-not-verbose`, `test-progress-bar`
   - `test-invalid-inputs`, `test-ignored-inputs`
 - **Permissions**: `actions: write`, `contents: read`
 
