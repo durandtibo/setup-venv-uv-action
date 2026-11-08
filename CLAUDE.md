@@ -50,14 +50,15 @@ inputs.* }}` in `run:`.
 - Every `run:` step sets `shell: bash` (required in composite actions).
 - Reporting steps (show config, packages, tree, check) use `continue-on-error:
 true`. Installation steps must fail the action.
-- Validate every input in step 1 (`Validate inputs`) when it is possible to do
-  so, so that an invalid value fails early with an `::error title=Invalid
-input::` message, before anything is installed, instead of an obscure error
-  from a later step. Warn about the inputs that are ignored. Do not validate a
-  value that only the tool receiving it can interpret (for example a `uv`
-  version request or a `python-version` range), and say in the PR which inputs
-  are not validated and why. Document the rule of each validated input in
-  `README.md` (the "Validates Inputs" step and the `Invalid input` section).
+- Validate every input in the validation steps (the first steps of the action)
+  when it is possible to do so, so that an invalid value fails early with an
+  `::error title=Invalid input::` message, before anything is installed,
+  instead of an obscure error from a later step. Warn about the inputs that are
+  ignored. Do not validate a value that only the tool receiving it can
+  interpret (for example a `uv` version request or a `python-version` range),
+  and say in the PR which inputs are not validated and why. Document the rule
+  of each validated input in `README.md` (the validation steps and the
+  `Invalid input` section).
 
 ## Tests
 

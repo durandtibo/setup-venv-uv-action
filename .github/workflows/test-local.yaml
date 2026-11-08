@@ -218,16 +218,16 @@ jobs:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # uv and the virtual environment (step 2) are available: the failure
+          # uv and the virtual environment (step 5) are available: the failure
           # is not in the first steps
           uv --version
           python --version
-          # invoke-tasklib could not be installed: step 4 failed
+          # invoke-tasklib could not be installed: step 7 failed
           if uv pip show --quiet invoke-tasklib; then
-            echo "invoke-tasklib is installed: the failure is not in step 4"
+            echo "invoke-tasklib is installed: the failure is not in step 7"
             exit 1
           fi
-          # the dependencies were not installed: step 6 did not run
+          # the dependencies were not installed: step 9 did not run
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
@@ -287,16 +287,16 @@ jobs:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # uv and the virtual environment (step 2) are available: the failure
+          # uv and the virtual environment (step 5) are available: the failure
           # is not in the first steps
           uv --version
           python --version
-          # invoke-tasklib was installed (step 4): the failure is in step 5
+          # invoke-tasklib was installed (step 7): the failure is in step 8
           if ! uv pip show --quiet invoke-tasklib; then
             echo "invoke-tasklib is not installed: the action failed too early"
             exit 1
           fi
-          # the dependencies were not installed: step 6 did not run
+          # the dependencies were not installed: step 9 did not run
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
@@ -443,7 +443,7 @@ jobs:
             "${OUTCOME_PACKAGE_NAME}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
-          # the validation (step 1) failed: uv was not installed yet
+          # the validation (steps 1 to 4) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
@@ -576,7 +576,7 @@ jobs:
           for outcome in "${OUTCOME_OUTSIDE}" "${OUTCOME_ABSOLUTE}" "${OUTCOME_MISSING}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
-          # the validation (step 1) failed: uv was not installed yet
+          # the validation (steps 1 to 4) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
