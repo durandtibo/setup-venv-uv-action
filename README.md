@@ -108,6 +108,15 @@ jobs:
     working-directory: "python"
 ```
 
+### Without the uv Cache
+
+```yaml
+- name: Setup Python environment without the uv cache
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+  with:
+    enable-cache: "false"
+```
+
 ## Inputs
 
 | Input                    | Description                                                                                                                                          | Required | Default            |
@@ -123,9 +132,10 @@ jobs:
 
 ## Outputs
 
-| Output           | Description                                                          |
-| ---------------- | -------------------------------------------------------------------- |
-| `python-version` | Full version of the Python interpreter of the environment (`3.14.0`) |
+| Output           | Description                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| `cache-hit`      | Whether the `uv` cache was restored (`true` or `false`). Empty when the cache is disabled. |
+| `python-version` | Full version of the Python interpreter of the environment (`3.14.0`)                       |
 
 Example:
 
@@ -145,7 +155,7 @@ This action performs the following steps:
 1. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager, set up the requested `python-version`, and activate
-   the environment
+   the environment, and restores the `uv` cache (see `enable-cache`)
 2. **Verifies Installation**: Checks that `uv` and `python` are available in
    PATH
 3. **Installs Task Runner**: Installs
