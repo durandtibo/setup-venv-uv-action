@@ -50,6 +50,14 @@ inputs.* }}` in `run:`.
 - Every `run:` step sets `shell: bash` (required in composite actions).
 - Reporting steps (show config, packages, tree, check) use `continue-on-error:
 true`. Installation steps must fail the action.
+- Validate every input in step 1 (`Validate inputs`) when it is possible to do
+  so, so that an invalid value fails early with an `::error title=Invalid
+input::` message, before anything is installed, instead of an obscure error
+  from a later step. Warn about the inputs that are ignored. Do not validate a
+  value that only the tool receiving it can interpret (for example a `uv`
+  version request or a `python-version` range), and say in the PR which inputs
+  are not validated and why. Document the rule of each validated input in
+  `README.md` (the "Validates Inputs" step and the `Invalid input` section).
 
 ## Tests
 
@@ -63,6 +71,9 @@ The action is tested by `.github/workflows/test-local.yaml` (`uses: ./`) and
   it to `test-stable.yaml` when the release in `test-stable.yaml` is bumped.
 - Every input of the action needs a job that sets it and asserts its effect (not
   only that the action succeeds). Add a job when adding an input.
+- Every validated input needs a test that passes an invalid value and asserts
+  that the action fails. Assert that it failed because of the validation, for
+  example by checking that nothing was installed, not only that it failed.
 - Read OS and Python version lists from `durandtibo/workflow-config-action`
   outputs; do not hardcode them.
 - Assert the expected value with an explicit check (for example `assert
