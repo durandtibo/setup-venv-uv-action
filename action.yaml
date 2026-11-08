@@ -301,12 +301,15 @@ runs:
     # The arguments are split on whitespace (no quoting) and are not glob-expanded
     # 'uv sync --frozen' removes the packages that are not in the lock file, so
     # invoke-tasklib (installed in step 7) is removed when the project does not
-    # depend on it: warn, because the diagnostic steps need it
+    # depend on it: install it again (with the invoke-tasklib-version input),
+    # because the diagnostic steps and the later steps of the workflow need
+    # 'inv', and warn when verbose is 'true'
     - name: Install dependencies
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
+        TASKLIB_VERSION: ${{ inputs.invoke-tasklib-version }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
         VERBOSE: ${{ inputs.verbose }}
       run: |
@@ -314,12 +317,15 @@ runs:
         set -f
         inv env.install ${INSTALL_ARGS}
         set +f
-        if [ "${VERBOSE}" = "true" ] &&
-          ! uv pip show --quiet invoke-tasklib; then
-          echo "::warning title=invoke-tasklib removed::'invoke-tasklib' was" \
-            "removed from the environment because it is not a dependency of" \
-            "the project, so the diagnostic steps will fail. Add it to the" \
-            "project dependencies (see the README)."
+        if ! uv pip show --quiet invoke-tasklib; then
+          uv pip install "invoke-tasklib${TASKLIB_VERSION}"
+          if [ "${VERBOSE}" = "true" ]; then
+            title="invoke-tasklib reinstalled"
+            echo "::warning title=${title}::'invoke-tasklib' was removed" \
+              "from the environment because it is not a dependency of the" \
+              "project, so the action installed it again. Add it to the" \
+              "project dependencies (see the README)."
+          fi
         fi
 
     # Step 10 (Optional): Install a specific package version for compatibility testing
