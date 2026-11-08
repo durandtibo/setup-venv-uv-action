@@ -247,14 +247,23 @@ jobs:
           mv pyproject.toml uv.lock tasks.py invoke.yaml src subproject/
 
       - name: Setup python environment
+        id: setup
         uses: ./
         with:
           working-directory: subproject
 
       - name: Test environment
+        env:
+          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.prefix.endswith('/subproject/.venv'), sys.prefix"
+          # the output is the version of the interpreter of the subproject
+          python -c "
+          import os, platform
+          v = os.environ['OUTPUT_VERSION']
+          assert v == platform.python_version(), v
+          "
 
   test-missing-tasks:
     runs-on: ubuntu-latest
