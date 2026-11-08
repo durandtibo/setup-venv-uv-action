@@ -192,7 +192,9 @@ This action performs the following steps:
 5. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
    or the `env.install` task is missing
 6. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
-   `uv sync --frozen` and install the current project in editable mode
+   `uv sync --frozen` and install the current project in editable mode. When
+   `verbose` is `"true"`, it warns if `invoke-tasklib` is no longer installed
+   afterwards, because it is not a dependency of the project
 7. **Optional Package**: If `package-name` is set, installs that specific
    package/version via
    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
