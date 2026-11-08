@@ -140,6 +140,7 @@ jobs:
 | `invoke-tasklib-version` | Version specifier of `invoke-tasklib` installed before running the project tasks (e.g., `">=0.0.8,<1.0.0"`, `"==0.0.8"`). Must include the operator. | No       | `">=0.0.8,<1.0.0"` |
 | `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                        | No       | `"."`              |
 | `enable-cache`           | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                        | No       | `"auto"`           |
+| `extra-packages`         | Optional additional packages to install after the project dependencies, one requirement per line. Leave empty to skip.                               | No       | `""`               |
 | `uv-no-progress`         | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the install steps).                                                                | No       | `"true"`           |
 
 ## Outputs
