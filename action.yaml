@@ -250,7 +250,9 @@ runs:
       run: |
         packages=()
         while IFS= read -r line; do
-          line="$(printf '%s' "${line}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          # Trim the leading and trailing whitespace without spawning a process
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
           if [ -n "${line}" ]; then
             packages+=("${line}")
           fi
