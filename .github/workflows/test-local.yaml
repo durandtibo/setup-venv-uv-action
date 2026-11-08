@@ -313,6 +313,64 @@ jobs:
           python -c "import myproject; print(myproject)"
           uv pip check
 
+  test-invalid-inputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment with an invalid uv-no-progress
+        id: uv-no-progress
+        uses: ./
+        continue-on-error: true
+        with:
+          uv-no-progress: "yes"
+
+      - name: Setup python environment with an invalid verbose
+        id: verbose
+        uses: ./
+        continue-on-error: true
+        with:
+          verbose: "1"
+
+      - name: Setup python environment with an invalid enable-cache
+        id: enable-cache
+        uses: ./
+        continue-on-error: true
+        with:
+          enable-cache: "maybe"
+
+      - name: Test that the actions failed
+        env:
+          OUTCOME_UV_NO_PROGRESS: ${{ steps.uv-no-progress.outcome }}
+          OUTCOME_VERBOSE: ${{ steps.verbose.outcome }}
+          OUTCOME_ENABLE_CACHE: ${{ steps.enable-cache.outcome }}
+        run: |
+          for outcome in "${OUTCOME_UV_NO_PROGRESS}" "${OUTCOME_VERBOSE}" "${OUTCOME_ENABLE_CACHE}"; do
+            test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
+          done
+
+  test-ignored-inputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment with inputs that are ignored without package-name
+        uses: ./
+        with:
+          package-version: 2.4.0
+          package-install-args: "--upgrade"
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import importlib.util as u; assert u.find_spec('numpy') is None, 'numpy should not be installed'"
+
   test-progress-bar:
     runs-on: ubuntu-latest
     timeout-minutes: 5
