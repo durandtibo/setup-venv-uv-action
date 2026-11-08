@@ -30,7 +30,7 @@ inputs:
     required: false
   package-install-args:
     default: ""
-    description: "Optional arguments passed to the 'uv pip install' command used to install 'package-name' (e.g., '--upgrade')."
+    description: "Optional arguments passed to the 'uv pip install' command used to install 'package-name' (e.g., '--upgrade'). Relative paths start at the workspace root, not at 'working-directory'."
     required: false
   invoke-tasklib-version:
     default: ">=0.0.8,<1.0.0"
@@ -264,6 +264,10 @@ runs:
     # Only runs if package-name is provided
     # Useful for testing your project against different versions of a dependency
     # (e.g., test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy)
+    # This step runs in the workspace root, not in the working-directory input:
+    # uv-install-package-action has no working-directory input and a step that
+    # uses an action cannot set one, so the relative paths of the
+    # package-install-args input start at the workspace root
     # The python-version input is not forwarded: uv-install-package-action only
     # accepts 'X.Y' versions, whereas python-version can be any uv version
     # request (e.g., '>=3.12'). It detects the version of the active interpreter
