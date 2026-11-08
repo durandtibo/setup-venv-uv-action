@@ -38,7 +38,7 @@ inputs:
     required: false
   extra-packages:
     default: ""
-    description: "Optional additional packages to install after the project dependencies, one requirement per line (e.g., 'pytest-xdist' or 'requests>=2.31'). Leave empty to skip."
+    description: "Optional additional packages to install after the project dependencies, one requirement per line (e.g., 'pytest-xdist' or 'requests>=2.31'). A line cannot be an option: it must not start with '-'. Leave empty to skip."
     required: false
   enable-cache:
     default: "auto"
@@ -149,6 +149,8 @@ runs:
     # Step 4: Validate the Python and package inputs
     # - package-name must be a package name, optionally followed by extras
     #   (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
+    # - extra-packages must contain one requirement per line, not an option
+    #   (a line that starts with '-', e.g., '--index-url=...' or '-e .')
     # - package-version and package-install-args are ignored without package-name: warn
     # - An empty python-version is valid (uv uses the version of the project): notice
     - name: Validate python and package inputs
@@ -158,6 +160,7 @@ runs:
         PACKAGE_NAME: ${{ inputs.package-name }}
         PACKAGE_VERSION: ${{ inputs.package-version }}
         PACKAGE_INSTALL_ARGS: ${{ inputs.package-install-args }}
+        EXTRA_PACKAGES: ${{ inputs.extra-packages }}
       run: |
         distribution='[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?'
         extras='(\[[A-Za-z0-9._,-]+\])?'
@@ -168,6 +171,20 @@ runs:
             "a package name, optionally followed by extras (e.g., 'numpy' or" \
             "'uvicorn[standard]'), got '${PACKAGE_NAME}'. The version goes in" \
             "'package-version' and the options in 'package-install-args'."
+          exit 1
+        fi
+        status=0
+        while IFS= read -r line; do
+          # Trim the leading whitespace, like the installation step
+          line="${line#"${line%%[![:space:]]*}"}"
+          if [[ "${line}" == -* ]]; then
+            echo "::error title=Invalid input::The input 'extra-packages'" \
+              "must contain one requirement per line, not options, got" \
+              "'${line}'."
+            status=1
+          fi
+        done <<< "${EXTRA_PACKAGES}"
+        if [ "${status}" -ne 0 ]; then
           exit 1
         fi
         if [ -z "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_VERSION}" ]; then
@@ -318,6 +335,8 @@ runs:
     # Only runs if extra-packages is provided, with one requirement per line
     # Useful for tools that are not dependencies of the project (e.g., pytest-xdist)
     # Blank lines are ignored and every line is passed to uv as a single argument
+    # A line that starts with '-' is rejected by the validation (step 4), so a
+    # line is always a requirement and never an option of uv
     - name: Install extra packages
       if: ${{ inputs.extra-packages != '' }}
       shell: bash

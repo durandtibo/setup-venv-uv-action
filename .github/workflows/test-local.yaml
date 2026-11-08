@@ -679,3 +679,53 @@ jobs:
             echo "myproject is installed: the action did not stop earlier"
             exit 1
           fi
+
+  test-invalid-extra-packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Test that uv is not installed before the action
+        run: |
+          if command -v uv; then
+            echo "uv is already installed, the test is not valid"
+            exit 1
+          fi
+
+      - name: Setup python environment with an option in extra-packages
+        id: option
+        uses: ./
+        continue-on-error: true
+        with:
+          extra-packages: |
+            six==1.17.0
+            --index-url=https://example.invalid/simple
+
+      - name: Setup python environment with an indented option in extra-packages
+        id: editable
+        uses: ./
+        continue-on-error: true
+        with:
+          extra-packages: |
+            six==1.17.0
+              -e .
+
+      - name: Test that the actions failed in the validation
+        env:
+          OUTCOME_OPTION: ${{ steps.option.outcome }}
+          OUTCOME_EDITABLE: ${{ steps.editable.outcome }}
+        run: |
+          for outcome in "${OUTCOME_OPTION}" "${OUTCOME_EDITABLE}"; do
+            if [ "${outcome}" != "failure" ]; then
+              echo "expected the action to fail, got '${outcome}'"
+              exit 1
+            fi
+          done
+          # the validation (steps 1 to 4) failed: uv was not installed yet
+          if command -v uv; then
+            echo "uv is installed: the action did not fail in the validation"
+            exit 1
+          fi
