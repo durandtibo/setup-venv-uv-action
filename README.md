@@ -108,6 +108,15 @@ jobs:
     working-directory: "python"
 ```
 
+### With Quieter Logs
+
+```yaml
+- name: Setup Python environment without the diagnostic steps
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+  with:
+    verbose: "false"
+```
+
 ### With Extra Packages
 
 ```yaml
@@ -141,6 +150,7 @@ jobs:
 | `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                        | No       | `"."`              |
 | `enable-cache`           | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                        | No       | `"auto"`           |
 | `extra-packages`         | Optional additional packages to install after the project dependencies, one requirement per line. Leave empty to skip.                               | No       | `""`               |
+| `verbose`                | Run the diagnostic steps (Python configuration, installed packages, dependency tree, environment check). Set to `"false"` for quieter logs.          | No       | `"true"`           |
 | `uv-no-progress`         | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the install steps).                                                                | No       | `"true"`           |
 
 ## Outputs

@@ -295,6 +295,24 @@ jobs:
           python -c "import importlib.metadata as m; assert m.version('six') == '1.17.0', m.version('six')"
           python -c "import attr, iniconfig; print(attr.__version__)"
 
+  test-not-verbose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment
+        uses: ./
+        with:
+          verbose: "false"
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          uv pip check
+
   test-progress-bar:
     runs-on: ubuntu-latest
     timeout-minutes: 5
