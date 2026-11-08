@@ -2,11 +2,12 @@
 
 ## Repository
 
-This repository is a GitHub composite action (`action.yaml`) that installs `uv`,
-sets up Python, and installs the project dependencies with the `inv env.install`
-task of `invoke-tasklib`. `pyproject.toml`, `tasks.py`, `invoke.yaml` and `src/`
-form a minimal dummy project (`myproject`)
-that the workflows use to test the action. They are not a library: do not add features there.
+This repository is a GitHub composite action (`action.yaml`) that installs
+`uv`, sets up Python, and installs the project dependencies with the `inv
+env.install` task of `invoke-tasklib`. `pyproject.toml`, `tasks.py`,
+`invoke.yaml` and `src/` form a minimal dummy project (`myproject`) that the
+workflows use to test the action. They are not a library: do not add features
+there.
 
 ## Environment
 
