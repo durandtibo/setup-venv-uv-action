@@ -16,7 +16,8 @@ and resolver.
   installations, and additional install arguments
 - **Environment Verification**: Automatically verifies the environment setup
   with dependency checks and diagnostics
-- **Cross-Platform**: Tested on Ubuntu (x64/ARM), macOS (Intel/Apple Silicon)
+- **Cross-Platform**: Tested on the Linux and macOS GitHub-hosted runners
+  (Windows is not tested)
 - **Debug-Friendly**: Provides detailed output of Python configuration,
   installed packages, and dependency tree
 
@@ -209,6 +210,15 @@ This action performs the following steps:
     conflicts, or broken installations without failing the workflow
 13. **Sets Outputs**: Exposes the full `python-version` of the environment
 
+## Failure Behavior
+
+| Steps                                                                                       | On error                                                    |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Validate inputs, install `uv`, verify project tasks, install dependencies, install packages | The action fails                                            |
+| Show Python config, show installed packages, show dependency tree, `uv pip check`           | Logged, but the action succeeds (`continue-on-error: true`) |
+
+The four diagnostic steps are skipped when `verbose` is `"false"`.
+
 ## Advanced Usage
 
 ### Testing Against Multiple Python Versions
@@ -275,27 +285,38 @@ jobs:
 
 ## Requirements
 
-This action expects:
+This action expects the following files in the project directory (the
+repository root, or the `working-directory` input):
 
-- A `pyproject.toml` file in your repository root (for dependency management)
+- A `pyproject.toml` file (for dependency management)
+- A `uv.lock` file, committed to the repository: dependencies are installed
+  with `uv sync --frozen`, which never updates the lock file
 - A `tasks.py` file that exposes the
   [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) task
-  collection (specifically the `env.install`, `env.show-python-config`, and
-  `env.show-installed-packages` tasks)
+  collection
 - An `invoke.yaml` file configuring `invoke-tasklib` with your package name
-- `invoke-tasklib>=0.0.2` in your project dependencies (e.g., in a dev
+- `invoke-tasklib>=0.0.8,<1.0.0` in your project dependencies (e.g., in a dev
   dependency group)
+
+The action uses the following tasks of the collection:
+
+| Task                          | Used by                      | If missing                                                             |
+| ----------------------------- | ---------------------------- | ---------------------------------------------------------------------- |
+| `env.install`                 | Installs the dependencies    | The action fails                                                       |
+| `env.show-python-config`      | Shows the Python config      | A warning, then the diagnostic step fails but does not fail the action |
+| `env.show-installed-packages` | Shows the installed packages | A warning, then the diagnostic step fails but does not fail the action |
 
 Note: While the action installs `invoke-tasklib` before running your tasks, it
 must be included in your project dependencies to ensure it remains available
-after the `uv sync` step.
+after the `uv sync` step. Use the `invoke-tasklib-version` input to change the
+version installed by the action.
 
 ### Example `pyproject.toml`
 
 ```toml
 [dependency-groups]
 dev = [
-    "invoke-tasklib >=0.0.2,<0.1.0",
+    "invoke-tasklib >=0.0.8,<1.0.0",
 ]
 ```
 
@@ -328,6 +349,28 @@ If the action fails during dependency installation, check:
 1. Your `pyproject.toml` has correct dependency specifications
 2. The `tasks.py` file exists and exposes the `invoke-tasklib` task collection
 3. An `invoke.yaml` file exists with your package name configured
+
+### Error: `Missing tasks.py` or `Missing env.install task`
+
+The step "Verify project tasks" runs `inv --list` in the project directory and
+fails if the `env.install` task is not defined. Check that `tasks.py` exists in
+the project directory (set `working-directory` if the project is in a
+subfolder) and contains:
+
+```python
+from invoke_tasklib import ns
+```
+
+### Error: `Invalid input`
+
+The inputs `uv-no-progress`, `verbose` and `enable-cache` must be `"true"` or
+`"false"` (`enable-cache` also accepts `"auto"`). Quote the values in YAML so
+that they are passed as strings.
+
+### Warning: `Ignored input`
+
+`package-version` and `package-install-args` only apply when `package-name` is
+set. Set `package-name` or remove the input.
 
 ### Custom Install Arguments Not Working
 
