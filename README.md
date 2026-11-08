@@ -108,6 +108,15 @@ jobs:
     working-directory: "python"
 ```
 
+### Without the uv Cache
+
+```yaml
+- name: Setup Python environment without the uv cache
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+  with:
+    enable-cache: "false"
+```
+
 ## Inputs
 
 | Input                    | Description                                                                                                                                          | Required | Default            |
@@ -119,13 +128,15 @@ jobs:
 | `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`).                                                    | No       | `""`               |
 | `invoke-tasklib-version` | Version specifier of `invoke-tasklib` installed before running the project tasks (e.g., `">=0.0.8,<1.0.0"`, `"==0.0.8"`). Must include the operator. | No       | `">=0.0.8,<1.0.0"` |
 | `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                        | No       | `"."`              |
+| `enable-cache`           | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                        | No       | `"auto"`           |
 | `uv-no-progress`         | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the install steps).                                                                | No       | `"true"`           |
 
 ## Outputs
 
-| Output           | Description                                                          |
-| ---------------- | -------------------------------------------------------------------- |
-| `python-version` | Full version of the Python interpreter of the environment (`3.14.0`) |
+| Output           | Description                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| `cache-hit`      | Whether the `uv` cache was restored (`true` or `false`). Empty when the cache is disabled. |
+| `python-version` | Full version of the Python interpreter of the environment (`3.14.0`)                       |
 
 Example:
 
@@ -145,7 +156,7 @@ This action performs the following steps:
 1. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager, set up the requested `python-version`, and activate
-   the environment
+   the environment, and restores the `uv` cache (see `enable-cache`)
 2. **Verifies Installation**: Checks that `uv` and `python` are available in
    PATH
 3. **Installs Task Runner**: Installs

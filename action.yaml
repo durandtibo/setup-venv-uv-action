@@ -32,6 +32,10 @@ inputs:
     default: ">=0.0.8,<1.0.0"
     description: "Version specifier of 'invoke-tasklib' installed before running the project tasks (e.g., '>=0.0.8,<1.0.0', '==0.0.8'). It must be a valid PEP 440 specifier, including the operator."
     required: false
+  enable-cache:
+    default: "auto"
+    description: "Enable the GitHub Actions cache of uv ('true', 'false' or 'auto'). 'auto' (default) enables the cache on GitHub-hosted runners and disables it elsewhere, like astral-sh/setup-uv. The cache is keyed on the lock files of the project."
+    required: false
   working-directory:
     default: "."
     description: "Directory that contains the project ('pyproject.toml', 'tasks.py', 'invoke.yaml'), relative to the workspace. Use it for repositories where the Python project is in a subfolder."
@@ -42,6 +46,9 @@ inputs:
     required: false
 
 outputs:
+  cache-hit:
+    description: "Whether the uv cache was restored ('true' or 'false'). Empty when the cache is disabled."
+    value: ${{ steps.setup-uv.outputs.cache-hit }}
   python-version:
     description: "Full version of the Python interpreter of the environment (e.g., '3.14.0')."
     value: ${{ steps.python-version.outputs.python-version }}
@@ -54,12 +61,15 @@ runs:
     # - Installs uv (ultra-fast Python package installer and resolver)
     # - Sets up the specified Python version
     # - Activates the virtual environment so subsequent steps can use 'python' and 'uv pip'
+    # - Restores and saves the uv cache when the enable-cache input allows it
     # The project files are searched in the working-directory input
     - name: Install uv and set the python version
+      id: setup-uv
       uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # ratchet:astral-sh/setup-uv@v10.3.3
       with:
         python-version: ${{ inputs.python-version }}
         working-directory: ${{ github.workspace }}/${{ inputs.working-directory }}
+        enable-cache: ${{ inputs.enable-cache }}
         activate-environment: true
 
     # Step 2: Verify that uv and python are available in PATH

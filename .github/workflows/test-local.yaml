@@ -239,6 +239,39 @@ jobs:
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
 
+  test-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        enable-cache: ["true", "false"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment
+        id: setup
+        uses: ./
+        with:
+          enable-cache: ${{ matrix.enable-cache }}
+
+      - name: Test environment
+        env:
+          ENABLE_CACHE: ${{ matrix.enable-cache }}
+          CACHE_HIT: ${{ steps.setup.outputs.cache-hit }}
+        run: |
+          python -c "import myproject; print(myproject)"
+          echo "cache-hit='${CACHE_HIT}'"
+          if [ "${ENABLE_CACHE}" = "true" ]; then
+            # the cache is enabled: the output reports whether it was restored
+            [ "${CACHE_HIT}" = "true" ] || [ "${CACHE_HIT}" = "false" ] || (echo "expected cache-hit to be true or false" && exit 1)
+          else
+            # the cache is disabled: it cannot be restored
+            [ "${CACHE_HIT}" != "true" ] || (echo "expected no cache hit when the cache is disabled" && exit 1)
+          fi
+
   test-progress-bar:
     runs-on: ubuntu-latest
     timeout-minutes: 5
