@@ -67,6 +67,7 @@ runs:
     # Step 1: Validate the inputs
     # Runs first so that an invalid value fails immediately with a clear message
     # - The boolean-like inputs must be 'true' or 'false' ('auto' is also accepted by enable-cache)
+    # - working-directory must be an existing directory inside the workspace
     # - package-version and package-install-args are ignored without package-name: warn
     # - An empty python-version is valid (uv uses the version of the project): notice
     - name: Validate inputs
@@ -79,6 +80,7 @@ runs:
         ENABLE_CACHE: ${{ inputs.enable-cache }}
         VERBOSE: ${{ inputs.verbose }}
         UV_NO_PROGRESS_INPUT: ${{ inputs.uv-no-progress }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
       run: |
         status=0
         check_boolean() {
@@ -91,6 +93,22 @@ runs:
         check_boolean verbose "${VERBOSE}"
         if [ "${ENABLE_CACHE}" != "auto" ]; then
           check_boolean enable-cache "${ENABLE_CACHE}"
+        fi
+        absolute_path='^(/|\\|[A-Za-z]:)'
+        parent_path='(^|[/\\])\.\.([/\\]|$)'
+        if [[ "${WORKING_DIRECTORY}" =~ ${absolute_path} ]]; then
+          echo "::error title=Invalid input::The input 'working-directory'" \
+            "must be relative to the workspace, got '${WORKING_DIRECTORY}'."
+          status=1
+        elif [[ "${WORKING_DIRECTORY}" =~ ${parent_path} ]]; then
+          echo "::error title=Invalid input::The input 'working-directory'" \
+            "must stay inside the workspace, got '${WORKING_DIRECTORY}'."
+          status=1
+        elif [ ! -d "${GITHUB_WORKSPACE}/${WORKING_DIRECTORY}" ]; then
+          echo "::error title=Invalid input::The input 'working-directory'" \
+            "is not a directory of the workspace: '${WORKING_DIRECTORY}'." \
+            "Did you forget the 'actions/checkout' step?"
+          status=1
         fi
         if [ -z "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_VERSION}" ]; then
           echo "::warning title=Ignored input::The input 'package-version' is ignored because 'package-name' is empty."

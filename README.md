@@ -186,9 +186,10 @@ Example:
 This action performs the following steps:
 
 1. **Validates Inputs**: Fails with a clear message when a boolean-like input
-   (`uv-no-progress`, `verbose`, `enable-cache`) is invalid, and warns about
-   inputs that are ignored (`package-version` or `package-install-args`
-   without `package-name`)
+   (`uv-no-progress`, `verbose`, `enable-cache`) is invalid, or when
+   `working-directory` is absolute, outside of the workspace or not an existing
+   directory. It warns about inputs that are ignored (`package-version` or
+   `package-install-args` without `package-name`)
 2. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager, set up the requested `python-version`, and activate
@@ -377,6 +378,10 @@ from invoke_tasklib import ns
 The inputs `uv-no-progress`, `verbose` and `enable-cache` must be `"true"` or
 `"false"` (`enable-cache` also accepts `"auto"`). Quote the values in YAML so
 that they are passed as strings.
+
+The input `working-directory` must be a path relative to the workspace, without
+`..`, of a directory that exists. If it does not exist, check that
+`actions/checkout` runs before the action.
 
 ### Warning: `Ignored input`
 
