@@ -65,6 +65,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
+        id: setup
         uses: ./
         with:
           python-version: ${{ matrix.python-version }}
@@ -72,10 +73,12 @@ jobs:
       - name: Test environment
         env:
           EXPECTED_VERSION: ${{ matrix.python-version }}
+          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
         run: |
           python --version
           python -c "import myproject; print(myproject)"
           python -c "import sys, os; v = os.environ['EXPECTED_VERSION']; assert f'{sys.version_info[0]}.{sys.version_info[1]}' == v, sys.version"
+          python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
 
   test-install-args:
     runs-on: ubuntu-latest

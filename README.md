@@ -121,7 +121,22 @@ jobs:
 | `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                        | No       | `"."`              |
 | `uv-no-progress`         | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the install steps).                                                                | No       | `"true"`           |
 
-This action does not define any outputs.
+## Outputs
+
+| Output           | Description                                                          |
+| ---------------- | -------------------------------------------------------------------- |
+| `python-version` | Full version of the Python interpreter of the environment (`3.14.0`) |
+
+Example:
+
+```yaml
+- name: Setup Python environment
+  id: setup
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+
+- name: Show the Python version
+  run: echo "Python ${{ steps.setup.outputs.python-version }}"
+```
 
 ## What This Action Does
 
@@ -153,6 +168,7 @@ This action performs the following steps:
 10. **Verifies Environment**: Runs `uv pip check` (with
     `continue-on-error: true`) to detect missing dependencies, version
     conflicts, or broken installations without failing the workflow
+11. **Sets Outputs**: Exposes the full `python-version` of the environment
 
 ## Advanced Usage
 
