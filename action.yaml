@@ -41,6 +41,11 @@ inputs:
     description: "Disable uv progress bars ('true' or 'false'). Defaults to 'true'."
     required: false
 
+outputs:
+  python-version:
+    description: "Full version of the Python interpreter of the environment (e.g., '3.14.0')."
+    value: ${{ steps.python-version.outputs.python-version }}
+
 runs:
   using: "composite"
   steps:
@@ -183,3 +188,12 @@ runs:
       continue-on-error: true
       run: |
         uv pip check
+
+    # Step 11: Set the outputs of the action
+    # Reads the version from the interpreter that is active at the end of the
+    # action (after the dependencies are installed), not from the requested input
+    - name: Set outputs
+      id: python-version
+      shell: bash
+      run: |
+        echo "python-version=$(python -c 'import platform; print(platform.python_version())')" >> "${GITHUB_OUTPUT}"
