@@ -64,7 +64,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
     `test-invalid-working-directory`, `test-missing-tasks`
   - `test-uv-version`, `test-cache`, `test-not-verbose`, `test-progress-bar`
   - `test-invalid-inputs`, `test-invalid-extra-packages`,
-    `test-ignored-inputs`
+    `test-invalid-package-version`, `test-ignored-inputs`
 - **Permissions**: `actions: write`, `contents: read`
 
 #### Test Stable Action (test-stable.yaml)

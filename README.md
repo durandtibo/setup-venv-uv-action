@@ -158,20 +158,20 @@ jobs:
 
 ## Inputs
 
-| Input                    | Description                                                                                                                                                         | Required | Default            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
-| `python-version`         | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)                              | No       | `"3.14"`           |
-| `uv-version`             | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                  | No       | `""`               |
-| `package-name`           | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                                            | No       | `""`               |
-| `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Only used when `package-name` is specified. Leave empty to install latest.                                   | No       | `""`               |
-| `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                     | No       | `""`               |
-| `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                       | No       | `""`               |
-| `invoke-tasklib-version` | Version specifier of `invoke-tasklib` installed before running the project tasks (e.g., `">=0.0.8,<1.0.0"`, `"==0.0.8"`). Must include the operator.                | No       | `">=0.0.8,<1.0.0"` |
-| `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                       | No       | `"."`              |
-| `enable-cache`           | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                       | No       | `"auto"`           |
-| `extra-packages`         | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip. | No       | `""`               |
-| `verbose`                | Run the diagnostic steps (Python configuration, installed packages, dependency tree, environment check). Set to `"false"` for quieter logs.                         | No       | `"true"`           |
-| `uv-no-progress`         | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                         | No       | `"true"`           |
+| Input                    | Description                                                                                                                                                           | Required | Default            |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
+| `python-version`         | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)                                | No       | `"3.14"`           |
+| `uv-version`             | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                    | No       | `""`               |
+| `package-name`           | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                                              | No       | `""`               |
+| `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Must be a version, not a specifier. Only used when `package-name` is specified. Leave empty to install latest. | No       | `""`               |
+| `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                       | No       | `""`               |
+| `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                         | No       | `""`               |
+| `invoke-tasklib-version` | Version specifier of `invoke-tasklib` installed before running the project tasks (e.g., `">=0.0.8,<1.0.0"`, `"==0.0.8"`). Must include the operator.                  | No       | `">=0.0.8,<1.0.0"` |
+| `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`              |
+| `enable-cache`           | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"`           |
+| `extra-packages`         | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`               |
+| `verbose`                | Run the diagnostic steps (Python configuration, installed packages, dependency tree, environment check). Set to `"false"` for quieter logs.                           | No       | `"true"`           |
+| `uv-no-progress`         | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                           | No       | `"true"`           |
 
 ## Outputs
 
@@ -205,9 +205,10 @@ This action performs the following steps:
 3. **Validates the invoke-tasklib Version**: Fails when `invoke-tasklib-version`
    is not a version specifier that starts with an operator
 4. **Validates Python and Package Inputs**: Fails when `package-name` is not a
-   package name, or when a line of `extra-packages` starts with `-` (an option
-   instead of a requirement). It warns about inputs that are ignored
-   (`package-version` or `package-install-args` without `package-name`)
+   package name, when `package-version` is not a version, or when a line of
+   `extra-packages` starts with `-` (an option instead of a requirement). It
+   warns about inputs that are ignored (`package-version` or
+   `package-install-args` without `package-name`)
 5. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager (see `uv-version`), set up the requested
@@ -441,6 +442,13 @@ The input `package-name` must be a package name made of letters, digits, `.`,
 `_` and `-`, optionally followed by extras in brackets (e.g., `"numpy"` or
 `"uvicorn[standard]"`). Put the version in `package-version` and the options in
 `package-install-args`, not in `package-name`.
+
+The input `package-version` must be a version (e.g., `"1.26.0"`, `"2.12.*"` or
+`"2.0.0rc1"`), because the package is installed as
+`package-name==package-version`. A specifier (`">=1.0"`), a value with spaces
+or an option (`"1.0 --pre"`) is rejected. Put the options in
+`package-install-args`. The input is only validated when `package-name` is set,
+otherwise it is ignored with a warning.
 
 The input `extra-packages` must contain one requirement per line (e.g.,
 `pytest-xdist` or `requests>=2.31`). A line that starts with `-` is rejected,

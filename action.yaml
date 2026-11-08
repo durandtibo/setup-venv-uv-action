@@ -22,7 +22,7 @@ inputs:
     required: false
   package-version:
     default: ""
-    description: "Optional package version to install (e.g., '1.0.0'). Only used when 'package-name' is specified. Leave empty to install the latest version."
+    description: "Optional package version to install (e.g., '1.0.0'). It must be a version, not a specifier (e.g., '>=1.0' is rejected). Only used when 'package-name' is specified. Leave empty to install the latest version."
     required: false
   install-args:
     default: ""
@@ -149,6 +149,9 @@ runs:
     # Step 4: Validate the Python and package inputs
     # - package-name must be a package name, optionally followed by extras
     #   (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
+    # - package-version must be a version, not a specifier (e.g., '1.26.0' or
+    #   '2.12.*', not '>=1.0' or '1.0 --pre'): it is installed as
+    #   'package-name==package-version'
     # - extra-packages must contain one requirement per line, not an option
     #   (a line that starts with '-', e.g., '--index-url=...' or '-e .')
     # - package-version and package-install-args are ignored without package-name: warn
@@ -185,6 +188,15 @@ runs:
           fi
         done <<< "${EXTRA_PACKAGES}"
         if [ "${status}" -ne 0 ]; then
+          exit 1
+        fi
+        package_version='^v?[0-9][0-9A-Za-z.!+*_-]*$'
+        if [ -n "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_VERSION}" ] &&
+          ! [[ "${PACKAGE_VERSION}" =~ ${package_version} ]]; then
+          echo "::error title=Invalid input::The input 'package-version'" \
+            "must be a version (e.g., '1.26.0' or '2.12.*'), not a" \
+            "specifier or an option, got '${PACKAGE_VERSION}'. The options" \
+            "go in 'package-install-args'."
           exit 1
         fi
         if [ -z "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_VERSION}" ]; then
