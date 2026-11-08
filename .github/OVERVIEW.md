@@ -7,19 +7,24 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 ```text
 .github/
-├── ISSUE_TEMPLATE/          # Issue templates for bug reports and feature requests
-│   ├── bug-report.yml       # Bug report form template
-│   └── feature-request.yml  # Feature request form template
-├── workflows/                        # GitHub Actions workflow definitions
-│   ├── ci.yaml                      # Main CI pipeline (runs format and tests)
-│   ├── format.yaml                  # Code formatting and linting checks
-│   ├── test-local.yaml              # Tests using local action code
-│   ├── test-stable.yaml             # Tests using published stable version
-│   ├── nightly-tests.yaml           # Scheduled nightly test runs
-│   ├── verify-workflows.yaml        # Validates workflow file syntax
-│   └── cancel-stale-queued-runs.yaml # Cleanup for queued workflow runs
-├── dependabot.yml          # Dependabot configuration for dependency updates
-└── PULL_REQUEST_TEMPLATE.md # Template for pull request descriptions
+├── ISSUE_TEMPLATE/                    # Issue templates
+│   ├── bug-report.yml                 # Bug report form template
+│   └── feature-request.yml            # Feature request form template
+├── workflows/                         # GitHub Actions workflow definitions
+│   ├── ci.yaml                        # Main CI pipeline (format + tests)
+│   ├── format.yaml                    # Formatting checks
+│   ├── test-local.yaml                # Tests the action of this repository
+│   ├── test-stable.yaml               # Tests the last stable release
+│   ├── nightly-tests.yaml             # Scheduled nightly test runs
+│   ├── ci-verify-workflows.yaml       # Validates workflow file syntax
+│   ├── dependency-review.yml          # Reviews dependencies changed by a PR
+│   ├── bot-cancel-stale-queued-runs.yaml # Cleans up queued workflow runs
+│   ├── bot-format-files.yaml          # Weekly formatting PR
+│   ├── bot-pin-action.yaml            # Weekly PR pinning actions to SHAs
+│   └── bot-sync-shared-makefile.yaml  # Weekly PR syncing the .make subtree
+├── CODEOWNERS                         # Code owners
+├── dependabot.yml                     # Dependabot configuration
+└── PULL_REQUEST_TEMPLATE.md           # Template for pull request descriptions
 ```
 
 ## Workflows Overview
@@ -36,24 +41,34 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 #### Format (format.yaml)
 
 - **Trigger**: Called by CI workflow, manual dispatch
-- **Purpose**: Validates code formatting and style
-- **Jobs**:
-  - `markdown`: Runs markdownlint on all Markdown files
-  - `yaml`: Runs yamllint on all YAML files
+- **Purpose**: Checks that YAML, Makefile, shell, and Markdown files follow the
+  formatting rules
+- **Jobs**: Runs `make format`, then fails if `git diff` shows changes
 - **Permissions**: `contents: read`
 
 #### Test Local Action (test-local.yaml)
 
 - **Trigger**: Called by CI workflow, manual dispatch
-- **Purpose**: Tests the action using the current repository code
-- **Matrix**: Tests across multiple OS versions (Ubuntu, macOS, ARM variants)
+- **Purpose**: Tests the action using the current repository code (`uses: ./`)
+- **Config**: The OS and Python version lists come from
+  `durandtibo/workflow-config-action`
+- **Jobs**: One job per input or behavior of the action:
+  - `test`: default inputs, on every Unix OS of the config
+  - `test-python-version`: every standard Python version of the config
+  - `test-install-args`, `test-package`, `test-package-latest`,
+    `test-package-args`, `test-extra-packages`: installation inputs
+  - `test-tasklib-version`, `test-tasklib-version-unsatisfiable`
+  - `test-working-directory`, `test-missing-tasks`
+  - `test-cache`, `test-not-verbose`, `test-progress-bar`
+  - `test-invalid-inputs`, `test-ignored-inputs`
 - **Permissions**: `actions: write`, `contents: read`
 
 #### Test Stable Action (test-stable.yaml)
 
 - **Trigger**: Called by CI workflow, manual dispatch
-- **Purpose**: Tests the published stable version (v0.0.1)
-- **Matrix**: Same OS matrix as test-local
+- **Purpose**: Tests the last published release to detect regressions
+- **Jobs**: Same as test-local, except for the jobs of inputs added after that
+  release, which only exist in test-local until the release is bumped
 - **Permissions**: `actions: write`, `contents: read`
 
 ### Scheduled Workflows
@@ -65,21 +80,35 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Jobs**: Runs complete CI pipeline (format + tests)
 - **Permissions**: `actions: write`, `contents: read`
 
-#### Cancel Stale Queued Runs (cancel-stale-queued-runs.yaml)
+#### Cancel Stale Queued Runs (bot-cancel-stale-queued-runs.yaml)
 
 - **Trigger**: Hourly, manual dispatch
 - **Purpose**: Cleanup queued workflow runs to save resources
-- **Uses**: durandtibo/cancel-queued-runs-action@v1.7
+- **Uses**: durandtibo/cancel-queued-runs-action
 - **Permissions**: `actions: write`, `contents: read`
+
+#### Bot Workflows (bot-*.yaml)
+
+- **bot-format-files.yaml**: Fridays at 6:00 AM UTC, opens a PR when files
+  drifted out of format
+- **bot-pin-action.yaml**: Wednesdays at 8:00 AM UTC, opens a PR that pins
+  actions to commit SHAs with ratchet
+- **bot-sync-shared-makefile.yaml**: Wednesdays at 6:00 AM UTC, opens a PR that
+  syncs the `.make` subtree from durandtibo/shared-makefiles
 
 ### Validation Workflows
 
-#### Verify Workflows (verify-workflows.yaml)
+#### Verify Workflows (ci-verify-workflows.yaml)
 
-- **Trigger**: Changes to `.github/workflows/*`, manual dispatch
+- **Trigger**: Changes to `.github/workflows/**`, manual dispatch
 - **Purpose**: Validates workflow file syntax and structure
-- **Uses**: durandtibo/verify-github-workflow-action@v0.0.2
+- **Uses**: durandtibo/verify-github-workflow-action
 - **Permissions**: `contents: read`
+
+#### Dependency Review (dependency-review.yml)
+
+- **Trigger**: Pull requests
+- **Purpose**: Surfaces known-vulnerable dependencies introduced by a PR
 
 ## Issue Templates
 
@@ -115,7 +144,7 @@ The `dependabot.yml` configures automatic dependency updates for:
 
 ```text
 ci.yaml
-├─→ format.yaml (markdown + yaml linting)
+├─→ format.yaml (make format + git diff)
 ├─→ test-local.yaml (test with current code)
 └─→ test-stable.yaml (test with published version)
 
@@ -160,7 +189,7 @@ When adding or modifying workflows:
 1. Follow the existing naming convention (lowercase with hyphens)
 2. Add comprehensive comments explaining the workflow purpose
 3. Document all inputs and permissions
-4. Test with `verify-workflows.yaml` before committing
+4. Test with `ci-verify-workflows.yaml` before committing
 5. Update this README if adding new workflows
 
 ## References
