@@ -393,6 +393,29 @@ subfolder) and contains:
 from invoke_tasklib import ns
 ```
 
+### Warning: `invoke-tasklib removed`
+
+The action installs `invoke-tasklib` before your project dependencies, and
+`inv env.install` runs `uv sync --frozen`, which removes every package that is
+not in your lock file. If `invoke-tasklib` is not a dependency of your project,
+it is removed and the diagnostic steps (`inv env.show-python-config`,
+`inv env.show-installed-packages`) fail. Their failure is only logged, so the
+only visible signs are this warning and the errors in these steps.
+
+Add `invoke-tasklib` to a dependency group installed by `inv env.install` (the
+`dev` group by default), then update `uv.lock`:
+
+```toml
+[dependency-groups]
+dev = [
+    "invoke-tasklib >=0.0.8,<1.0.0",
+]
+```
+
+The warning is only emitted when `verbose` is `"true"`. With `verbose: "false"`,
+the diagnostic steps are skipped, but your own later steps that use `inv` would
+fail for the same reason.
+
 ### Error: `Invalid input`
 
 The inputs `uv-no-progress`, `verbose` and `enable-cache` must be `"true"` or
