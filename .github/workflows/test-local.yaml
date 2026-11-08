@@ -408,3 +408,24 @@ jobs:
           python -c "import myproject; print(myproject)"
           # invoke-tasklib is not a dependency of the project: sync removed it
           python -c "import importlib.util as u; assert u.find_spec('invoke_tasklib') is None"
+
+  test-package-python-specifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment with a Python version range
+        uses: ./
+        with:
+          python-version: ">=3.12,<3.14"
+          package-name: numpy
+          package-version: 2.4.0
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), sys.version"
+          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"

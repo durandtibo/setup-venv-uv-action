@@ -52,6 +52,15 @@ jobs:
     python-version: "3.11"
 ```
 
+### With a Python Version Range
+
+```yaml
+- name: Setup Python environment with a Python version range
+  uses: durandtibo/setup-venv-uv-action@v0.2.0
+  with:
+    python-version: ">=3.12,<3.14"
+```
+
 ### With Specific Package Installation
 
 ```yaml
@@ -142,7 +151,7 @@ jobs:
 
 | Input                    | Description                                                                                                                                          | Required | Default            |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
-| `python-version`         | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`)                                                                                 | No       | `"3.14"`           |
+| `python-version`         | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)               | No       | `"3.14"`           |
 | `package-name`           | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                             | No       | `""`               |
 | `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Only used when `package-name` is specified. Leave empty to install latest.                    | No       | `""`               |
 | `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`).                                        | No       | `""`               |
