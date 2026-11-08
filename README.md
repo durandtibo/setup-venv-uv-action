@@ -216,7 +216,8 @@ This action performs the following steps:
    PATH, and logs their paths and versions
 7. **Installs Task Runner**: Installs
    [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) for
-   running project tasks
+   running project tasks. Steps 6 and 7 run in `working-directory`, so `uv`
+   reads the `uv.toml` of the project (for example its index settings)
 8. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
    or the `env.install` task is missing
 9. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run

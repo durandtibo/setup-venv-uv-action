@@ -206,8 +206,11 @@ runs:
     # Step 6: Verify that uv and python are available in PATH
     # Safety check to ensure the environment setup succeeded
     # Outputs the full paths and the versions of both executables for debugging
+    # It runs in the working-directory input, like the other steps that use uv,
+    # so that uv reads the same configuration ('uv.toml', 'pyproject.toml')
     - name: Verify uv and python installation
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         which uv
         uv --version
@@ -218,8 +221,11 @@ runs:
     # invoke-tasklib provides the shared invoke tasks used below
     # (env.install, env.show-python-config, env.show-installed-packages)
     # The version specifier is set with the invoke-tasklib-version input
+    # It runs in the working-directory input, so that 'uv pip install' reads the
+    # 'uv.toml' of the project (e.g., its index settings) like the next steps
     - name: Install invoke-tasklib
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
         TASKLIB_VERSION: ${{ inputs.invoke-tasklib-version }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
