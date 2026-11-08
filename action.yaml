@@ -313,8 +313,13 @@ runs:
     # Step 13: Set the outputs of the action
     # Reads the version from the interpreter that is active at the end of the
     # action (after the dependencies are installed), not from the requested input
+    # 'uv python find' returns the interpreter of the active virtual environment,
+    # and the version is read before writing the output so that a failure fails
+    # the step instead of silently setting an empty output
     - name: Set outputs
       id: python-version
       shell: bash
       run: |
-        echo "python-version=$(python -c 'import platform; print(platform.python_version())')" >> "${GITHUB_OUTPUT}"
+        python_bin="$(uv python find)"
+        python_version="$("${python_bin}" -c 'import platform; print(platform.python_version())')"
+        echo "python-version=${python_version}" >> "${GITHUB_OUTPUT}"
