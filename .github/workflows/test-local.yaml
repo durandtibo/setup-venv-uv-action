@@ -382,13 +382,25 @@ jobs:
         with:
           enable-cache: "maybe"
 
+      - name: Setup python environment with an invalid invoke-tasklib-version
+        id: tasklib-version
+        uses: ./
+        continue-on-error: true
+        with:
+          invoke-tasklib-version: "0.0.8"
+
       - name: Test that the actions failed in the validation
         env:
           OUTCOME_UV_NO_PROGRESS: ${{ steps.uv-no-progress.outcome }}
           OUTCOME_VERBOSE: ${{ steps.verbose.outcome }}
           OUTCOME_ENABLE_CACHE: ${{ steps.enable-cache.outcome }}
+          OUTCOME_TASKLIB_VERSION: ${{ steps.tasklib-version.outcome }}
         run: |
-          for outcome in "${OUTCOME_UV_NO_PROGRESS}" "${OUTCOME_VERBOSE}" "${OUTCOME_ENABLE_CACHE}"; do
+          for outcome in \
+            "${OUTCOME_UV_NO_PROGRESS}" \
+            "${OUTCOME_VERBOSE}" \
+            "${OUTCOME_ENABLE_CACHE}" \
+            "${OUTCOME_TASKLIB_VERSION}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
           # the validation (step 1) failed: uv was not installed yet

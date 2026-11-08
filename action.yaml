@@ -75,6 +75,8 @@ runs:
     # Runs first so that an invalid value fails immediately with a clear message
     # - The boolean-like inputs must be 'true' or 'false' ('auto' is also accepted by enable-cache)
     # - working-directory must be an existing directory inside the workspace
+    # - invoke-tasklib-version must be a version specifier that starts with an
+    #   operator (an empty value is accepted: the latest version is installed)
     # - package-version and package-install-args are ignored without package-name: warn
     # - An empty python-version is valid (uv uses the version of the project): notice
     - name: Validate inputs
@@ -88,6 +90,7 @@ runs:
         VERBOSE: ${{ inputs.verbose }}
         UV_NO_PROGRESS_INPUT: ${{ inputs.uv-no-progress }}
         WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        TASKLIB_VERSION: ${{ inputs.invoke-tasklib-version }}
       run: |
         status=0
         check_boolean() {
@@ -115,6 +118,20 @@ runs:
           echo "::error title=Invalid input::The input 'working-directory'" \
             "is not a directory of the workspace: '${WORKING_DIRECTORY}'." \
             "Did you forget the 'actions/checkout' step?"
+          status=1
+        fi
+        # Shape check of a PEP 440 specifier set: comma-separated clauses, each
+        # one an operator followed by a version (e.g., '>=0.0.8,<1.0.0')
+        space='[[:space:]]*'
+        operator='(===|==|!=|~=|<=|>=|<|>)'
+        version='v?[0-9][0-9A-Za-z.!+*_-]*'
+        clause="${space}${operator}${space}${version}${space}"
+        specifier="^(${clause}(,${clause})*)?\$"
+        if ! [[ "${TASKLIB_VERSION}" =~ ${specifier} ]]; then
+          echo "::error title=Invalid input::The input" \
+            "'invoke-tasklib-version' must be a version specifier that" \
+            "starts with an operator (e.g., '>=0.0.8,<1.0.0' or '==0.0.8')," \
+            "got '${TASKLIB_VERSION}'."
           status=1
         fi
         if [ -z "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_VERSION}" ]; then

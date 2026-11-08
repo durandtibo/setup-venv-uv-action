@@ -199,10 +199,11 @@ Example:
 This action performs the following steps:
 
 1. **Validates Inputs**: Fails with a clear message when a boolean-like input
-   (`uv-no-progress`, `verbose`, `enable-cache`) is invalid, or when
+   (`uv-no-progress`, `verbose`, `enable-cache`) is invalid, when
    `working-directory` is absolute, outside of the workspace or not an existing
-   directory. It warns about inputs that are ignored (`package-version` or
-   `package-install-args` without `package-name`)
+   directory, or when `invoke-tasklib-version` is not a version specifier that
+   starts with an operator. It warns about inputs that are ignored
+   (`package-version` or `package-install-args` without `package-name`)
 2. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager (see `uv-version`), set up the requested
@@ -425,6 +426,11 @@ that they are passed as strings.
 The input `working-directory` must be a path relative to the workspace, without
 `..`, of a directory that exists. If it does not exist, check that
 `actions/checkout` runs before the action.
+
+The input `invoke-tasklib-version` must be a version specifier whose clauses
+start with an operator, separated by commas (e.g., `">=0.0.8,<1.0.0"` or
+`"==0.0.8"`). A bare version such as `"0.0.8"` is rejected: use `"==0.0.8"`. An
+empty value is accepted and installs the latest version of `invoke-tasklib`.
 
 ### Warning: `Ignored input`
 
