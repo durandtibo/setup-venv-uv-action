@@ -172,14 +172,25 @@ runs:
     # The task is executed in the working-directory input
     # Optional install-args can be passed to customize the installation
     # (e.g., --no-optional-deps to skip installing optional dependencies)
+    # 'uv sync --frozen' removes the packages that are not in the lock file, so
+    # invoke-tasklib (installed in step 4) is removed when the project does not
+    # depend on it: warn, because the diagnostic steps need it
     - name: Install dependencies
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
+        VERBOSE: ${{ inputs.verbose }}
       run: |
         inv env.install ${INSTALL_ARGS}
+        if [ "${VERBOSE}" = "true" ] &&
+          ! uv pip show --quiet invoke-tasklib; then
+          echo "::warning title=invoke-tasklib removed::'invoke-tasklib' was" \
+            "removed from the environment because it is not a dependency of" \
+            "the project, so the diagnostic steps will fail. Add it to the" \
+            "project dependencies (see the README)."
+        fi
 
     # Step 7 (Optional): Install a specific package version for compatibility testing
     # Only runs if package-name is provided

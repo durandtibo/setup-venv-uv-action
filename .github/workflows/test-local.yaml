@@ -386,3 +386,25 @@ jobs:
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
+
+  test-tasklib-not-a-dependency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Remove invoke-tasklib from the project dependencies
+        run: |
+          pipx run uv remove --no-sync --group dev invoke-tasklib
+
+      - name: Setup python environment
+        uses: ./
+
+      - name: Test environment
+        run: |
+          # the action succeeds: only the diagnostic steps fail
+          python -c "import myproject; print(myproject)"
+          # invoke-tasklib is not a dependency of the project: sync removed it
+          python -c "import importlib.util as u; assert u.find_spec('invoke_tasklib') is None"

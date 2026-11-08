@@ -57,7 +57,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   - `test-python-version`: every standard Python version of the config
   - `test-install-args`, `test-package`, `test-package-latest`,
     `test-package-args`, `test-extra-packages`: installation inputs
-  - `test-tasklib-version`, `test-tasklib-version-unsatisfiable`
+  - `test-tasklib-version`, `test-tasklib-version-unsatisfiable`,
+    `test-tasklib-not-a-dependency`
   - `test-working-directory`, `test-missing-tasks`
   - `test-cache`, `test-not-verbose`, `test-progress-bar`
   - `test-invalid-inputs`, `test-ignored-inputs`
