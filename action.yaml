@@ -44,6 +44,10 @@ inputs:
     default: "."
     description: "Directory that contains the project ('pyproject.toml', 'tasks.py', 'invoke.yaml'), relative to the workspace. Use it for repositories where the Python project is in a subfolder."
     required: false
+  verbose:
+    default: "true"
+    description: "Run the diagnostic steps that show the Python configuration, the installed packages, the dependency tree and the environment check ('true' or 'false'). Set it to 'false' for quieter logs. Defaults to 'true'."
+    required: false
   uv-no-progress:
     default: "true"
     description: "Disable uv progress bars ('true' or 'false'). Defaults to 'true'."
@@ -176,11 +180,13 @@ runs:
           uv pip install "${packages[@]}"
         fi
 
+    # Steps 8 to 11 are diagnostic steps: they are skipped when verbose is 'false'
     # Step 8: Display the Python configuration for debugging and verification
     # The task is executed in the working-directory input
     # Useful for troubleshooting version-related issues
     # Uses continue-on-error so a reporting failure does not fail the workflow
     - name: Show python config
+      if: ${{ inputs.verbose == 'true' }}
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
@@ -192,6 +198,7 @@ runs:
     # Helpful for debugging dependency issues and verifying installations
     # Uses continue-on-error so a reporting failure does not fail the workflow
     - name: Show installed packages
+      if: ${{ inputs.verbose == 'true' }}
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
@@ -206,6 +213,7 @@ runs:
     # Useful for understanding dependency relationships and conflicts
     # Uses continue-on-error so a reporting failure does not fail the workflow
     - name: Show dependency tree
+      if: ${{ inputs.verbose == 'true' }}
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
@@ -220,6 +228,7 @@ runs:
     # Uses continue-on-error so the workflow continues even with conflicts
     # (conflicts are logged for debugging but don't fail the build)
     - name: Verify the current environment
+      if: ${{ inputs.verbose == 'true' }}
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
