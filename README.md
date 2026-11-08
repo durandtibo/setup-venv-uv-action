@@ -231,18 +231,21 @@ This action performs the following steps:
     list every installed package and version
 11. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
     display the full dependency graph
-12. **Verifies Environment**: Runs `uv pip check` (with
-    `continue-on-error: true`) to detect missing dependencies, version
-    conflicts, or broken installations without failing the workflow
+12. **Verifies Environment**: Runs `uv pip check` to detect missing
+    dependencies, version conflicts, or broken installations
 13. **Sets Outputs**: Exposes the full `python-version` of the environment
     (the `uv-version` output comes from `astral-sh/setup-uv`)
 
+Steps 9 to 12 are diagnostic steps: they only run when `verbose` is `"true"`,
+and they use `continue-on-error: true`, so a failure is logged but does not fail
+the action (see [Failure Behavior](#failure-behavior)).
+
 ## Failure Behavior
 
-| Steps                                                                                       | On error                                                    |
-| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Validate inputs, install `uv`, verify project tasks, install dependencies, install packages | The action fails                                            |
-| Show Python config, show installed packages, show dependency tree, `uv pip check`           | Logged, but the action succeeds (`continue-on-error: true`) |
+| Steps                                                                                                               | On error                                                    |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Validate inputs, install `uv`, verify project tasks, install dependencies, install packages, install extra packages | The action fails                                            |
+| Show Python config, show installed packages, show dependency tree, `uv pip check`                                   | Logged, but the action succeeds (`continue-on-error: true`) |
 
 The four diagnostic steps are skipped when `verbose` is `"false"`.
 
