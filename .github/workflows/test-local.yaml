@@ -633,3 +633,49 @@ jobs:
           uv --version | grep -qE "^uv 0\.12\.0( |$)" || (echo "expected uv 0.12.0" && exit 1)
           # the output is the installed version
           test "${OUTPUT_VERSION}" = "0.12.0" || (echo "expected output 0.12.0, got '${OUTPUT_VERSION}'" && exit 1)
+
+  test-working-directory-uv-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Move the project to a subfolder with a restrictive uv.toml
+        run: |
+          mkdir subproject
+          mv pyproject.toml uv.lock tasks.py invoke.yaml src subproject/
+          # 'uv pip install' only finds invoke-tasklib if it ignores this file
+          printf '[pip]\nno-index = true\n' > subproject/uv.toml
+
+      - name: Setup python environment
+        id: setup
+        uses: ./
+        continue-on-error: true
+        with:
+          working-directory: subproject
+
+      - name: Test that uv read the uv.toml of the working directory
+        env:
+          OUTCOME: ${{ steps.setup.outcome }}
+        run: |
+          if [ "${OUTCOME}" != "failure" ]; then
+            echo "expected the action to fail, got '${OUTCOME}'"
+            exit 1
+          fi
+          # uv and the virtual environment (step 5) are available: the failure
+          # is not in the first steps
+          uv --version
+          python --version
+          # step 7 ran in 'subproject', read its uv.toml and found no index:
+          # invoke-tasklib is not installed
+          if uv pip show --quiet invoke-tasklib; then
+            echo "invoke-tasklib is installed: step 7 ignored the uv.toml"
+            exit 1
+          fi
+          # the dependencies were not installed: step 9 did not run
+          if python -c "import myproject" 2> /dev/null; then
+            echo "myproject is installed: the action did not stop earlier"
+            exit 1
+          fi
