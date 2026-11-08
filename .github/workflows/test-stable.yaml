@@ -148,12 +148,17 @@ jobs:
         with:
           package-name: numpy
           package-version: 2.4.0
-          package-install-args: "--upgrade"
+          package-install-args: "--dry-run"
 
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
-          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
+          # '--dry-run' is passed to 'uv pip install': nothing is installed,
+          # whereas test-package installs numpy without it
+          python -c "
+          import importlib.util as u
+          assert not u.find_spec('numpy'), 'numpy should not be installed'
+          "
 
   test-progress-bar:
     runs-on: ubuntu-latest
