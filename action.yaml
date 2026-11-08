@@ -188,9 +188,14 @@ runs:
     # - Activates the virtual environment so subsequent steps can use 'python' and 'uv pip'
     # - Restores and saves the uv cache when the enable-cache input allows it
     # The project files are searched in the working-directory input
+    # It receives UV_NO_PROGRESS (uv-no-progress) like the other steps that run
+    # uv, because uv also downloads the Python interpreter and creates the
+    # virtual environment in this step
     - name: Install uv and set the python version
       id: setup-uv
       uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # ratchet:astral-sh/setup-uv@v10.3.3
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       with:
         version: ${{ inputs.uv-version }}
         python-version: ${{ inputs.python-version }}
