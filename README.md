@@ -165,7 +165,7 @@ jobs:
 | `package-name`           | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                             | No       | `""`               |
 | `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Only used when `package-name` is specified. Leave empty to install latest.                    | No       | `""`               |
 | `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.      | No       | `""`               |
-| `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`).                                                    | No       | `""`               |
+| `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.        | No       | `""`               |
 | `invoke-tasklib-version` | Version specifier of `invoke-tasklib` installed before running the project tasks (e.g., `">=0.0.8,<1.0.0"`, `"==0.0.8"`). Must include the operator. | No       | `">=0.0.8,<1.0.0"` |
 | `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                        | No       | `"."`              |
 | `enable-cache`           | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                        | No       | `"auto"`           |
@@ -442,6 +442,15 @@ The input `package-name` must be a package name made of letters, digits, `.`,
 
 `package-version` and `package-install-args` only apply when `package-name` is
 set. Set `package-name` or remove the input.
+
+### Relative Paths in `package-install-args`
+
+The package of `package-name` is installed by
+[durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action),
+which has no working directory option, so this step runs in the workspace root
+and not in `working-directory`. A relative path in `package-install-args` (for
+example `--constraint constraints.txt`) starts at the workspace root. Other
+inputs, such as `install-args` and `extra-packages`, run in `working-directory`.
 
 ### Custom Install Arguments Not Working
 
