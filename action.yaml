@@ -28,6 +28,10 @@ inputs:
     default: ""
     description: "Optional arguments passed to the 'uv pip install' command used to install 'package-name' (e.g., '--upgrade')."
     required: false
+  invoke-tasklib-version:
+    default: ">=0.0.8,<1.0.0"
+    description: "Version specifier of 'invoke-tasklib' installed before running the project tasks (e.g., '>=0.0.8,<1.0.0', '==0.0.8'). It must be a valid PEP 440 specifier, including the operator."
+    required: false
   uv-no-progress:
     default: "true"
     description: "Disable uv progress bars ('true' or 'false'). Defaults to 'true'."
@@ -59,12 +63,14 @@ runs:
     # Step 3: Install invoke-tasklib
     # invoke-tasklib provides the shared invoke tasks used below
     # (env.install, env.show-python-config, env.show-installed-packages)
+    # The version specifier is set with the invoke-tasklib-version input
     - name: Install invoke-tasklib
       shell: bash
       env:
+        TASKLIB_VERSION: ${{ inputs.invoke-tasklib-version }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
-        uv pip install "invoke-tasklib>=0.0.8,<1.0.0"
+        uv pip install "invoke-tasklib${TASKLIB_VERSION}"
 
     # Step 4: Install project dependencies using the env.install task
     # Optional install-args can be passed to customize the installation
