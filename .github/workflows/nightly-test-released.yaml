@@ -1,41 +1,33 @@
-# Tests the last stable release (durandtibo/setup-venv-uv-action@v0.2.0) across
-# Linux/macOS, python/install/package input variants. Detects regressions in the published action.
-# Keep the jobs identical to test-local.yaml: only the tested version of the
-# action differs. Exception: a job that tests an input or a behaviour added
-# after the tested release only exists in test-local.yaml. Add it here when the
-# release is bumped.
+# Workflow testing the latest released action, to catch regressions in what consumers
+# pick up. It mirrors the jobs of ci-action.yaml, which tests the current checkout
+# instead. Update the pinned release below when a new version is released. A job that
+# tests an input added after the pinned release only exists in ci-action.yaml: add
+# it here when the release is bumped.
 
-name: Test Stable Action
+name: Test Released Action
 
 on:
   workflow_call:
-  workflow_dispatch: # to trigger manually
+    inputs:
+      test-matrix:
+        description: "JSON test matrix from lib-get-test-matrix.yaml, loaded once by the caller"
+        required: true
+        type: string
 
-permissions:
-  actions: write
-  contents: read
+permissions: {}
 
 jobs:
-  config:
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    outputs:
-      os_unix: ${{ steps.cfg.outputs.os_unix }}
-      python_versions: ${{ steps.cfg.outputs.python_versions_standard }}
-    steps:
-      - name: Load workflow config
-        uses: durandtibo/workflow-config-action@8c406999ac8ac3cafe656c263759d8ddea3a4edb # ratchet:durandtibo/workflow-config-action@v0.2
-        id: cfg
-
   test:
-    needs: config
+    permissions:
+      actions: write
+      contents: read
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(needs.config.outputs.os_unix) }}
+        os: ${{ fromJson(inputs.test-matrix).os_matrix }}
 
     steps:
       - name: Checkout
@@ -56,13 +48,15 @@ jobs:
           uv pip check
 
   test-python-version:
-    needs: config
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
-        python-version: ${{ fromJSON(needs.config.outputs.python_versions) }}
+        python-version: ${{ fromJson(inputs.test-matrix).python_versions_standard }}
 
     steps:
       - name: Checkout
@@ -82,6 +76,9 @@ jobs:
           python -c "import sys, os; v = os.environ['EXPECTED_VERSION']; assert f'{sys.version_info[0]}.{sys.version_info[1]}' == v, sys.version"
 
   test-install-args:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -99,6 +96,9 @@ jobs:
           python -c "import myproject; print(myproject)"
 
   test-package:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -118,6 +118,9 @@ jobs:
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
 
   test-package-latest:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -136,6 +139,9 @@ jobs:
           python -c "import numpy; print(numpy.__version__)"
 
   test-package-args:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -161,6 +167,9 @@ jobs:
           "
 
   test-package-extras:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -182,6 +191,9 @@ jobs:
           python -c "import socks"
 
   test-progress-bar:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

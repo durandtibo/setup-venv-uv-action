@@ -1,37 +1,31 @@
-# Tests the action using the current repository code (uses: ./) across Linux/macOS,
-# python/install/package input variants. Validates uncommitted changes before release.
+# Workflow testing the action from the current repository code (uses: ./), i.e. the
+# version not released yet, on multiple operating systems and Python versions.
+# Called from ci.yaml with the test matrix loaded once by lib-get-test-matrix.yaml.
 
-name: Test Local Action
+name: Test Action
 
 on:
   workflow_call:
-  workflow_dispatch: # to trigger manually
+    inputs:
+      test-matrix:
+        description: "JSON test matrix from lib-get-test-matrix.yaml, loaded once by the caller"
+        required: true
+        type: string
 
-permissions:
-  actions: write
-  contents: read
+permissions: {}
 
 jobs:
-  config:
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    outputs:
-      os_unix: ${{ steps.cfg.outputs.os_unix }}
-      python_versions: ${{ steps.cfg.outputs.python_versions_standard }}
-    steps:
-      - name: Load workflow config
-        uses: durandtibo/workflow-config-action@8c406999ac8ac3cafe656c263759d8ddea3a4edb # ratchet:durandtibo/workflow-config-action@v0.2
-        id: cfg
-
   test:
-    needs: config
+    permissions:
+      actions: write
+      contents: read
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(needs.config.outputs.os_unix) }}
+        os: ${{ fromJson(inputs.test-matrix).os_matrix }}
 
     steps:
       - name: Checkout
@@ -52,13 +46,15 @@ jobs:
           uv pip check
 
   test-python-version:
-    needs: config
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
-        python-version: ${{ fromJSON(needs.config.outputs.python_versions) }}
+        python-version: ${{ fromJson(inputs.test-matrix).python_versions_standard }}
 
     steps:
       - name: Checkout
@@ -81,6 +77,9 @@ jobs:
           python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
 
   test-install-args:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -98,6 +97,9 @@ jobs:
           python -c "import myproject; print(myproject)"
 
   test-package:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -117,6 +119,9 @@ jobs:
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
 
   test-package-latest:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -135,6 +140,9 @@ jobs:
           python -c "import numpy; print(numpy.__version__)"
 
   test-package-args:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -160,6 +168,9 @@ jobs:
           "
 
   test-package-extras:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -181,6 +192,9 @@ jobs:
           python -c "import socks"
 
   test-tasklib-version:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -201,6 +215,9 @@ jobs:
           uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$" || (echo "expected the locked invoke-tasklib 0.0.8" && exit 1)
 
   test-tasklib-missing:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -237,6 +254,9 @@ jobs:
           fi
 
   test-working-directory:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -269,6 +289,9 @@ jobs:
           "
 
   test-missing-files:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -310,6 +333,9 @@ jobs:
           fi
 
   test-cache:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -343,6 +369,9 @@ jobs:
           fi
 
   test-extra-packages:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -366,6 +395,9 @@ jobs:
           python -c "import attr, iniconfig; print(attr.__version__)"
 
   test-invalid-inputs:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -439,6 +471,9 @@ jobs:
           fi
 
   test-ignored-inputs:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -458,6 +493,9 @@ jobs:
           python -c "import importlib.util as u; assert u.find_spec('numpy') is None, 'numpy should not be installed'"
 
   test-progress-bar:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -474,6 +512,9 @@ jobs:
           python -c "import myproject; print(myproject)"
 
   test-tasklib-not-in-groups:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -494,6 +535,9 @@ jobs:
           uv pip check
 
   test-package-python-specifier:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -515,6 +559,9 @@ jobs:
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
 
   test-install-args-glob:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -542,6 +589,9 @@ jobs:
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
 
   test-uv-version:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -567,6 +617,9 @@ jobs:
           test "${OUTPUT_VERSION}" = "0.12.0" || (echo "expected output 0.12.0, got '${OUTPUT_VERSION}'" && exit 1)
 
   test-working-directory-uv-config:
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

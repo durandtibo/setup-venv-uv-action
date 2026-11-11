@@ -12,13 +12,16 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 │   └── feature-request.yml            # Feature request form template
 ├── workflows/                         # GitHub Actions workflow definitions
 │   ├── ci.yaml                        # Main CI pipeline (format + tests)
-│   ├── format.yaml                    # Formatting checks
-│   ├── test-local.yaml                # Tests the action of this repository
-│   ├── test-stable.yaml               # Tests the last stable release
+│   ├── lib-get-test-matrix.yaml       # Loads the OS and Python version matrices
+│   ├── ci-format.yaml                 # Formatting checks
+│   ├── ci-action.yaml                 # Tests the action of this repository
+│   ├── nightly-test-released.yaml     # Tests the last stable release
 │   ├── nightly-tests.yaml             # Scheduled nightly test runs
 │   ├── ci-verify-workflows.yaml       # Validates workflow file syntax
-│   ├── dependency-review.yml          # Reviews dependencies changed by a PR
+│   ├── security-scorecard.yaml        # OSSF Scorecard analysis
+│   ├── security-dependency-review.yaml # Reviews dependencies changed by a PR
 │   ├── bot-cancel-stale-queued-runs.yaml # Cleans up queued workflow runs
+│   ├── bot-report-queued-runs.yaml    # Hourly report of queued runs
 │   ├── bot-format-files.yaml          # Weekly formatting PR
 │   ├── bot-pin-action.yaml            # Weekly PR pinning actions to SHAs
 │   └── bot-sync-shared-makefile.yaml  # Weekly PR syncing the .make subtree
@@ -33,12 +36,12 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 #### CI (ci.yaml)
 
-- **Trigger**: Push/PR to main branch, manual dispatch
+- **Trigger**: Push/PR to main branch, nightly schedule, manual dispatch
 - **Purpose**: Main continuous integration pipeline
-- **Jobs**: Calls format, test-local, and test-stable workflows
-- **Permissions**: `actions: write`, `contents: read`
+- **Jobs**: Calls lib-get-test-matrix, ci-format and ci-action workflows
+- **Permissions**: set per job (`contents: read`, plus `actions: write` for the tests)
 
-#### Format (format.yaml)
+#### Format (ci-format.yaml)
 
 - **Trigger**: Called by CI workflow, manual dispatch
 - **Purpose**: Checks that YAML, Makefile, shell, and Markdown files follow the
@@ -46,7 +49,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Jobs**: Runs `make format`, then fails if `git diff` shows changes
 - **Permissions**: `contents: read`
 
-#### Test Local Action (test-local.yaml)
+#### Test Action (ci-action.yaml)
 
 - **Trigger**: Called by CI workflow, manual dispatch
 - **Purpose**: Tests the action using the current repository code (`uses: ./`)
@@ -67,12 +70,12 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
     `test-ignored-inputs`
 - **Permissions**: `actions: write`, `contents: read`
 
-#### Test Stable Action (test-stable.yaml)
+#### Test Released Action (nightly-test-released.yaml)
 
 - **Trigger**: Called by CI workflow, manual dispatch
 - **Purpose**: Tests the last published release to detect regressions
-- **Jobs**: Same as test-local, except for the jobs of inputs added after that
-  release, which only exist in test-local until the release is bumped
+- **Jobs**: Same as ci-action, except for the jobs of inputs added after that
+  release, which only exist in ci-action until the release is bumped
 - **Permissions**: `actions: write`, `contents: read`
 
 ### Scheduled Workflows
@@ -81,7 +84,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 - **Trigger**: Daily at 9:00 AM UTC, manual dispatch
 - **Purpose**: Regular testing to catch issues early
-- **Jobs**: Calls test-local and test-stable (no format check: formatting does
+- **Jobs**: Calls nightly-test-released (ci.yaml runs the current code nightly; no format check: formatting does
   not change with time)
 - **Permissions**: `actions: write`, `contents: read`
 
@@ -94,6 +97,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 #### Bot Workflows (bot-*.yaml)
 
+- **bot-report-queued-runs.yaml**: Hourly, reports the queued runs of each
+  public repository of a user in the job summary
 - **bot-format-files.yaml**: Fridays at 6:00 AM UTC, opens a PR when files
   drifted out of format
 - **bot-pin-action.yaml**: Wednesdays at 8:00 AM UTC, opens a PR that pins
@@ -105,12 +110,19 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 #### Verify Workflows (ci-verify-workflows.yaml)
 
-- **Trigger**: Changes to `.github/workflows/**`, manual dispatch
+- **Trigger**: Pull requests, pushes to main, manual dispatch
 - **Purpose**: Validates workflow file syntax and structure
 - **Uses**: durandtibo/verify-github-workflow-action
 - **Permissions**: `contents: read`
 
-#### Dependency Review (dependency-review.yml)
+#### Scorecard (security-scorecard.yaml)
+
+- **Trigger**: Pushes to main, weekly schedule, branch protection changes,
+  manual dispatch
+- **Purpose**: Runs the OSSF Scorecard analysis and uploads the results to the
+  code-scanning dashboard
+
+#### Dependency Review (security-dependency-review.yaml)
 
 - **Trigger**: Pull requests
 - **Purpose**: Surfaces known-vulnerable dependencies introduced by a PR
@@ -149,22 +161,22 @@ The `dependabot.yml` configures automatic dependency updates for:
 
 ```text
 ci.yaml
-├─→ format.yaml (make format + git diff)
-├─→ test-local.yaml (test with current code)
-└─→ test-stable.yaml (test with published version)
+├─→ lib-get-test-matrix.yaml (OS and Python versions)
+├─→ ci-format.yaml (make format + git diff)
+└─→ ci-action.yaml (test with current code)
 
 nightly-tests.yaml
-├─→ test-local.yaml
-└─→ test-stable.yaml
+├─→ lib-get-test-matrix.yaml
+└─→ nightly-test-released.yaml (test with published version)
 ```
 
 ## Testing Strategy
 
 The repository uses a dual-testing approach:
 
-1. **Local Testing** (`test-local.yaml`): Tests uncommitted changes using `uses:
+1. **Local Testing** (`ci-action.yaml`): Tests uncommitted changes using `uses:
 ./`
-2. **Stable Testing** (`test-stable.yaml`): Tests the published action version
+2. **Stable Testing** (`nightly-test-released.yaml`): Tests the published action version
    for regression detection
 
 This ensures both new changes work correctly and the published version remains

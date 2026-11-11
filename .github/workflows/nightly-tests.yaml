@@ -1,19 +1,30 @@
-# Runs the tests of the local and the stable action daily to catch issues from
-# external updates (uv, setup-uv, invoke-tasklib) early. The format check is not
-# run: formatting does not change with time.
+# Nightly workflow testing the latest released action, to catch regressions in
+# what consumers pick up. The current (unreleased) code is tested nightly by ci.yaml.
+#
+# Permissions are set at the job level, not the workflow level.
 
 name: Nightly Tests
 on:
   schedule:
-    - cron: "0 9 * * *" # run at 9:00 AM UTC
+    - cron: "30 10 * * *" # run at 10:30 AM UTC
   workflow_dispatch: # to trigger manually
 
-permissions:
-  actions: write
-  contents: read
+permissions: {}
 
 jobs:
-  test-local:
-    uses: ./.github/workflows/test-local.yaml
-  test-stable:
-    uses: ./.github/workflows/test-stable.yaml
+  # Load the shared OS and Python version matrices from the default config of
+  # durandtibo/workflow-config-action once.
+  get-matrix:
+    uses: ./.github/workflows/lib-get-test-matrix.yaml
+    permissions:
+      contents: read
+
+  # Test the latest released action
+  test-released:
+    needs: get-matrix
+    uses: ./.github/workflows/nightly-test-released.yaml
+    with:
+      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
+    permissions:
+      actions: write
+      contents: read

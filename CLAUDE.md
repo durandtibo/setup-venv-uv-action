@@ -68,26 +68,30 @@ true`. Installation steps must fail the action.
 
 Files are prefixed by role:
 
-- `ci.yaml`: entry point for pull requests, pushes to `main` and manual runs. It
-  holds no steps, only jobs that call the reusable workflows below.
-  - `format.yaml`: YAML, Makefile, shell and Markdown format check.
-  - `test-local.yaml`: tests the action from this checkout (`uses: ./`), i.e.
+- `ci.yaml`: entry point for pull requests, pushes to `main`, a nightly
+  schedule and manual runs. It holds no steps, only jobs that call the reusable
+  workflows below.
+  - `lib-get-test-matrix.yaml`: loads the OS and Python version lists from
+    `durandtibo/workflow-config-action` once, and passes them to the callers.
+  - `ci-format.yaml`: YAML, Makefile, shell and Markdown format check.
+  - `ci-action.yaml`: tests the action from this checkout (`uses: ./`), i.e.
     the version not released yet.
-  - `test-stable.yaml`: tests the last release.
-- `nightly-tests.yaml`: scheduled entry point that calls `test-local.yaml` and
-  `test-stable.yaml` (not `format.yaml`: formatting does not change with time).
+- `nightly-tests.yaml`: scheduled entry point that calls
+  `nightly-test-released.yaml`, which tests the last release (the current code
+  is tested nightly by `ci.yaml`).
 - `ci-verify-workflows.yaml`: lints the workflow files themselves. It has its
   own triggers and is not called from `ci.yaml`.
 - `bot-*.yaml`: scheduled automation that opens PRs or acts on runs (format
-  files, pin actions, sync `.make/`, cancel stale runs).
-- `dependency-review.yml`: dependency review on pull requests.
+  files, pin actions, sync `.make/`, cancel stale runs, report queued runs).
+- `security-dependency-review.yaml`: dependency review on pull requests.
+- `security-scorecard.yaml`: OSSF Scorecard supply-chain analysis.
 
 Conventions:
 
 - Set least-privilege `permissions` (explicit, never broader than needed) and
   `timeout-minutes` on jobs. `bot-*.yaml` workflows use `permissions: {}` at the
-  workflow level and grant per job.
-- Reusable workflows (`ci.yaml` callees) also have `workflow_dispatch`, so they
+  workflow level and grant per job. So do `ci.yaml` and its callees.
+- Reusable workflows without inputs (`ci-format.yaml`) also have `workflow_dispatch`, so they
   can be run alone.
 - Put `make` targets in the steps rather than duplicating commands, so local
   runs and CI match.
@@ -96,14 +100,14 @@ Conventions:
 
 ## Tests
 
-The action is tested by `.github/workflows/test-local.yaml` (`uses: ./`) and
-`.github/workflows/test-stable.yaml` (the last release).
+The action is tested by `.github/workflows/ci-action.yaml` (`uses: ./`) and
+`.github/workflows/nightly-test-released.yaml` (the last release).
 
 - The two files must stay identical except for the header comment, the `name`
   and the `uses:` line. Change one, then apply the same change to the other.
   Exception: a job that tests an input added after the latest release goes only
-  in `test-local.yaml`, because the stable release does not know the input. Add
-  it to `test-stable.yaml` when the release in `test-stable.yaml` is bumped.
+  in `ci-action.yaml`, because the stable release does not know the input. Add
+  it to `nightly-test-released.yaml` when its release is bumped.
 - Every input of the action needs a job that sets it and asserts its effect (not
   only that the action succeeds). Add a job when adding an input.
 - Every validated input needs a test that passes an invalid value and asserts
