@@ -36,6 +36,9 @@ there.
 - When a PR conflicts with `main`, merge `origin/main` into the branch (do not
   rebase and force-push).
 - Update `README.md` and `.github/OVERVIEW.md` when inputs or workflows change.
+  The inputs table of `README.md` is generated from `action.yaml` by `make
+generate-readme-inputs` (run by `make format`): edit `action.yaml`, not the
+  table.
 
 ## Action (`action.yaml`)
 
@@ -111,8 +114,10 @@ format` runs. Edit `test-local.yaml` only and never `test-stable.yaml` by hand:
 - Every input of the action needs a job that sets it and asserts its effect (not
   only that the action succeeds). Add a job when adding an input.
 - Every validated input needs a test that passes an invalid value and asserts
-  that the action fails. Assert that it failed because of the validation, for
-  example by checking that nothing was installed, not only that it failed.
+  that the action fails. Add a case to the `test-invalid-inputs` matrix of
+  `test-local.yaml` rather than a new job. Assert that it failed because of the
+  validation, for example by checking that nothing was installed, not only that
+  it failed.
 - Read OS and Python version lists from `durandtibo/workflow-config-action`
   outputs; do not hardcode them.
 - Assert the expected value with an explicit check (for example `assert
