@@ -74,6 +74,40 @@ jobs:
           python -c "import sys, os; v = os.environ['EXPECTED_VERSION']; assert f'{sys.version_info[0]}.{sys.version_info[1]}' == v, sys.version"
           python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
 
+  test-python-version-file:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ fromJson(inputs.test-matrix).python_versions_standard }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Set the Python version of the project
+        env:
+          PROJECT_VERSION: ${{ matrix.python-version }}
+        run: |
+          echo "${PROJECT_VERSION}" > .python-version
+
+      # python-version is not set: the default (empty) follows .python-version
+      - name: Setup python environment
+        id: setup
+        uses: ./
+
+      - name: Test that the version of .python-version is used
+        env:
+          EXPECTED_VERSION: ${{ matrix.python-version }}
+          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import sys, os; v = os.environ['EXPECTED_VERSION']; assert f'{sys.version_info[0]}.{sys.version_info[1]}' == v, sys.version"
+          python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
+
   test-install-args:
     permissions:
       contents: read

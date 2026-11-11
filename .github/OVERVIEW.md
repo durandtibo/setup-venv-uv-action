@@ -58,7 +58,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Jobs**: One job per input or behavior of the action, in these groups (the
   workflow file is the list of jobs):
   - defaults and versions: default inputs on every Unix OS of the config, the
-    Python versions of the config, `uv-version`
+    Python versions of the config, the `.python-version` file of the project
+    (empty `python-version`), `uv-version`
   - installation inputs: `install-args`, the `package-*` inputs (including
     the `package-installed` output and the skipped versions), `extra-packages`
   - `invoke-tasklib`: the version read from `uv.lock`, a missing entry, a
