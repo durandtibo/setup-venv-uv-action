@@ -43,7 +43,9 @@ there.
   Renaming or removing an input is a breaking change: call it out in the PR.
 - Put the `# Step N:` comment directly above each `- name:`, with no blank lines
   inside the comment block. Keep the numbering in sync with the order of the
-  steps.
+  steps. A group of related steps (for example the validation) is numbered
+  `N.M` (`1.1`, `1.2`, ...). A step does one thing: validate one input, run one
+  report command.
 - Pin every third-party action to a commit SHA followed by a `#
 ratchet:<owner>/<repo>@<tag>` comment, as the existing steps do. Do not use a
   tag or a branch.

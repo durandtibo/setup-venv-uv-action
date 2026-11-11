@@ -67,43 +67,34 @@ outputs:
 runs:
   using: "composite"
   steps:
-    # Step 1: Validate the boolean inputs
-    # Steps 1 to 3 validate the inputs before anything is installed, so that an
-    # invalid value fails immediately with a clear message
-    # Each step reports all the problems of its own inputs, and the first step
-    # that fails stops the action
-    # - uv-no-progress and verbose must be 'true' or 'false'
-    # - enable-cache must be 'true' or 'false' ('auto' is also accepted)
-    - name: Validate boolean inputs
+    # Step 1.1: Validate enable-cache
+    # Steps 1.1 to 1.10 validate the inputs and the project files before anything
+    # is installed, so that an invalid value fails immediately with a clear
+    # message. A step validates one input and reports all the problems of that
+    # input, and the first step that fails stops the action
+    # enable-cache must be 'true', 'false' or 'auto'
+    - name: Validate enable-cache
       shell: bash
       env:
         ENABLE_CACHE: ${{ inputs.enable-cache }}
-        VERBOSE: ${{ inputs.verbose }}
-        UV_NO_PROGRESS_INPUT: ${{ inputs.uv-no-progress }}
       run: |
-        status=0
-        check_boolean() {
-          if [ "$2" != "true" ] && [ "$2" != "false" ]; then
-            echo "::error title=Invalid input::The input '$1' must be 'true' or 'false', got '$2'."
-            status=1
-          fi
-        }
-        check_boolean uv-no-progress "${UV_NO_PROGRESS_INPUT}"
-        check_boolean verbose "${VERBOSE}"
-        if [ "${ENABLE_CACHE}" != "auto" ]; then
-          check_boolean enable-cache "${ENABLE_CACHE}"
+        if [ "${ENABLE_CACHE}" != "true" ] && [ "${ENABLE_CACHE}" != "false" ] &&
+          [ "${ENABLE_CACHE}" != "auto" ]; then
+          echo "::error title=Invalid input::The input 'enable-cache' must be" \
+            "'true', 'false' or 'auto', got '${ENABLE_CACHE}'."
+          exit 1
         fi
-        exit "${status}"
 
-    # Step 2: Validate the working directory
-    # working-directory must be an existing directory inside the workspace
+    # Step 1.2: Validate working-directory
+    # working-directory must be a relative path, without '..', of an existing
+    # directory of the workspace
     - name: Validate working-directory
       shell: bash
       env:
         WORKING_DIRECTORY: ${{ inputs.working-directory }}
       run: |
-        absolute_path='^(/|\\|[A-Za-z]:)'
-        parent_path='(^|[/\\])\.\.([/\\]|$)'
+        absolute_path='^/'
+        parent_path='(^|/)\.\.(/|$)'
         if [[ "${WORKING_DIRECTORY}" =~ ${absolute_path} ]]; then
           echo "::error title=Invalid input::The input 'working-directory'" \
             "must be relative to the workspace, got '${WORKING_DIRECTORY}'."
@@ -119,36 +110,35 @@ runs:
           exit 1
         fi
 
-    # Step 3: Validate the Python and package inputs
-    # - package-name must be a package name, optionally followed by extras
-    #   (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
-    # - package-version must be a version, not a specifier (e.g., '1.26.0' or
-    #   '2.12.*', not '>=1.0' or '1.0 --pre'): it is installed as
-    #   'package-name==package-version'
-    # - extra-packages must contain one requirement per line, not an option
-    #   (a line that starts with '-', e.g., '--index-url=...' or '-e .')
-    # - package-version and package-install-args are ignored without package-name: warn
-    # - An empty python-version is valid (uv uses the version of the project): notice
-    - name: Validate python and package inputs
+    # Step 1.3: Validate the project files
+    # 'pyproject.toml', 'uv.lock' and 'tasks.py' must exist in working-directory
+    # Without this step, a missing file surfaces as an obscure error from a later
+    # step, after uv and Python are installed
+    # It runs after step 1.2, so the directory is known to be valid
+    - name: Validate the project files
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        status=0
+        for file in pyproject.toml uv.lock tasks.py; do
+          if [ ! -f "${file}" ]; then
+            echo "::error title=Missing project file::No '${file}' found in" \
+              "'$(pwd)'. See the requirements in the README, and set" \
+              "'working-directory' if the project is in a subfolder."
+            status=1
+          fi
+        done
+        exit "${status}"
+
+    # Step 1.4: Validate extra-packages
+    # extra-packages must contain one requirement per line, not an option (a line
+    # that starts with '-', e.g., '--index-url=...' or '-e .')
+    - name: Validate extra-packages
+      if: ${{ inputs.extra-packages != '' }}
       shell: bash
       env:
-        PYTHON_VERSION: ${{ inputs.python-version }}
-        PACKAGE_NAME: ${{ inputs.package-name }}
-        PACKAGE_VERSION: ${{ inputs.package-version }}
-        PACKAGE_INSTALL_ARGS: ${{ inputs.package-install-args }}
         EXTRA_PACKAGES: ${{ inputs.extra-packages }}
       run: |
-        distribution='[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?'
-        extras='(\[[A-Za-z0-9._,-]+\])?'
-        package_name="^${distribution}${extras}\$"
-        if [ -n "${PACKAGE_NAME}" ] &&
-          ! [[ "${PACKAGE_NAME}" =~ ${package_name} ]]; then
-          echo "::error title=Invalid input::The input 'package-name' must be" \
-            "a package name, optionally followed by extras (e.g., 'numpy' or" \
-            "'uvicorn[standard]'), got '${PACKAGE_NAME}'. The version goes in" \
-            "'package-version' and the options in 'package-install-args'."
-          exit 1
-        fi
         status=0
         while IFS= read -r line; do
           # Trim the leading whitespace, like the installation step
@@ -160,33 +150,104 @@ runs:
             status=1
           fi
         done <<< "${EXTRA_PACKAGES}"
-        if [ "${status}" -ne 0 ]; then
+        exit "${status}"
+
+    # Step 1.5: Validate uv-no-progress
+    # uv-no-progress must be 'true' or 'false'
+    - name: Validate uv-no-progress
+      shell: bash
+      env:
+        UV_NO_PROGRESS_INPUT: ${{ inputs.uv-no-progress }}
+      run: |
+        if [ "${UV_NO_PROGRESS_INPUT}" != "true" ] &&
+          [ "${UV_NO_PROGRESS_INPUT}" != "false" ]; then
+          echo "::error title=Invalid input::The input 'uv-no-progress' must" \
+            "be 'true' or 'false', got '${UV_NO_PROGRESS_INPUT}'."
           exit 1
         fi
+
+    # Step 1.6: Validate verbose
+    # verbose must be 'true' or 'false'
+    - name: Validate verbose
+      shell: bash
+      env:
+        VERBOSE: ${{ inputs.verbose }}
+      run: |
+        if [ "${VERBOSE}" != "true" ] && [ "${VERBOSE}" != "false" ]; then
+          echo "::error title=Invalid input::The input 'verbose' must be" \
+            "'true' or 'false', got '${VERBOSE}'."
+          exit 1
+        fi
+
+    # Step 1.7: Validate package-name
+    # package-name must be a package name, optionally followed by extras
+    # (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
+    - name: Validate package-name
+      if: ${{ inputs.package-name != '' }}
+      shell: bash
+      env:
+        PACKAGE_NAME: ${{ inputs.package-name }}
+      run: |
+        distribution='[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?'
+        extras='(\[[A-Za-z0-9._,-]+\])?'
+        package_name="^${distribution}${extras}\$"
+        if ! [[ "${PACKAGE_NAME}" =~ ${package_name} ]]; then
+          echo "::error title=Invalid input::The input 'package-name' must be" \
+            "a package name, optionally followed by extras (e.g., 'numpy' or" \
+            "'uvicorn[standard]'), got '${PACKAGE_NAME}'. The version goes in" \
+            "'package-version' and the options in 'package-install-args'."
+          exit 1
+        fi
+
+    # Step 1.8: Validate package-version
+    # package-version must be a version, not a specifier (e.g., '1.26.0' or
+    # '2.12.*', not '>=1.0' or '1.0 --pre'): it is installed as
+    # 'package-name==package-version'
+    # It is ignored without package-name (see step 1.9)
+    - name: Validate package-version
+      if: ${{ inputs.package-name != '' && inputs.package-version != '' }}
+      shell: bash
+      env:
+        PACKAGE_VERSION: ${{ inputs.package-version }}
+      run: |
         package_version='^v?[0-9][0-9A-Za-z.!+*_-]*$'
-        if [ -n "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_VERSION}" ] &&
-          ! [[ "${PACKAGE_VERSION}" =~ ${package_version} ]]; then
+        if ! [[ "${PACKAGE_VERSION}" =~ ${package_version} ]]; then
           echo "::error title=Invalid input::The input 'package-version'" \
             "must be a version (e.g., '1.26.0' or '2.12.*'), not a" \
             "specifier or an option, got '${PACKAGE_VERSION}'. The options" \
             "go in 'package-install-args'."
           exit 1
         fi
-        if [ -z "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_VERSION}" ]; then
+
+    # Step 1.9: Warn about the ignored package inputs
+    # package-version and package-install-args are ignored without package-name
+    - name: Warn about ignored package inputs
+      if: ${{ inputs.package-name == '' && (inputs.package-version != '' || inputs.package-install-args != '') }}
+      shell: bash
+      env:
+        PACKAGE_VERSION: ${{ inputs.package-version }}
+        PACKAGE_INSTALL_ARGS: ${{ inputs.package-install-args }}
+      run: |
+        if [ -n "${PACKAGE_VERSION}" ]; then
           echo "::warning title=Ignored input::The input 'package-version' is ignored because 'package-name' is empty."
         fi
-        if [ -z "${PACKAGE_NAME}" ] && [ -n "${PACKAGE_INSTALL_ARGS}" ]; then
+        if [ -n "${PACKAGE_INSTALL_ARGS}" ]; then
           echo "::warning title=Ignored input::The input 'package-install-args' is ignored because 'package-name' is empty."
         fi
-        if [ -z "${PYTHON_VERSION}" ]; then
-          echo "::notice title=Empty python-version::The input 'python-version' is empty: uv selects the Python version of the project."
-        fi
 
-    # Step 4: Read the invoke-tasklib version from the project
+    # Step 1.10: Notice about an empty python-version
+    # An empty python-version is valid: uv selects the Python version of the project
+    - name: Notice about an empty python-version
+      if: ${{ inputs.python-version == '' }}
+      shell: bash
+      run: |
+        echo "::notice title=Empty python-version::The input 'python-version' is empty: uv selects the Python version of the project."
+
+    # Step 2: Read the invoke-tasklib version from the project
     # Looks for the 'invoke-tasklib' requirement in the pyproject.toml of the
     # working-directory input (dependencies, extras and dependency groups), so
-    # that the version is declared in one place. The specifier is used in steps 7 and 9
-    # It runs before the setup of the virtual environment (step 5) because the
+    # that the version is declared in one place. The specifier is used in steps 5 and 7
+    # It runs before the setup of the virtual environment (step 3) because the
     # action needs a Python 3.11 or later on PATH, which the runners provide
     - name: Read the invoke-tasklib version
       id: metadata
@@ -195,7 +256,7 @@ runs:
         pyproject-path: ${{ inputs.working-directory }}/pyproject.toml
         dependencies: '["invoke-tasklib"]'
 
-    # Step 5: Install uv and configure the Python environment
+    # Step 3: Install uv and configure the Python environment
     # Uses the astral-sh/setup-uv action which:
     # - Installs uv (ultra-fast Python package installer and resolver), in the
     #   version of the uv-version input
@@ -218,7 +279,7 @@ runs:
         enable-cache: ${{ inputs.enable-cache }}
         activate-environment: true
 
-    # Step 6: Verify that uv and python are available in PATH
+    # Step 4: Verify that uv and python are available in PATH
     # Safety check to ensure the environment setup succeeded
     # Outputs the full paths and the versions of both executables for debugging
     # It runs in the working-directory input, like the other steps that use uv,
@@ -232,10 +293,10 @@ runs:
         which python
         python --version
 
-    # Step 7: Install invoke-tasklib
+    # Step 5: Install invoke-tasklib
     # invoke-tasklib provides the shared invoke tasks used below
     # (env.install, env.show-python-config, env.show-installed-packages)
-    # The version specifier is read from the project (step 4). When the project
+    # The version specifier is read from the project (step 2). When the project
     # does not declare invoke-tasklib (or declares it without a specifier), the
     # latest version is installed and a warning is emitted
     # It runs in the working-directory input, so that 'uv pip install' reads the
@@ -255,18 +316,15 @@ runs:
         fi
         uv pip install "invoke-tasklib${TASKLIB_VERSION}"
 
-    # Step 8: Verify that the project defines the invoke tasks used by this action
-    # Fails early with a clear message when 'tasks.py' or the 'env.install' task is
-    # missing, instead of an obscure error from 'inv' in the next step
+    # Step 6: Verify that the project defines the invoke tasks used by this action
+    # Fails early with a clear message when 'inv --list' fails or the 'env.install'
+    # task is missing, instead of an obscure error from 'inv' in the next step
+    # The existence of 'tasks.py' is checked before the installation (step 1.3)
     # A missing show task only emits a warning because these tasks are optional
     - name: Verify project tasks
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        if [ ! -f tasks.py ]; then
-          echo "::error title=Missing tasks.py::No 'tasks.py' found in '$(pwd)'. It must expose the invoke-tasklib task collection (see the README)."
-          exit 1
-        fi
         if ! tasks=$(inv --list 2>&1); then
           echo "${tasks}"
           echo "::error title=Invalid tasks.py::'inv --list' failed in '$(pwd)'. Check that 'tasks.py' and 'invoke.yaml' are valid."
@@ -288,14 +346,14 @@ runs:
           fi
         done
 
-    # Step 9: Install project dependencies using the env.install task
+    # Step 7: Install project dependencies using the env.install task
     # The task is executed in the working-directory input
     # Optional install-args can be passed to customize the installation
     # (e.g., --no-optional-deps to skip installing optional dependencies)
     # The arguments are split on whitespace (no quoting) and are not glob-expanded
     # 'uv sync --frozen' removes the packages that are not in the lock file, so
-    # invoke-tasklib (installed in step 7) is removed when the project does not
-    # depend on it: install it again (with the version of the project, see step 4),
+    # invoke-tasklib (installed in step 5) is removed when the project does not
+    # depend on it: install it again (with the version of the project, see step 2),
     # because the diagnostic steps and the later steps of the workflow need
     # 'inv', and report it with a notice whatever the verbose input is: the
     # environment contains a package that is not in the lock file
@@ -320,7 +378,7 @@ runs:
             "dependencies (see the README)."
         fi
 
-    # Step 10 (Optional): Install a specific package version for compatibility testing
+    # Step 8 (Optional): Install a specific package version for compatibility testing
     # Only runs if package-name is provided
     # Useful for testing your project against different versions of a dependency
     # (e.g., test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy)
@@ -341,11 +399,11 @@ runs:
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
-    # Step 11 (Optional): Install additional packages
+    # Step 9 (Optional): Install additional packages
     # Only runs if extra-packages is provided, with one requirement per line
     # Useful for tools that are not dependencies of the project (e.g., pytest-xdist)
     # Blank lines are ignored and every line is passed to uv as a single argument
-    # A line that starts with '-' is rejected by the validation (step 3), so a
+    # A line that starts with '-' is rejected by the validation (step 1.4), so a
     # line is always a requirement and never an option of uv
     - name: Install extra packages
       if: ${{ inputs.extra-packages != '' }}
@@ -368,9 +426,9 @@ runs:
           uv pip install "${packages[@]}"
         fi
 
-    # Steps 12 to 15 are diagnostic steps: they are skipped when verbose is 'false'
+    # Steps 10 to 13 are diagnostic steps: they are skipped when verbose is 'false'
     # Like every step that runs uv, they receive UV_NO_PROGRESS (uv-no-progress)
-    # Step 12: Display the Python configuration for debugging and verification
+    # Step 10: Display the Python configuration for debugging and verification
     # The task is executed in the working-directory input
     # Useful for troubleshooting version-related issues
     # Uses continue-on-error so a reporting failure does not fail the workflow
@@ -384,7 +442,7 @@ runs:
       run: |
         inv env.show-python-config
 
-    # Step 13: Display all installed packages with their versions
+    # Step 11: Display all installed packages with their versions
     # Provides a complete inventory of the Python environment
     # Helpful for debugging dependency issues and verifying installations
     # Uses continue-on-error so a reporting failure does not fail the workflow
@@ -398,7 +456,7 @@ runs:
       run: |
         inv env.show-installed-packages
 
-    # Step 14: Display the dependency tree with version constraints
+    # Step 12: Display the dependency tree with version constraints
     # Shows the full dependency graph including:
     # - Direct dependencies
     # - Transitive (indirect) dependencies
@@ -415,7 +473,7 @@ runs:
       run: |
         uv pip tree --show-version-specifiers
 
-    # Step 15: Verify environment integrity
+    # Step 13: Verify environment integrity
     # Runs 'uv pip check' to detect:
     # - Missing dependencies
     # - Version conflicts
@@ -432,7 +490,7 @@ runs:
       run: |
         uv pip check
 
-    # Step 16: Set the outputs of the action
+    # Step 14: Set the outputs of the action
     # Reads the version from the interpreter that is active at the end of the
     # action (after the dependencies are installed), not from the requested input
     # 'uv python find' returns the interpreter of the active virtual environment,

@@ -223,16 +223,16 @@ jobs:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # uv and the virtual environment (step 5) are available: the failure
+          # uv and the virtual environment (step 3) are available: the failure
           # is not in the first steps
           uv --version
           python --version
-          # invoke-tasklib could not be installed: step 7 failed
+          # invoke-tasklib could not be installed: step 5 failed
           if uv pip show --quiet invoke-tasklib; then
-            echo "invoke-tasklib is installed: the failure is not in step 7"
+            echo "invoke-tasklib is installed: the failure is not in step 5"
             exit 1
           fi
-          # the dependencies were not installed: step 9 did not run
+          # the dependencies were not installed: step 7 did not run
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
@@ -270,40 +270,44 @@ jobs:
           assert v == platform.python_version(), v
           "
 
-  test-missing-tasks:
+  test-missing-files:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        file: ["pyproject.toml", "uv.lock", "tasks.py"]
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
-      - name: Remove tasks.py
+      - name: Test that uv is not installed before the action
         run: |
-          rm tasks.py
+          if command -v uv; then
+            echo "uv is already installed, the test is not valid"
+            exit 1
+          fi
 
-      - name: Setup python environment without tasks.py
+      - name: Remove a project file
+        env:
+          MISSING_FILE: ${{ matrix.file }}
+        run: |
+          rm "${MISSING_FILE}"
+
+      - name: Setup python environment without a project file
         id: setup
         uses: ./
         continue-on-error: true
 
-      - name: Test that the action failed while verifying the project tasks
+      - name: Test that the action failed in the validation
         env:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # uv and the virtual environment (step 5) are available: the failure
-          # is not in the first steps
-          uv --version
-          python --version
-          # invoke-tasklib was installed (step 7): the failure is in step 8
-          if ! uv pip show --quiet invoke-tasklib; then
-            echo "invoke-tasklib is not installed: the action failed too early"
-            exit 1
-          fi
-          # the dependencies were not installed: step 9 did not run
-          if python -c "import myproject" 2> /dev/null; then
-            echo "myproject is installed: the action did not stop earlier"
+          # the validation (step 1.3) failed: uv was not installed yet
+          if command -v uv; then
+            echo "uv is installed: the action did not fail in the validation"
             exit 1
           fi
 
@@ -384,6 +388,42 @@ jobs:
   test-invalid-inputs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: enable-cache, enable-cache: "maybe" }
+          - { name: uv-no-progress, uv-no-progress: "yes" }
+          - { name: verbose, verbose: "1" }
+          - { name: working-directory-absolute, working-directory: "/tmp" }
+          - { name: working-directory-parent, working-directory: "../project" }
+          - {
+              name: working-directory-missing,
+              working-directory: "missing-directory",
+            }
+          - {
+              name: extra-packages-option,
+              extra-packages: "six==1.17.0\n--index-url=https://example.invalid/simple",
+            }
+          - {
+              name: extra-packages-indented-option,
+              extra-packages: "six==1.17.0\n  -e .",
+            }
+          - {
+              name: package-name-option,
+              package-name: "--upgrade",
+              package-version: "2.4.0",
+            }
+          - {
+              name: package-version-specifier,
+              package-name: "numpy",
+              package-version: ">=2.0",
+            }
+          - {
+              name: package-version-option,
+              package-name: "numpy",
+              package-version: "2.4.0 --pre",
+            }
 
     steps:
       - name: Checkout
@@ -396,50 +436,25 @@ jobs:
             exit 1
           fi
 
-      - name: Setup python environment with an invalid uv-no-progress
-        id: uv-no-progress
+      - name: Setup python environment with an invalid input (${{ matrix.name }})
+        id: setup
         uses: ./
         continue-on-error: true
         with:
-          uv-no-progress: "yes"
+          enable-cache: ${{ matrix.enable-cache || 'auto' }}
+          uv-no-progress: ${{ matrix.uv-no-progress || 'true' }}
+          verbose: ${{ matrix.verbose || 'true' }}
+          working-directory: ${{ matrix.working-directory || '.' }}
+          extra-packages: ${{ matrix.extra-packages }}
+          package-name: ${{ matrix.package-name }}
+          package-version: ${{ matrix.package-version }}
 
-      - name: Setup python environment with an invalid verbose
-        id: verbose
-        uses: ./
-        continue-on-error: true
-        with:
-          verbose: "1"
-
-      - name: Setup python environment with an invalid enable-cache
-        id: enable-cache
-        uses: ./
-        continue-on-error: true
-        with:
-          enable-cache: "maybe"
-
-      - name: Setup python environment with an invalid package-name
-        id: package-name
-        uses: ./
-        continue-on-error: true
-        with:
-          package-name: "--upgrade"
-          package-version: 2.4.0
-
-      - name: Test that the actions failed in the validation
+      - name: Test that the action failed in the validation
         env:
-          OUTCOME_UV_NO_PROGRESS: ${{ steps.uv-no-progress.outcome }}
-          OUTCOME_VERBOSE: ${{ steps.verbose.outcome }}
-          OUTCOME_ENABLE_CACHE: ${{ steps.enable-cache.outcome }}
-          OUTCOME_PACKAGE_NAME: ${{ steps.package-name.outcome }}
+          OUTCOME: ${{ steps.setup.outcome }}
         run: |
-          for outcome in \
-            "${OUTCOME_UV_NO_PROGRESS}" \
-            "${OUTCOME_VERBOSE}" \
-            "${OUTCOME_ENABLE_CACHE}" \
-            "${OUTCOME_PACKAGE_NAME}"; do
-            test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
-          done
-          # the validation (steps 1 to 3) failed: uv was not installed yet
+          test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+          # the validation (steps 1.1 to 1.10) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
@@ -502,6 +517,7 @@ jobs:
 
       - name: Setup python environment
         uses: ./
+        with:
           verbose: ${{ matrix.verbose }}
 
       - name: Test environment
@@ -539,61 +555,6 @@ jobs:
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), sys.version"
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
-
-  test-invalid-working-directory:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Test that uv is not installed before the action
-        run: |
-          if command -v uv; then
-            echo "uv is already installed, the test is not valid"
-            exit 1
-          fi
-
-      - name: Copy the project outside of the workspace
-        run: |
-          cp -r . ../outside-project
-
-      - name: Setup python environment with a project outside of the workspace
-        id: outside
-        uses: ./
-        continue-on-error: true
-        with:
-          working-directory: ../outside-project
-
-      - name: Setup python environment with an absolute path
-        id: absolute
-        uses: ./
-        continue-on-error: true
-        with:
-          working-directory: ${{ github.workspace }}
-
-      - name: Setup python environment with a missing directory
-        id: missing
-        uses: ./
-        continue-on-error: true
-        with:
-          working-directory: missing-directory
-
-      - name: Test that the actions failed in the validation
-        env:
-          OUTCOME_OUTSIDE: ${{ steps.outside.outcome }}
-          OUTCOME_ABSOLUTE: ${{ steps.absolute.outcome }}
-          OUTCOME_MISSING: ${{ steps.missing.outcome }}
-        run: |
-          for outcome in "${OUTCOME_OUTSIDE}" "${OUTCOME_ABSOLUTE}" "${OUTCOME_MISSING}"; do
-            test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
-          done
-          # the validation (steps 1 to 3) failed: uv was not installed yet
-          if command -v uv; then
-            echo "uv is installed: the action did not fail in the validation"
-            exit 1
-          fi
 
   test-install-args-glob:
     runs-on: ubuntu-latest
@@ -677,116 +638,18 @@ jobs:
             echo "expected the action to fail, got '${OUTCOME}'"
             exit 1
           fi
-          # uv and the virtual environment (step 5) are available: the failure
+          # uv and the virtual environment (step 3) are available: the failure
           # is not in the first steps
           uv --version
           python --version
-          # step 7 ran in 'subproject', read its uv.toml and found no index:
+          # step 5 ran in 'subproject', read its uv.toml and found no index:
           # invoke-tasklib is not installed
           if uv pip show --quiet invoke-tasklib; then
-            echo "invoke-tasklib is installed: step 7 ignored the uv.toml"
+            echo "invoke-tasklib is installed: step 5 ignored the uv.toml"
             exit 1
           fi
-          # the dependencies were not installed: step 9 did not run
+          # the dependencies were not installed: step 7 did not run
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
-            exit 1
-          fi
-
-  test-invalid-extra-packages:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Test that uv is not installed before the action
-        run: |
-          if command -v uv; then
-            echo "uv is already installed, the test is not valid"
-            exit 1
-          fi
-
-      - name: Setup python environment with an option in extra-packages
-        id: option
-        uses: ./
-        continue-on-error: true
-        with:
-          extra-packages: |
-            six==1.17.0
-            --index-url=https://example.invalid/simple
-
-      - name: Setup python environment with an indented option in extra-packages
-        id: editable
-        uses: ./
-        continue-on-error: true
-        with:
-          extra-packages: |
-            six==1.17.0
-              -e .
-
-      - name: Test that the actions failed in the validation
-        env:
-          OUTCOME_OPTION: ${{ steps.option.outcome }}
-          OUTCOME_EDITABLE: ${{ steps.editable.outcome }}
-        run: |
-          for outcome in "${OUTCOME_OPTION}" "${OUTCOME_EDITABLE}"; do
-            if [ "${outcome}" != "failure" ]; then
-              echo "expected the action to fail, got '${outcome}'"
-              exit 1
-            fi
-          done
-          # the validation (steps 1 to 3) failed: uv was not installed yet
-          if command -v uv; then
-            echo "uv is installed: the action did not fail in the validation"
-            exit 1
-          fi
-
-  test-invalid-package-version:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Test that uv is not installed before the action
-        run: |
-          if command -v uv; then
-            echo "uv is already installed, the test is not valid"
-            exit 1
-          fi
-
-      - name: Setup python environment with a specifier as package-version
-        id: specifier
-        uses: ./
-        continue-on-error: true
-        with:
-          package-name: numpy
-          package-version: ">=2.0"
-
-      - name: Setup python environment with an option in package-version
-        id: option
-        uses: ./
-        continue-on-error: true
-        with:
-          package-name: numpy
-          package-version: "2.4.0 --pre"
-
-      - name: Test that the actions failed in the validation
-        env:
-          OUTCOME_SPECIFIER: ${{ steps.specifier.outcome }}
-          OUTCOME_OPTION: ${{ steps.option.outcome }}
-        run: |
-          for outcome in "${OUTCOME_SPECIFIER}" "${OUTCOME_OPTION}"; do
-            if [ "${outcome}" != "failure" ]; then
-              echo "expected the action to fail, got '${outcome}'"
-              exit 1
-            fi
-          done
-          # the validation (steps 1 to 3) failed: uv was not installed yet
-          if command -v uv; then
-            echo "uv is installed: the action did not fail in the validation"
             exit 1
           fi
