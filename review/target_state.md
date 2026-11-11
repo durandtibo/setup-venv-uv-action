@@ -102,15 +102,19 @@ Verified against the files:
 The common cause is that nothing checks the documents against the code. The fix
 is to write each rule once, and to add one cheap check (section 6.4).
 
-### 2.5 The released-version test has already diverged (P11)
+### 2.5 The two test workflows have different roles (P11)
 
-`CLAUDE.md` says `ci-action.yaml` and `nightly-test-released.yaml` stay
-identical except for a few lines. Today one has 21 jobs and 666 lines, the other
-9 jobs and 210 lines, because the pinned release (`v0.2.0`, 74 commits behind)
-lacks most of the features. The exception in `CLAUDE.md` (jobs for inputs added
-after the release) now covers most of the file, and each change must be applied
-twice by hand. The rule cannot be followed as written. Section 6.2 replaces the
-copy with one parameterised workflow.
+`ci-action.yaml` tests the code under review (`uses: ./`) on every pull request
+and push. `nightly-test-released.yaml` tests the last release, which is what
+consumers run, to catch regressions caused by upstream changes (`uv`,
+`setup-uv`, `invoke-tasklib`). They answer different questions and both stay.
+
+The `CLAUDE.md` rule (identical except for the header, `name` and `uses:`
+line, plus jobs of inputs added after the release) is right, but the release
+lag makes it invisible: `ci-action.yaml` has 21 jobs and 666 lines, the
+released copy 9 jobs and 210 lines, because `v0.2.0` is 74 commits behind and
+lacks most of the features. The exception now covers most of the file. The fix
+is to release more often (section 8), not to merge the workflows.
 
 ### 2.6 Smaller points
 
@@ -363,7 +367,7 @@ instead of writing an empty output.
 | Third-party actions    | 2                                   | 2                                 |
 | Python version         | Action default `3.14`               | The project's (`.python-version`) |
 | Outputs                | 3                                   | 4 (`package-installed`)           |
-| Test jobs              | 21 (+ 9 in the released copy)       | 17 (one workflow for both)        |
+| Test jobs              | 21 (+ 9 in the released copy)       | 17 (same set in both files)       |
 | `ci-action.yaml` lines | 666 (+ 210 in the copy)             | about 560 (estimate)              |
 | Documents out of date  | At least 8 statements (section 2.4) | A check in CI (section 6.4)       |
 
@@ -386,34 +390,25 @@ speed, and the gain should be confirmed on a real run.
 - A new check that fails against the released version is reported, not
   weakened.
 
-### 6.2 One test workflow instead of two copies
+### 6.2 Two test workflows, kept
 
-Replace the two copies by a single `ci-action.yaml` with an input
-`action-ref`:
+Keep both files, with the roles of 2.5 and the `CLAUDE.md` rule unchanged:
 
-- Each job starts with `actions/checkout` (the project under test, as today),
-  then a second `actions/checkout` of `durandtibo/setup-venv-uv-action` at
-  `inputs.action-ref` into `.action`, then `uses: ./.action`.
-- `ci.yaml` passes `${{ github.sha }}` (the code under review).
-  `nightly-tests.yaml` passes the latest release, resolved by the matrix job
-  with `gh release view --json tagName` (no manual bump of a pinned SHA).
-- A job that tests an input newer than the release carries
-  `if: ${{ inputs.action-ref == github.sha }}` (the nightly workflow skips it).
-  This replaces the "copy and edit" rule with an explicit, local condition.
-- `nightly-test-released.yaml` is deleted, and the three duplicate OS/Python
-  checks with it.
+- `ci-action.yaml` (`uses: ./`) is called by `ci.yaml`.
+- `nightly-test-released.yaml` (`uses: durandtibo/setup-venv-uv-action@<sha>`
+  of the last release) is called by `nightly-tests.yaml`.
+- The jobs are the same, except for the jobs of inputs or behaviour added after
+  the release, which exist only in `ci-action.yaml` until the release is bumped.
 
-`uses:` cannot take an expression, but a local path can point to any checked-out
-directory, so this works with a composite action. It tests the same
-`action.yaml` that consumers get from the tag, minus the download that GitHub
-does for `owner/repo@tag`. If open point 6 shows a difference that matters, the
-fallback is to keep two files and add a `make` target that generates the second
-from the first with `sed` (header, `name`, `uses:` line), so the "identical"
-rule is enforced by a tool instead of by discipline.
+To keep the discipline cheap, release `v0.3.0` right after the changes of
+section 8 are merged and bump the pin and the README examples in the same PR.
+The two files are then identical again, except for the three lines. In the
+target, `package-installed` and the empty `python-version` default are the
+jobs that exist only in `ci-action.yaml` until that release.
 
-`CLAUDE.md` needs two changes with this design: the "The two files must stay
-identical" bullet becomes "one workflow, parameterised by `action-ref`", and the
-"exception" bullet becomes the `if:` condition above.
+A generator (a `make` target deriving the released file from `ci-action.yaml`
+with `sed`) is not proposed: it would need a marker for the local-only jobs and
+adds machinery for a rule that a release already restores.
 
 ### 6.3 Target job list
 
@@ -482,10 +477,10 @@ lines of Python or `yq`. It does not replace review, but it catches the
   - Use the new release tag in the examples, once it exists.
 - **`.github/OVERVIEW.md`**: describe the test groups, not job names; fix the
   workflow list (remove `bot-report-queued-runs.yaml`), the schedules and the
-  callers; fix the `workflow_dispatch` claim; describe the single test
-  workflow.
-- **`CLAUDE.md`**: keep the repository purpose and all rules. Change only the
-  "Tests" section as described in 6.2, and note the `N.M` numbering for the
+  callers; fix the `workflow_dispatch` claim; describe the two test workflows
+  and their roles.
+- **`CLAUDE.md`**: keep the repository purpose and all rules, including the
+  two test workflows. Note the `N.M` numbering for the
   groups.
 - **`tasks.py`**: fix the docstring (only `env.install` is used).
 
@@ -527,9 +522,9 @@ order, each green on its own:
    the `tasks.py` docstring.
 2. `refactor/simplify-tasklib-and-outputs`: step 3.1 with `awk`, step 8 with
    `python`, drop the interpreter listing (renumber the reports).
-3. `test/single-action-test-workflow`: the `action-ref` workflow, delete
-   `nightly-test-released.yaml`, update `nightly-tests.yaml`, `OVERVIEW.md` and
-   `CLAUDE.md`. Optionally the `actions: write` reduction.
+3. `test/reduce-test-permissions`: `actions: write` to `contents: read` on the
+   test jobs of both files (after open point 7); merge the `-glob` and
+   `-uv-config` jobs into their parent jobs in both files.
 4. `feat/package-installed-output`: `id` on step 5, the `package-installed`
    output, the skip test, README.
 5. `refactor/remove-uv-no-progress`: remove the input, the 12 `env:` blocks,
@@ -563,10 +558,8 @@ real.
    default; the alternative is to keep a default and bump it by hand).
 5. Does `inv env.install` need `invoke.yaml`? If not, `invoke.yaml` is optional
    and the README says so; if yes, step 1.3 checks it.
-6. A composite action checked out in a subfolder (`uses: ./.action`) behaves
-   like `owner/repo@tag`: `github.action_path`, the cache key of `setup-uv`
-   (`**/uv.lock` also matches `.action/uv.lock`) and the `working-directory`
-   tests. If not, use the `sed` fallback of 6.2.
+6. The merged `-glob` and `-uv-config` jobs keep their independence (a failure
+   of one step does not hide the other); otherwise keep them separate.
 7. The test jobs work with `permissions: contents: read` only (cache save and
    restore included).
 8. Whether `dependabot.yml` and `bot-pin-action.yaml` are both needed:
