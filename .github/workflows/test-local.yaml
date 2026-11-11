@@ -46,7 +46,7 @@ jobs:
           python --version | grep -q "3\.14\." || (echo "expected default python 3.14.x" && exit 1)
           # the virtual environment must be active
           python -c "import sys; assert sys.prefix != sys.base_prefix, 'venv not active'"
-          # no package should be installed when 'package-name' is empty
+          # no package should be installed when 'extra-packages' is empty
           python -c "import importlib.util as u; assert u.find_spec('numpy') is None, 'numpy should not be installed'"
           # the environment must be consistent
           uv pip check
@@ -96,89 +96,6 @@ jobs:
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
-
-  test-package:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Setup python environment
-        uses: ./
-        with:
-          package-name: numpy
-          package-version: 2.4.0
-
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
-
-  test-package-latest:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Setup python environment
-        uses: ./
-        with:
-          package-name: numpy
-
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          python -c "import numpy; print(numpy.__version__)"
-
-  test-package-args:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Setup python environment
-        uses: ./
-        with:
-          package-name: numpy
-          package-version: 2.4.0
-          package-install-args: "--dry-run"
-
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          # '--dry-run' is passed to 'uv pip install': nothing is installed,
-          # whereas test-package installs numpy without it
-          python -c "
-          import importlib.util as u
-          assert not u.find_spec('numpy'), 'numpy should not be installed'
-          "
-
-  test-package-extras:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Setup python environment
-        uses: ./
-        with:
-          package-name: "requests[socks]"
-          package-version: 2.32.5
-
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          python -c "import requests; assert requests.__version__ == '2.32.5'"
-          # PySocks is only installed with the 'socks' extra
-          python -c "import socks"
 
   test-tasklib-version:
     runs-on: ubuntu-latest
@@ -358,12 +275,19 @@ jobs:
 
             attrs>=24.0
               iniconfig
+            numpy==2.4.0
+            requests[socks]==2.32.5
 
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import importlib.metadata as m; assert m.version('six') == '1.17.0', m.version('six')"
           python -c "import attr, iniconfig; print(attr.__version__)"
+          # a pinned requirement is installed in the requested version
+          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
+          python -c "import requests; assert requests.__version__ == '2.32.5', requests.__version__"
+          # PySocks is only installed with the 'socks' extra
+          python -c "import socks"
 
   test-invalid-inputs:
     runs-on: ubuntu-latest
@@ -388,21 +312,6 @@ jobs:
               name: extra-packages-indented-option,
               extra-packages: "six==1.17.0\n  -e .",
             }
-          - {
-              name: package-name-option,
-              package-name: "--upgrade",
-              package-version: "2.4.0",
-            }
-          - {
-              name: package-version-specifier,
-              package-name: "numpy",
-              package-version: ">=2.0",
-            }
-          - {
-              name: package-version-option,
-              package-name: "numpy",
-              package-version: "2.4.0 --pre",
-            }
 
     steps:
       - name: Checkout
@@ -424,38 +333,17 @@ jobs:
           uv-no-progress: ${{ matrix.uv-no-progress || 'true' }}
           working-directory: ${{ matrix.working-directory || '.' }}
           extra-packages: ${{ matrix.extra-packages }}
-          package-name: ${{ matrix.package-name }}
-          package-version: ${{ matrix.package-version }}
 
       - name: Test that the action failed in the validation
         env:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # the validation (steps 1.1 to 1.9) failed: uv was not installed yet
+          # the validation (steps 1.1 to 1.6) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
           fi
-
-  test-ignored-inputs:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Setup python environment with inputs that are ignored without package-name
-        uses: ./
-        with:
-          package-version: 2.4.0
-          package-install-args: "--upgrade"
-
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          python -c "import importlib.util as u; assert u.find_spec('numpy') is None, 'numpy should not be installed'"
 
   test-progress-bar:
     runs-on: ubuntu-latest
@@ -493,7 +381,7 @@ jobs:
           # the environment is consistent whether or not sync kept invoke-tasklib
           uv pip check
 
-  test-package-python-specifier:
+  test-python-version-range:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -505,8 +393,7 @@ jobs:
         uses: ./
         with:
           python-version: ">=3.12,<3.14"
-          package-name: numpy
-          package-version: 2.4.0
+          extra-packages: numpy==2.4.0
 
       - name: Test environment
         run: |

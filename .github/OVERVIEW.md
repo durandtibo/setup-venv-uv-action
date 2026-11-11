@@ -55,16 +55,14 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Jobs**: One job per input or behavior of the action:
   - `test`: default inputs, on every Unix OS of the config
   - `test-python-version`: every standard Python version of the config
-  - `test-install-args`, `test-install-args-glob`, `test-package`, `test-package-latest`,
-    `test-package-args`, `test-package-extras`, `test-package-python-specifier`,
-    `test-extra-packages`: installation inputs
+  - `test-install-args`, `test-install-args-glob`, `test-extra-packages`,
+    `test-python-version-range`: installation inputs
   - `test-tasklib-version`, `test-tasklib-missing`,
     `test-tasklib-not-in-groups` (the version is read from `uv.lock`)
   - `test-working-directory`, `test-working-directory-uv-config`,
     `test-missing-files` (one case per missing project file)
   - `test-uv-version`, `test-cache`, `test-progress-bar`
-  - `test-invalid-inputs` (one matrix case per invalid value),
-    `test-ignored-inputs`
+  - `test-invalid-inputs` (one matrix case per invalid value)
 - **Permissions**: `actions: write`, `contents: read`
 
 #### Test Stable Action (test-stable.yaml)

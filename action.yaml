@@ -16,25 +16,13 @@ inputs:
     default: ""
     description: "Version of uv to install (e.g., '0.9.0', '0.9.x', '>=0.9,<0.10' or 'latest'). Leave empty to use the 'required-version' of the project ('uv.toml' or 'pyproject.toml') if any, and the latest version otherwise."
     required: false
-  package-name:
-    default: ""
-    description: "Optional package name to install for dependency compatibility testing. Use with 'package-version' to test specific versions. Leave empty to skip."
-    required: false
-  package-version:
-    default: ""
-    description: "Optional package version to install (e.g., '1.0.0'). It must be a version, not a specifier (e.g., '>=1.0' is rejected). Only used when 'package-name' is specified. Leave empty to install the latest version."
-    required: false
   install-args:
     default: ""
     description: "Optional arguments passed to the 'inv env.install' command (e.g., '--no-optional-deps', '--groups=dev,docs', or custom flags supported by your invoke-tasklib configuration). The value is split on whitespace: quotes are not interpreted and glob characters are kept as is."
     required: false
-  package-install-args:
-    default: ""
-    description: "Optional arguments passed to the 'uv pip install' command used to install 'package-name' (e.g., '--upgrade'). Relative paths start at the workspace root, not at 'working-directory'."
-    required: false
   extra-packages:
     default: ""
-    description: "Optional additional packages to install after the project dependencies, one requirement per line (e.g., 'pytest-xdist' or 'requests>=2.31'). A line cannot be an option: it must not start with '-'. Leave empty to skip."
+    description: "Optional additional packages to install after the project dependencies, one requirement per line (e.g., 'pytest-xdist', 'numpy==1.26.0' or 'requests[socks]>=2.31'). Use it to test a specific version of a dependency. A line cannot be an option: it must not start with '-'. Leave empty to skip."
     required: false
   enable-cache:
     default: "auto"
@@ -64,7 +52,7 @@ runs:
   using: "composite"
   steps:
     # Step 1.1: Validate enable-cache
-    # Steps 1.1 to 1.9 validate the inputs and the project files before anything
+    # Steps 1.1 to 1.6 validate the inputs and the project files before anything
     # is installed, so that an invalid value fails immediately with a clear
     # message. A step validates one input and reports all the problems of that
     # input, and the first step that fails stops the action
@@ -162,63 +150,7 @@ runs:
           exit 1
         fi
 
-    # Step 1.6: Validate package-name
-    # package-name must be a package name, optionally followed by extras
-    # (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
-    - name: Validate package-name
-      if: ${{ inputs.package-name != '' }}
-      shell: bash
-      env:
-        PACKAGE_NAME: ${{ inputs.package-name }}
-      run: |
-        distribution='[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?'
-        extras='(\[[A-Za-z0-9._,-]+\])?'
-        package_name="^${distribution}${extras}\$"
-        if ! [[ "${PACKAGE_NAME}" =~ ${package_name} ]]; then
-          echo "::error title=Invalid input::The input 'package-name' must be" \
-            "a package name, optionally followed by extras (e.g., 'numpy' or" \
-            "'uvicorn[standard]'), got '${PACKAGE_NAME}'. The version goes in" \
-            "'package-version' and the options in 'package-install-args'."
-          exit 1
-        fi
-
-    # Step 1.7: Validate package-version
-    # package-version must be a version, not a specifier (e.g., '1.26.0' or
-    # '2.12.*', not '>=1.0' or '1.0 --pre'): it is installed as
-    # 'package-name==package-version'
-    # It is ignored without package-name (see step 1.8)
-    - name: Validate package-version
-      if: ${{ inputs.package-name != '' && inputs.package-version != '' }}
-      shell: bash
-      env:
-        PACKAGE_VERSION: ${{ inputs.package-version }}
-      run: |
-        package_version='^v?[0-9][0-9A-Za-z.!+*_-]*$'
-        if ! [[ "${PACKAGE_VERSION}" =~ ${package_version} ]]; then
-          echo "::error title=Invalid input::The input 'package-version'" \
-            "must be a version (e.g., '1.26.0' or '2.12.*'), not a" \
-            "specifier or an option, got '${PACKAGE_VERSION}'. The options" \
-            "go in 'package-install-args'."
-          exit 1
-        fi
-
-    # Step 1.8: Warn about the ignored package inputs
-    # package-version and package-install-args are ignored without package-name
-    - name: Warn about ignored package inputs
-      if: ${{ inputs.package-name == '' && (inputs.package-version != '' || inputs.package-install-args != '') }}
-      shell: bash
-      env:
-        PACKAGE_VERSION: ${{ inputs.package-version }}
-        PACKAGE_INSTALL_ARGS: ${{ inputs.package-install-args }}
-      run: |
-        if [ -n "${PACKAGE_VERSION}" ]; then
-          echo "::warning title=Ignored input::The input 'package-version' is ignored because 'package-name' is empty."
-        fi
-        if [ -n "${PACKAGE_INSTALL_ARGS}" ]; then
-          echo "::warning title=Ignored input::The input 'package-install-args' is ignored because 'package-name' is empty."
-        fi
-
-    # Step 1.9: Notice about an empty python-version
+    # Step 1.6: Notice about an empty python-version
     # An empty python-version is valid: uv selects the Python version of the project
     - name: Notice about an empty python-version
       if: ${{ inputs.python-version == '' }}
@@ -300,30 +232,10 @@ runs:
         set -f
         inv env.install ${INSTALL_ARGS}
 
-    # Step 5 (Optional): Install a specific package version for compatibility testing
-    # Only runs if package-name is provided
-    # Useful for testing your project against different versions of a dependency
-    # (e.g., test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy)
-    # This step runs in the workspace root, not in the working-directory input:
-    # uv-install-package-action has no working-directory input and a step that
-    # uses an action cannot set one, so the relative paths of the
-    # package-install-args input start at the workspace root
-    # The python-version input is not forwarded: uv-install-package-action only
-    # accepts 'X.Y' versions, whereas python-version can be any uv version
-    # request (e.g., '>=3.12'). It detects the version of the active interpreter
-    - name: Install specific package version
-      if: ${{ inputs.package-name != '' }}
-      uses: durandtibo/uv-install-package-action@fe64eac38f69e851b5e79b74ee255ed95a159bc0 # ratchet:durandtibo/uv-install-package-action@v0.2.0
-      with:
-        package-name: ${{ inputs.package-name }}
-        package-version: ${{ inputs.package-version }}
-        uv-args: ${{ inputs.package-install-args }}
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
-
-    # Step 6 (Optional): Install additional packages
+    # Step 5 (Optional): Install additional packages
     # Only runs if extra-packages is provided, with one requirement per line
     # Useful for tools that are not dependencies of the project (e.g., pytest-xdist)
+    # and to test a specific version of a dependency (e.g., numpy==1.26.0)
     # Blank lines are ignored and every line is passed to uv as a single argument
     # A line that starts with '-' is rejected by the validation (step 1.4), so a
     # line is always a requirement and never an option of uv
@@ -348,11 +260,11 @@ runs:
           uv pip install "${packages[@]}"
         fi
 
-    # Steps 7.1 to 7.5 report the environment for debugging
+    # Steps 6.1 to 6.5 report the environment for debugging
     # Each step runs one command, so that a failure never hides the output of the
     # others, and uses continue-on-error so a reporting failure does not fail the
     # action. They always run
-    # Step 7.1: Show the versions of uv and python
+    # Step 6.1: Show the versions of uv and python
     # Shows which python is active (the virtual environment of the project)
     - name: Show the versions
       shell: bash
@@ -365,7 +277,7 @@ runs:
         which python
         python --version
 
-    # Step 7.2: Show the Python interpreters managed by uv
+    # Step 6.2: Show the Python interpreters managed by uv
     - name: Show the Python interpreters
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -375,7 +287,7 @@ runs:
       run: |
         uv python list --only-installed
 
-    # Step 7.3: Show all the installed packages with their versions
+    # Step 6.3: Show all the installed packages with their versions
     # Helpful for debugging dependency issues and verifying installations
     - name: Show the installed packages
       shell: bash
@@ -386,7 +298,7 @@ runs:
       run: |
         uv pip list
 
-    # Step 7.4: Show the dependency tree with the version constraints
+    # Step 6.4: Show the dependency tree with the version constraints
     # Shows the direct and transitive dependencies with their specifiers
     # (e.g., >=1.0.0, <2.0), to understand dependency relationships and conflicts
     - name: Show the dependency tree
@@ -398,7 +310,7 @@ runs:
       run: |
         uv pip tree --show-version-specifiers
 
-    # Step 7.5: Check the environment
+    # Step 6.5: Check the environment
     # Runs 'uv pip check' to detect missing dependencies, version conflicts and
     # broken installations. The conflicts are logged but do not fail the action
     - name: Check the environment
@@ -410,7 +322,7 @@ runs:
       run: |
         uv pip check
 
-    # Step 8: Set the outputs of the action
+    # Step 7: Set the outputs of the action
     # Reads the version from the interpreter that is active at the end of the
     # action (after the dependencies are installed), not from the requested input
     # 'uv python find' returns the interpreter of the active virtual environment,

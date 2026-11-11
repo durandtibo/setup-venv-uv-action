@@ -70,15 +70,14 @@ jobs:
     uv-version: "0.9.0"
 ```
 
-### With Specific Package Installation
+### With a Specific Package Version
 
 ```yaml
-- name: Setup Python environment with numpy
+- name: Setup Python environment with numpy 1.26.0
   uses: durandtibo/setup-venv-uv-action@v0.2.0
   with:
     python-version: "3.12"
-    package-name: "numpy"
-    package-version: "1.26.0"
+    extra-packages: "numpy==1.26.0"
 ```
 
 ### With Custom Install Arguments
@@ -88,16 +87,6 @@ jobs:
   uses: durandtibo/setup-venv-uv-action@v0.2.0
   with:
     install-args: "--no-optional-deps"
-```
-
-### With Custom Package Install Arguments
-
-```yaml
-- name: Setup Python environment and upgrade a specific package
-  uses: durandtibo/setup-venv-uv-action@v0.2.0
-  with:
-    package-name: "numpy"
-    package-install-args: "--upgrade"
 ```
 
 ### With UV Progress Bars Enabled
@@ -126,7 +115,8 @@ jobs:
   with:
     extra-packages: |
       pytest-xdist
-      requests>=2.31
+      requests[socks]>=2.31
+      numpy==1.26.0
 ```
 
 ### Without the uv Cache
@@ -140,18 +130,15 @@ jobs:
 
 ## Inputs
 
-| Input                  | Description                                                                                                                                                           | Required | Default  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
-| `python-version`       | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)                                | No       | `"3.14"` |
-| `uv-version`           | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                    | No       | `""`     |
-| `package-name`         | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                                              | No       | `""`     |
-| `package-version`      | Optional package version to install (e.g., `"1.0.0"`). Must be a version, not a specifier. Only used when `package-name` is specified. Leave empty to install latest. | No       | `""`     |
-| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                       | No       | `""`     |
-| `package-install-args` | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                         | No       | `""`     |
-| `working-directory`    | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`    |
-| `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"` |
-| `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`     |
-| `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                           | No       | `"true"` |
+| Input               | Description                                                                                                                                                                                                          | Required | Default  |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `python-version`    | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)                                                                               | No       | `"3.14"` |
+| `uv-version`        | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                                                                   | No       | `""`     |
+| `install-args`      | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                                                                      | No       | `""`     |
+| `working-directory` | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                                                                        | No       | `"."`    |
+| `enable-cache`      | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                                                                        | No       | `"auto"` |
+| `extra-packages`    | Optional additional packages to install after the project dependencies, one requirement per line (e.g., `numpy==1.26.0`, `requests[socks]>=2.31`), not options (no `-` at the start of a line). Leave empty to skip. | No       | `""`     |
+| `uv-no-progress`    | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                                                                          | No       | `"true"` |
 
 ## Outputs
 
@@ -178,13 +165,11 @@ Example:
 
 This action performs the following steps:
 
-1. **Validates the Inputs and the Project** (steps 1.1 to 1.10, one step per
+1. **Validates the Inputs and the Project** (steps 1.1 to 1.6, one step per
    input or check): fails with a clear message, before anything is installed,
    when an input is invalid or a project file is missing. The rules are in
    [Error: `Invalid input`](#error-invalid-input) and
-   [Error: `Missing project file`](#error-missing-project-file). It warns about
-   inputs that are ignored (`package-version` or `package-install-args` without
-   `package-name`)
+   [Error: `Missing project file`](#error-missing-project-file)
 2. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager (see `uv-version`), set up the requested
@@ -199,31 +184,28 @@ This action performs the following steps:
    (for example its index settings)
 4. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
    `uv sync --frozen` and install the current project in editable mode
-5. **Optional Package**: If `package-name` is set, installs that specific
-   package/version via
-   [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
-   (useful for dependency compatibility testing)
-6. **Extra Packages**: If `extra-packages` is set, installs each listed
-   requirement with `uv pip install`
-7. **Reports the Environment** (steps 7.1 to 7.5, one command each, always run):
+5. **Extra Packages**: If `extra-packages` is set, installs each listed
+   requirement with `uv pip install`, after the project dependencies (useful to
+   test a specific version of a dependency, such as `numpy==1.26.0`)
+6. **Reports the Environment** (steps 6.1 to 6.5, one command each, always run):
    shows the versions of `uv` and Python, the Python interpreters managed by
    `uv` (`uv python list --only-installed`), the installed packages
    (`uv pip list`), the dependency tree (`uv pip tree --show-version-specifiers`)
    and the result of `uv pip check`, which detects missing dependencies, version
    conflicts and broken installations
-8. **Sets Outputs**: Exposes the full `python-version` of the environment
+7. **Sets Outputs**: Exposes the full `python-version` of the environment
    (the `uv-version` output comes from `astral-sh/setup-uv`)
 
-The steps of the report (7.1 to 7.5) use `continue-on-error: true`, so a failure
+The steps of the report (6.1 to 6.5) use `continue-on-error: true`, so a failure
 is logged but does not fail the action (see
 [Failure Behavior](#failure-behavior)).
 
 ## Failure Behavior
 
-| Steps                                                                                                                                     | On error                                                    |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Validate inputs and project files, install `uv`, install `invoke-tasklib`, install dependencies, install packages, install extra packages | The action fails                                            |
-| The report steps (7.1 to 7.5), including `uv pip check`                                                                                   | Logged, but the action succeeds (`continue-on-error: true`) |
+| Steps                                                                                                                   | On error                                                    |
+| ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Validate inputs and project files, install `uv`, install `invoke-tasklib`, install dependencies, install extra packages | The action fails                                            |
+| The report steps (6.1 to 6.5), including `uv pip check`                                                                 | Logged, but the action succeeds (`continue-on-error: true`) |
 
 ## Advanced Usage
 
@@ -256,15 +238,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package-version: ["1.0.0", "2.0.0"]
+        requests-version: ["2.31.0", "2.32.5"]
     steps:
       - uses: actions/checkout@v7
 
       - name: Setup with specific dependency version
         uses: durandtibo/setup-venv-uv-action@v0.2.0
         with:
-          package-name: "requests"
-          package-version: ${{ matrix.package-version }}
+          extra-packages: "requests==${{ matrix.requests-version }}"
 
       - name: Test with this version
         run: python -m pytest
@@ -402,37 +383,13 @@ The input `working-directory` must be a path relative to the workspace (it does
 not start with `/`), without `..`, of a directory that exists. If it does not exist, check that
 `actions/checkout` runs before the action.
 
-The input `package-name` must be a package name made of letters, digits, `.`,
-`_` and `-`, optionally followed by extras in brackets (e.g., `"numpy"` or
-`"uvicorn[standard]"`). Put the version in `package-version` and the options in
-`package-install-args`, not in `package-name`.
-
-The input `package-version` must be a version (e.g., `"1.26.0"`, `"2.12.*"` or
-`"2.0.0rc1"`), because the package is installed as
-`package-name==package-version`. A specifier (`">=1.0"`), a value with spaces
-or an option (`"1.0 --pre"`) is rejected. Put the options in
-`package-install-args`. The input is only validated when `package-name` is set,
-otherwise it is ignored with a warning.
-
 The input `extra-packages` must contain one requirement per line (e.g.,
 `pytest-xdist` or `requests>=2.31`). A line that starts with `-` is rejected,
 because it would be an option of `uv pip install` (such as `--index-url=...`,
 `--pre` or `-e .`) and not a requirement. Put the options that you need in the
-configuration of `uv` (`uv.toml`, `UV_*` environment variables).
-
-### Warning: `Ignored input`
-
-`package-version` and `package-install-args` only apply when `package-name` is
-set. Set `package-name` or remove the input.
-
-### Relative Paths in `package-install-args`
-
-The package of `package-name` is installed by
-[durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action),
-which has no working directory option, so this step runs in the workspace root
-and not in `working-directory`. A relative path in `package-install-args` (for
-example `--constraint constraints.txt`) starts at the workspace root. Other
-inputs, such as `install-args` and `extra-packages`, run in `working-directory`.
+configuration of `uv` (`uv.toml`, `UV_*` environment variables). To get the
+latest version of a package, list it without a version; to bound it, use a range
+(`numpy>=2`).
 
 ### Custom Install Arguments Not Working
 
@@ -448,8 +405,6 @@ for the full list of supported options.
 
 - [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) - Used internally
   for uv installation
-- [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
-  \- Used internally for package installation
 
 ## Contributing
 
