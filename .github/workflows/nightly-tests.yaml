@@ -1,4 +1,6 @@
-# Runs the full CI pipeline daily to catch issues from external dependency updates early.
+# Runs the tests of the local and the stable action daily to catch issues from
+# external updates (uv, setup-uv, invoke-tasklib) early. The format check is not
+# run: formatting does not change with time.
 
 name: Nightly Tests
 on:
@@ -11,8 +13,6 @@ permissions:
   contents: read
 
 jobs:
-  format:
-    uses: ./.github/workflows/format.yaml
   test-local:
     uses: ./.github/workflows/test-local.yaml
   test-stable:
