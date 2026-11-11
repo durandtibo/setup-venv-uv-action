@@ -1,5 +1,9 @@
 # Tests the action using the current repository code (uses: ./) across Linux/macOS,
-# python/install/package input variants. Validates uncommitted changes before release.
+# and the inputs of the action. Validates uncommitted changes before release.
+# test-stable.yaml is generated from this file by 'make generate-stable-workflow'.
+# Put a '# local-only' comment line above a job that tests an input or a
+# behaviour added after the release tested by test-stable.yaml: the job is not
+# copied there until the release is bumped.
 
 name: Test Local Action
 
@@ -38,17 +42,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
-        id: setup
         uses: ./
 
       - name: Test environment
-        env:
-          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
         run: |
           python -c "import myproject; print(myproject)"
           # no python-version: uv selects a version that satisfies requires-python
           python -c "import sys; assert sys.version_info >= (3, 10), sys.version"
-          python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
           # the virtual environment must be active
           python -c "import sys; assert sys.prefix != sys.base_prefix, 'venv not active'"
           # no package should be installed when 'extra-packages' is empty
@@ -70,7 +70,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
-        id: setup
         uses: ./
         with:
           python-version: ${{ matrix.python-version }}
@@ -78,12 +77,31 @@ jobs:
       - name: Test environment
         env:
           EXPECTED_VERSION: ${{ matrix.python-version }}
-          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
         run: |
           python --version
           python -c "import myproject; print(myproject)"
           python -c "import sys, os; v = os.environ['EXPECTED_VERSION']; assert f'{sys.version_info[0]}.{sys.version_info[1]}' == v, sys.version"
-          python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
+
+  # local-only
+  test-outputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment
+        id: setup
+        uses: ./
+
+      - name: Test the outputs
+        env:
+          PYTHON_VERSION: ${{ steps.setup.outputs.python-version }}
+          UV_VERSION: ${{ steps.setup.outputs.uv-version }}
+        run: |
+          python -c "import platform, os; v = os.environ['PYTHON_VERSION']; assert v == platform.python_version(), v"
+          uv --version | grep -qF "uv ${UV_VERSION}" || (echo "expected uv ${UV_VERSION}" && exit 1)
 
   test-install-args:
     runs-on: ubuntu-latest
@@ -102,6 +120,7 @@ jobs:
         run: |
           python -c "import myproject; print(myproject)"
 
+  # local-only
   test-tasklib-version:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -122,6 +141,7 @@ jobs:
           python -c "import myproject; print(myproject)"
           uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$" || (echo "expected the locked invoke-tasklib 0.0.8" && exit 1)
 
+  # local-only
   test-tasklib-missing:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -158,6 +178,7 @@ jobs:
             exit 1
           fi
 
+  # local-only
   test-working-directory:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -190,6 +211,7 @@ jobs:
           assert v == platform.python_version(), v
           "
 
+  # local-only
   test-missing-files:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -231,6 +253,7 @@ jobs:
             exit 1
           fi
 
+  # local-only
   test-cache:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -264,6 +287,7 @@ jobs:
             [ "${CACHE_HIT}" != "true" ] || (echo "expected no cache hit when the cache is disabled" && exit 1)
           fi
 
+  # local-only
   test-extra-packages:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -294,6 +318,7 @@ jobs:
           # PySocks is only installed with the 'socks' extra
           python -c "import socks"
 
+  # local-only
   test-invalid-inputs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -348,6 +373,7 @@ jobs:
             exit 1
           fi
 
+  # local-only
   test-tasklib-not-in-groups:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -368,6 +394,7 @@ jobs:
           # the environment is consistent whether or not sync kept invoke-tasklib
           uv pip check
 
+  # local-only
   test-python-version-file:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -392,6 +419,7 @@ jobs:
           python -c "import sys; assert sys.version_info[:2] == (3, 12), sys.version"
           python -c "import os; v = os.environ['OUTPUT_VERSION']; assert v.startswith('3.12.'), v"
 
+  # local-only
   test-python-version-range:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -412,6 +440,7 @@ jobs:
           python -c "import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), sys.version"
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
 
+  # local-only
   test-install-args-glob:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -439,6 +468,7 @@ jobs:
           # passed as is, 'inv env.install' rejects the unknown flag
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
 
+  # local-only
   test-uv-version:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -464,6 +494,7 @@ jobs:
           # the output is the installed version
           test "${OUTPUT_VERSION}" = "0.12.0" || (echo "expected output 0.12.0, got '${OUTPUT_VERSION}'" && exit 1)
 
+  # local-only
   test-working-directory-uv-config:
     runs-on: ubuntu-latest
     timeout-minutes: 5

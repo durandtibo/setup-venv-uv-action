@@ -42,7 +42,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 - **Trigger**: Called by CI workflow, manual dispatch
 - **Purpose**: Checks that YAML, Makefile, shell, and Markdown files follow the
-  formatting rules
+  formatting rules, and that test-stable is up to date with test-local
 - **Jobs**: Runs `make format`, then fails if `git diff` shows changes
 - **Permissions**: `contents: read`
 
@@ -54,6 +54,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   `durandtibo/workflow-config-action`
 - **Jobs**: One job per input or behavior of the action:
   - `test`: default inputs, on every Unix OS of the config
+  - `test-outputs`: the `python-version` and `uv-version` outputs
   - `test-python-version`: every standard Python version of the config;
     `test-python-version-file`: the empty value reads `.python-version`
   - `test-install-args`, `test-install-args-glob`, `test-extra-packages`,
@@ -70,8 +71,10 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 - **Trigger**: Called by CI workflow, manual dispatch
 - **Purpose**: Tests the last published release to detect regressions
-- **Jobs**: Same as test-local, except for the jobs of inputs added after that
-  release, which only exist in test-local until the release is bumped
+- **Jobs**: Generated from test-local by `make generate-stable-workflow`
+  (`scripts/generate-stable-workflow.sh`), without the jobs marked
+  `# local-only` (inputs and behaviours added after that release). Do not edit
+  it by hand: the format workflow fails when it differs
 - **Permissions**: `actions: write`, `contents: read`
 
 ### Scheduled Workflows
