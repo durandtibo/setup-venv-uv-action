@@ -61,10 +61,10 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   - `test-tasklib-version`, `test-tasklib-version-unsatisfiable`,
     `test-tasklib-not-a-dependency` (the version is read from `pyproject.toml`)
   - `test-working-directory`, `test-working-directory-uv-config`,
-    `test-invalid-working-directory`, `test-missing-tasks`
+    `test-missing-files` (one case per missing project file)
   - `test-uv-version`, `test-cache`, `test-not-verbose`, `test-progress-bar`
-  - `test-invalid-inputs`, `test-invalid-extra-packages`,
-    `test-invalid-package-version`, `test-ignored-inputs`
+  - `test-invalid-inputs` (one matrix case per invalid value),
+    `test-ignored-inputs`
 - **Permissions**: `actions: write`, `contents: read`
 
 #### Test Stable Action (test-stable.yaml)

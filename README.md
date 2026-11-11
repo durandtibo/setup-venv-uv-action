@@ -149,19 +149,19 @@ jobs:
 
 ## Inputs
 
-| Input                    | Description                                                                                                                                                           | Required | Default            |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
-| `python-version`         | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)                                | No       | `"3.14"`           |
-| `uv-version`             | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                    | No       | `""`               |
-| `package-name`           | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                                              | No       | `""`               |
-| `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Must be a version, not a specifier. Only used when `package-name` is specified. Leave empty to install latest. | No       | `""`               |
-| `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                       | No       | `""`               |
-| `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                         | No       | `""`               |
-| `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`              |
-| `enable-cache`           | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"`           |
-| `extra-packages`         | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`               |
-| `verbose`                | Run the diagnostic steps (Python configuration, installed packages, dependency tree, environment check). Set to `"false"` for quieter logs.                           | No       | `"true"`           |
-| `uv-no-progress`         | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                           | No       | `"true"`           |
+| Input                  | Description                                                                                                                                                           | Required | Default  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `python-version`       | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)                                | No       | `"3.14"` |
+| `uv-version`           | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                    | No       | `""`     |
+| `package-name`         | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                                              | No       | `""`     |
+| `package-version`      | Optional package version to install (e.g., `"1.0.0"`). Must be a version, not a specifier. Only used when `package-name` is specified. Leave empty to install latest. | No       | `""`     |
+| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                       | No       | `""`     |
+| `package-install-args` | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                         | No       | `""`     |
+| `working-directory`    | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`    |
+| `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"` |
+| `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`     |
+| `verbose`              | Run the diagnostic steps (Python configuration, installed packages, dependency tree, environment check). Set to `"false"` for quieter logs.                           | No       | `"true"` |
+| `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                           | No       | `"true"` |
 
 ## Outputs
 
@@ -188,67 +188,65 @@ Example:
 
 This action performs the following steps:
 
-1. **Validates Boolean Inputs**: Fails with a clear message when
-   `uv-no-progress`, `verbose` or `enable-cache` is invalid
-2. **Validates the Working Directory**: Fails when `working-directory` is
-   absolute, outside of the workspace or not an existing directory
-3. **Validates Python and Package Inputs**: Fails when `package-name` is not a
-   package name, when `package-version` is not a version, or when a line of
-   `extra-packages` starts with `-` (an option instead of a requirement). It
-   warns about inputs that are ignored (`package-version` or
-   `package-install-args` without `package-name`)
-4. **Reads the invoke-tasklib Version**: Uses
+1. **Validates the Inputs and the Project** (steps 1.1 to 1.10, one step per
+   input or check): fails with a clear message, before anything is installed,
+   when an input is invalid or a project file is missing. The rules are in
+   [Error: `Invalid input`](#error-invalid-input) and
+   [Error: `Missing project file`](#error-missing-project-file). It warns about
+   inputs that are ignored (`package-version` or `package-install-args` without
+   `package-name`)
+2. **Reads the invoke-tasklib Version**: Uses
    [durandtibo/extract-pyproject-metadata-action](https://github.com/durandtibo/extract-pyproject-metadata-action)
    to read the version specifier of `invoke-tasklib` from the `pyproject.toml`
    of the project (dependencies, extras and dependency groups). It needs a
    Python 3.11 or later on `PATH`, which the GitHub-hosted runners provide
-5. **Installs uv and Python**: Uses
+3. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager (see `uv-version`), set up the requested
    `python-version`, and activate the environment, and restores the `uv` cache
    (see `enable-cache`)
-6. **Verifies Installation**: Checks that `uv` and `python` are available in
+4. **Verifies Installation**: Checks that `uv` and `python` are available in
    PATH, and logs their paths and versions
-7. **Installs Task Runner**: Installs
+5. **Installs Task Runner**: Installs
    [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib), with the
    version specifier of the project, for running project tasks. It emits a
    warning and installs the latest version when the project does not declare
-   a specifier. Steps 6 and 7 run in `working-directory`, so `uv`
+   a specifier. Steps 4 and 5 run in `working-directory`, so `uv`
    reads the `uv.toml` of the project (for example its index settings)
-8. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
-   or the `env.install` task is missing
-9. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
+6. **Verifies Project Tasks**: Fails early with a clear message if `inv --list`
+   fails or the `env.install` task is missing
+7. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
    `uv sync --frozen` and install the current project in editable mode. If
    `invoke-tasklib` is no longer installed afterwards, because it is not a
    dependency of the project, installs it again (with the
    version of the project) and reports it with a notice
-10. **Optional Package**: If `package-name` is set, installs that specific
-    package/version via
-    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
-    (useful for dependency compatibility testing)
-11. **Extra Packages**: If `extra-packages` is set, installs each listed
-    requirement with `uv pip install`
-12. **Shows Python Config**: Runs `inv env.show-python-config` to display all
+8. **Optional Package**: If `package-name` is set, installs that specific
+   package/version via
+   [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
+   (useful for dependency compatibility testing)
+9. **Extra Packages**: If `extra-packages` is set, installs each listed
+   requirement with `uv pip install`
+10. **Shows Python Config**: Runs `inv env.show-python-config` to display all
     Python versions managed by `uv`, the active interpreter, and its full path
-13. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
+11. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
     list every installed package and version
-14. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
+12. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
     display the full dependency graph
-15. **Verifies Environment**: Runs `uv pip check` to detect missing
+13. **Verifies Environment**: Runs `uv pip check` to detect missing
     dependencies, version conflicts, or broken installations
-16. **Sets Outputs**: Exposes the full `python-version` of the environment
+14. **Sets Outputs**: Exposes the full `python-version` of the environment
     (the `uv-version` output comes from `astral-sh/setup-uv`)
 
-Steps 12 to 15 are diagnostic steps: they only run when `verbose` is `"true"`,
+Steps 10 to 13 are diagnostic steps: they only run when `verbose` is `"true"`,
 and they use `continue-on-error: true`, so a failure is logged but does not fail
 the action (see [Failure Behavior](#failure-behavior)).
 
 ## Failure Behavior
 
-| Steps                                                                                                               | On error                                                    |
-| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Validate inputs, install `uv`, verify project tasks, install dependencies, install packages, install extra packages | The action fails                                            |
-| Show Python config, show installed packages, show dependency tree, `uv pip check`                                   | Logged, but the action succeeds (`continue-on-error: true`) |
+| Steps                                                                                                                                 | On error                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Validate inputs and project files, install `uv`, verify project tasks, install dependencies, install packages, install extra packages | The action fails                                            |
+| Show Python config, show installed packages, show dependency tree, `uv pip check`                                                     | Logged, but the action succeeds (`continue-on-error: true`) |
 
 The four diagnostic steps are skipped when `verbose` is `"false"`.
 
@@ -388,16 +386,23 @@ If the action fails during dependency installation, check:
 2. The `tasks.py` file exists and exposes the `invoke-tasklib` task collection
 3. An `invoke.yaml` file exists with your package name configured
 
-### Error: `Missing tasks.py` or `Missing env.install task`
+### Error: `Missing project file`
 
-The step "Verify project tasks" runs `inv --list` in the project directory and
-fails if the `env.install` task is not defined. Check that `tasks.py` exists in
-the project directory (set `working-directory` if the project is in a
-subfolder) and contains:
+The action checks, before installing anything, that `pyproject.toml`, `uv.lock`
+and `tasks.py` exist in the project directory. A missing file is reported by
+name. Set `working-directory` if the project is in a subfolder, commit
+`uv.lock` (`uv lock`), and check that `actions/checkout` runs before the action.
+`tasks.py` must contain:
 
 ```python
 from invoke_tasklib import ns
 ```
+
+### Error: `Missing env.install task`
+
+The step "Verify project tasks" runs `inv --list` in the project directory and
+fails if the `env.install` task is not defined. Check that `tasks.py` exposes
+the `invoke-tasklib` collection (see above).
 
 ### Warning: `Unpinned invoke-tasklib`
 
@@ -435,8 +440,8 @@ The inputs `uv-no-progress`, `verbose` and `enable-cache` must be `"true"` or
 `"false"` (`enable-cache` also accepts `"auto"`). Quote the values in YAML so
 that they are passed as strings.
 
-The input `working-directory` must be a path relative to the workspace, without
-`..`, of a directory that exists. If it does not exist, check that
+The input `working-directory` must be a path relative to the workspace (it does
+not start with `/`), without `..`, of a directory that exists. If it does not exist, check that
 `actions/checkout` runs before the action.
 
 The input `package-name` must be a package name made of letters, digits, `.`,
