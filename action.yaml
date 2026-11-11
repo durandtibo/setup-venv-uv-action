@@ -32,10 +32,6 @@ inputs:
     default: ""
     description: "Optional arguments passed to the 'uv pip install' command used to install 'package-name' (e.g., '--upgrade'). Relative paths start at the workspace root, not at 'working-directory'."
     required: false
-  invoke-tasklib-version:
-    default: ">=0.0.8,<1.0.0"
-    description: "Version specifier of 'invoke-tasklib' installed before running the project tasks (e.g., '>=0.0.8,<1.0.0', '==0.0.8'). It must be a valid PEP 440 specifier, including the operator."
-    required: false
   extra-packages:
     default: ""
     description: "Optional additional packages to install after the project dependencies, one requirement per line (e.g., 'pytest-xdist' or 'requests>=2.31'). A line cannot be an option: it must not start with '-'. Leave empty to skip."
@@ -72,7 +68,7 @@ runs:
   using: "composite"
   steps:
     # Step 1: Validate the boolean inputs
-    # Steps 1 to 4 validate the inputs before anything is installed, so that an
+    # Steps 1 to 3 validate the inputs before anything is installed, so that an
     # invalid value fails immediately with a clear message
     # Each step reports all the problems of its own inputs, and the first step
     # that fails stops the action
@@ -123,30 +119,7 @@ runs:
           exit 1
         fi
 
-    # Step 3: Validate the invoke-tasklib version
-    # invoke-tasklib-version must be a version specifier that starts with an
-    # operator (an empty value is accepted: the latest version is installed)
-    - name: Validate invoke-tasklib-version
-      shell: bash
-      env:
-        TASKLIB_VERSION: ${{ inputs.invoke-tasklib-version }}
-      run: |
-        # Shape check of a PEP 440 specifier set: comma-separated clauses, each
-        # one an operator followed by a version (e.g., '>=0.0.8,<1.0.0')
-        space='[[:space:]]*'
-        operator='(===|==|!=|~=|<=|>=|<|>)'
-        version='v?[0-9][0-9A-Za-z.!+*_-]*'
-        clause="${space}${operator}${space}${version}${space}"
-        specifier="^(${clause}(,${clause})*)?\$"
-        if ! [[ "${TASKLIB_VERSION}" =~ ${specifier} ]]; then
-          echo "::error title=Invalid input::The input" \
-            "'invoke-tasklib-version' must be a version specifier that" \
-            "starts with an operator (e.g., '>=0.0.8,<1.0.0' or '==0.0.8')," \
-            "got '${TASKLIB_VERSION}'."
-          exit 1
-        fi
-
-    # Step 4: Validate the Python and package inputs
+    # Step 3: Validate the Python and package inputs
     # - package-name must be a package name, optionally followed by extras
     #   (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
     # - package-version must be a version, not a specifier (e.g., '1.26.0' or
@@ -209,6 +182,19 @@ runs:
           echo "::notice title=Empty python-version::The input 'python-version' is empty: uv selects the Python version of the project."
         fi
 
+    # Step 4: Read the invoke-tasklib version from the project
+    # Looks for the 'invoke-tasklib' requirement in the pyproject.toml of the
+    # working-directory input (dependencies, extras and dependency groups), so
+    # that the version is declared in one place. The specifier is used in steps 7 and 9
+    # It runs before the setup of the virtual environment (step 5) because the
+    # action needs a Python 3.11 or later on PATH, which the runners provide
+    - name: Read the invoke-tasklib version
+      id: metadata
+      uses: durandtibo/extract-pyproject-metadata-action@6d9935d8d2af1ffc9baa090b516342e152dac85f # ratchet:durandtibo/extract-pyproject-metadata-action@v0.3.0
+      with:
+        pyproject-path: ${{ inputs.working-directory }}/pyproject.toml
+        dependencies: '["invoke-tasklib"]'
+
     # Step 5: Install uv and configure the Python environment
     # Uses the astral-sh/setup-uv action which:
     # - Installs uv (ultra-fast Python package installer and resolver), in the
@@ -249,16 +235,24 @@ runs:
     # Step 7: Install invoke-tasklib
     # invoke-tasklib provides the shared invoke tasks used below
     # (env.install, env.show-python-config, env.show-installed-packages)
-    # The version specifier is set with the invoke-tasklib-version input
+    # The version specifier is read from the project (step 4). When the project
+    # does not declare invoke-tasklib (or declares it without a specifier), the
+    # latest version is installed and a warning is emitted
     # It runs in the working-directory input, so that 'uv pip install' reads the
     # 'uv.toml' of the project (e.g., its index settings) like the next steps
     - name: Install invoke-tasklib
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
-        TASKLIB_VERSION: ${{ inputs.invoke-tasklib-version }}
+        TASKLIB_VERSION: ${{ fromJSON(steps.metadata.outputs.dependency-specifiers)['invoke-tasklib'] }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
+        if [ -z "${TASKLIB_VERSION}" ]; then
+          echo "::warning title=Unpinned invoke-tasklib::The project does not" \
+            "declare a version specifier for 'invoke-tasklib' in its" \
+            "'pyproject.toml', so the latest version is installed. Add it to" \
+            "the project dependencies (see the README)."
+        fi
         uv pip install "invoke-tasklib${TASKLIB_VERSION}"
 
     # Step 8: Verify that the project defines the invoke tasks used by this action
@@ -301,7 +295,7 @@ runs:
     # The arguments are split on whitespace (no quoting) and are not glob-expanded
     # 'uv sync --frozen' removes the packages that are not in the lock file, so
     # invoke-tasklib (installed in step 7) is removed when the project does not
-    # depend on it: install it again (with the invoke-tasklib-version input),
+    # depend on it: install it again (with the version of the project, see step 4),
     # because the diagnostic steps and the later steps of the workflow need
     # 'inv', and report it with a notice whatever the verbose input is: the
     # environment contains a package that is not in the lock file
@@ -310,7 +304,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
-        TASKLIB_VERSION: ${{ inputs.invoke-tasklib-version }}
+        TASKLIB_VERSION: ${{ fromJSON(steps.metadata.outputs.dependency-specifiers)['invoke-tasklib'] }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         # install-args is split on whitespace but not expanded as a glob
@@ -351,7 +345,7 @@ runs:
     # Only runs if extra-packages is provided, with one requirement per line
     # Useful for tools that are not dependencies of the project (e.g., pytest-xdist)
     # Blank lines are ignored and every line is passed to uv as a single argument
-    # A line that starts with '-' is rejected by the validation (step 4), so a
+    # A line that starts with '-' is rejected by the validation (step 3), so a
     # line is always a requirement and never an option of uv
     - name: Install extra packages
       if: ${{ inputs.extra-packages != '' }}
