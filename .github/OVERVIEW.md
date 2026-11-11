@@ -58,8 +58,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   - `test-install-args`, `test-install-args-glob`, `test-package`, `test-package-latest`,
     `test-package-args`, `test-package-extras`, `test-package-python-specifier`,
     `test-extra-packages`: installation inputs
-  - `test-tasklib-version`, `test-tasklib-version-unsatisfiable`,
-    `test-tasklib-not-a-dependency` (the version is read from `pyproject.toml`)
+  - `test-tasklib-version`, `test-tasklib-missing`,
+    `test-tasklib-not-in-groups` (the version is read from `uv.lock`)
   - `test-working-directory`, `test-working-directory-uv-config`,
     `test-missing-files` (one case per missing project file)
   - `test-uv-version`, `test-cache`, `test-not-verbose`, `test-progress-bar`

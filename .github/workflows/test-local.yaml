@@ -188,19 +188,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
-      - name: Pin invoke-tasklib in the project dependencies
+      - name: Lock a pinned invoke-tasklib version in the project
         run: |
           pipx run uv add --no-sync --group dev "invoke-tasklib==0.0.8"
 
       - name: Setup python environment
         uses: ./
 
-      - name: Test environment
+      - name: Test that the version of uv.lock is installed
         run: |
           python -c "import myproject; print(myproject)"
-          uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$" || (echo "expected invoke-tasklib 0.0.8" && exit 1)
+          uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$" || (echo "expected the locked invoke-tasklib 0.0.8" && exit 1)
 
-  test-tasklib-version-unsatisfiable:
+  test-tasklib-missing:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -208,31 +208,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
-      - name: Require an unsatisfiable invoke-tasklib version in the project dependencies
+      - name: Remove invoke-tasklib from the project dependencies
         run: |
-          sed -i 's/"invoke-tasklib >=0.0.8,<1.0.0"/"invoke-tasklib >=999.0.0"/' pyproject.toml
-          grep -q 'invoke-tasklib >=999.0.0' pyproject.toml
+          pipx run uv remove --no-sync --group dev invoke-tasklib
 
-      - name: Setup python environment with an unsatisfiable invoke-tasklib version
+      - name: Setup python environment without invoke-tasklib in uv.lock
         id: setup
         uses: ./
         continue-on-error: true
 
-      - name: Test that the action failed while installing invoke-tasklib
+      - name: Test that the action failed while reading the locked version
         env:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # uv and the virtual environment (step 3) are available: the failure
-          # is not in the first steps
+          # uv and the virtual environment (step 2) are available: the failure
+          # is not in the validation
           uv --version
           python --version
-          # invoke-tasklib could not be installed: step 5 failed
+          # nothing was installed: step 4.1 failed, before steps 4.2 and 5
           if uv pip show --quiet invoke-tasklib; then
-            echo "invoke-tasklib is installed: the failure is not in step 5"
+            echo "invoke-tasklib is installed: the failure is not in step 4.1"
             exit 1
           fi
-          # the dependencies were not installed: step 7 did not run
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
@@ -495,45 +493,25 @@ jobs:
         run: |
           python -c "import myproject; print(myproject)"
 
-  test-tasklib-not-a-dependency:
+  test-tasklib-not-in-groups:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        verbose: ["true", "false"]
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
-      - name: Remove invoke-tasklib from the project dependencies
-        run: |
-          pipx run uv remove --no-sync --group dev invoke-tasklib
-
-      - name: Pin invoke-tasklib in the project dependencies
-        run: |
-          pipx run uv add --no-sync --group dev "invoke-tasklib==0.0.8"
-
-      - name: Setup python environment
+      - name: Setup python environment without the dependency groups
         uses: ./
         with:
-          verbose: ${{ matrix.verbose }}
+          # an empty list of groups: invoke-tasklib is not synced from the lock
+          install-args: "--groups="
 
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
-          # invoke-tasklib is not a dependency of the project: sync removed it,
-          # and the action installed it again (latest version, with a warning)
-          if ! uv pip show --quiet invoke-tasklib; then
-            echo "expected invoke-tasklib to be installed"
-            exit 1
-          fi
-          # the tasks are still available for the next steps of the workflow
-          if ! inv --list | grep -q "env.install"; then
-            echo "expected the inv tasks"
-            exit 1
-          fi
+          # the environment is consistent whether or not sync kept invoke-tasklib
+          uv pip check
 
   test-package-python-specifier:
     runs-on: ubuntu-latest
@@ -638,17 +616,17 @@ jobs:
             echo "expected the action to fail, got '${OUTCOME}'"
             exit 1
           fi
-          # uv and the virtual environment (step 3) are available: the failure
+          # uv and the virtual environment (step 2) are available: the failure
           # is not in the first steps
           uv --version
           python --version
-          # step 5 ran in 'subproject', read its uv.toml and found no index:
+          # step 4.2 ran in 'subproject', read its uv.toml and found no index:
           # invoke-tasklib is not installed
           if uv pip show --quiet invoke-tasklib; then
-            echo "invoke-tasklib is installed: step 5 ignored the uv.toml"
+            echo "invoke-tasklib is installed: step 4.2 ignored the uv.toml"
             exit 1
           fi
-          # the dependencies were not installed: step 7 did not run
+          # the dependencies were not installed: step 5 did not run
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
