@@ -9,8 +9,8 @@ branding:
 
 inputs:
   python-version:
-    default: "3.14"
-    description: "Python version to use (e.g., '3.13', '3.12', '3.11', '3.10') or any version request supported by uv (e.g., '>=3.12,<3.14'). Defaults to Python 3.14."
+    default: ""
+    description: "Python version to use (e.g., '3.13', '3.12', '3.11', '3.10') or any version request supported by uv (e.g., '>=3.12,<3.14'). Leave empty to let uv select the version of the project ('.python-version', then 'requires-python' of 'pyproject.toml')."
     required: false
   uv-version:
     default: ""
@@ -60,7 +60,7 @@ runs:
   using: "composite"
   steps:
     # Step 1.1: Validate enable-cache
-    # Steps 1.1 to 1.8 validate the inputs and the project files before anything
+    # Steps 1.1 to 1.7 validate the inputs and the project files before anything
     # is installed, so that an invalid value fails immediately with a clear
     # message. A step validates one input and reports all the problems of that
     # input, and the first step that fails stops the action
@@ -199,14 +199,6 @@ runs:
         if [ -n "${PACKAGE_INSTALL_ARGS}" ]; then
           echo "::warning title=Ignored input::The input 'package-install-args' is ignored because 'package-name' is empty."
         fi
-
-    # Step 1.8: Notice about an empty python-version
-    # An empty python-version is valid: uv selects the Python version of the project
-    - name: Notice about an empty python-version
-      if: ${{ inputs.python-version == '' }}
-      shell: bash
-      run: |
-        echo "::notice title=Empty python-version::The input 'python-version' is empty: uv selects the Python version of the project."
 
     # Step 2: Install uv and configure the Python environment
     # Uses the astral-sh/setup-uv action which:
