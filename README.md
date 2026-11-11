@@ -106,15 +106,6 @@ jobs:
     package-install-args: "--upgrade"
 ```
 
-### With UV Progress Bars Enabled
-
-```yaml
-- name: Setup Python environment with uv progress bars
-  uses: durandtibo/setup-venv-uv-action@v0.2.0
-  with:
-    uv-no-progress: "false"
-```
-
 ### With a Project in a Subfolder
 
 ```yaml
@@ -157,7 +148,6 @@ jobs:
 | `working-directory`    | Directory that contains the project (`pyproject.toml`, `uv.lock`, `tasks.py`), relative to the workspace.                                          | No       | `"."`    |
 | `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                      | No       | `"auto"` |
 | `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line. Not locked. Leave empty to skip.                 | No       | `""`     |
-| `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                        | No       | `"true"` |
 
 Use `package-name` for one package whose version varies in a matrix and may not
 exist for the Python version (the install is skipped with a warning in that
@@ -416,8 +406,7 @@ uv lock
 
 ### Error: `Invalid input`
 
-The inputs `uv-no-progress` and `enable-cache` must be `"true"` or
-`"false"` (`enable-cache` also accepts `"auto"`). Quote the values in YAML so
+The input `enable-cache` must be `"true"`, `"false"` or `"auto"`. Quote the values in YAML so
 that they are passed as strings.
 
 The input `working-directory` must be a path relative to the workspace (it does
@@ -455,6 +444,13 @@ which has no working directory option, so this step runs in the workspace root
 and not in `working-directory`. A relative path in `package-install-args` (for
 example `--constraint constraints.txt`) starts at the workspace root. Other
 inputs, such as `install-args` and `extra-packages`, run in `working-directory`.
+
+### Progress Bars of `uv`
+
+The action does not configure the progress bars of `uv`: `uv` draws them only
+when its output is a terminal, which a workflow log is not. To change the
+behavior, set the environment variable `UV_NO_PROGRESS` in the `env:` of the
+job or of the step.
 
 ### Custom Install Arguments Not Working
 

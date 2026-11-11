@@ -44,10 +44,6 @@ inputs:
     default: "."
     description: "Directory that contains the project ('pyproject.toml', 'tasks.py', 'invoke.yaml'), relative to the workspace. Use it for repositories where the Python project is in a subfolder."
     required: false
-  uv-no-progress:
-    default: "true"
-    description: "Disable uv progress bars ('true' or 'false'). Defaults to 'true'."
-    required: false
 
 outputs:
   cache-hit:
@@ -67,7 +63,7 @@ runs:
   using: "composite"
   steps:
     # Step 1.1: Validate enable-cache
-    # Steps 1.1 to 1.9 validate the inputs and the project files before anything
+    # Steps 1.1 to 1.8 validate the inputs and the project files before anything
     # is installed, so that an invalid value fails immediately with a clear
     # message. A step validates one input and reports all the problems of that
     # input, and the first step that fails stops the action
@@ -151,21 +147,7 @@ runs:
         done <<< "${EXTRA_PACKAGES}"
         exit "${status}"
 
-    # Step 1.5: Validate uv-no-progress
-    # uv-no-progress must be 'true' or 'false'
-    - name: Validate uv-no-progress
-      shell: bash
-      env:
-        UV_NO_PROGRESS_INPUT: ${{ inputs.uv-no-progress }}
-      run: |
-        if [ "${UV_NO_PROGRESS_INPUT}" != "true" ] &&
-          [ "${UV_NO_PROGRESS_INPUT}" != "false" ]; then
-          echo "::error title=Invalid input::The input 'uv-no-progress' must" \
-            "be 'true' or 'false', got '${UV_NO_PROGRESS_INPUT}'."
-          exit 1
-        fi
-
-    # Step 1.6: Validate package-name
+    # Step 1.5: Validate package-name
     # package-name must be a package name, optionally followed by extras
     # (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
     - name: Validate package-name
@@ -185,11 +167,11 @@ runs:
           exit 1
         fi
 
-    # Step 1.7: Validate package-version
+    # Step 1.6: Validate package-version
     # package-version must be a version, not a specifier (e.g., '1.26.0' or
     # '2.12.*', not '>=1.0' or '1.0 --pre'): it is installed as
     # 'package-name==package-version'
-    # It is ignored without package-name (see step 1.8)
+    # It is ignored without package-name (see step 1.7)
     - name: Validate package-version
       if: ${{ inputs.package-name != '' && inputs.package-version != '' }}
       shell: bash
@@ -205,7 +187,7 @@ runs:
           exit 1
         fi
 
-    # Step 1.8: Warn about the ignored package inputs
+    # Step 1.7: Warn about the ignored package inputs
     # package-version and package-install-args are ignored without package-name
     - name: Warn about ignored package inputs
       if: ${{ inputs.package-name == '' && (inputs.package-version != '' || inputs.package-install-args != '') }}
@@ -221,7 +203,7 @@ runs:
           echo "::warning title=Ignored input::The input 'package-install-args' is ignored because 'package-name' is empty."
         fi
 
-    # Step 1.9: Notice about an empty python-version
+    # Step 1.8: Notice about an empty python-version
     # An empty python-version is valid: uv selects the Python version of the project
     - name: Notice about an empty python-version
       if: ${{ inputs.python-version == '' }}
@@ -237,14 +219,9 @@ runs:
     # - Activates the virtual environment so subsequent steps can use 'python' and 'uv pip'
     # - Restores and saves the uv cache when the enable-cache input allows it
     # The project files are searched in the working-directory input
-    # It receives UV_NO_PROGRESS (uv-no-progress) like the other steps that run
-    # uv, because uv also downloads the Python interpreter and creates the
-    # virtual environment in this step
     - name: Install uv and set the python version
       id: setup-uv
       uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # ratchet:astral-sh/setup-uv@v10.3.3
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       with:
         version: ${{ inputs.uv-version }}
         python-version: ${{ inputs.python-version }}
@@ -282,7 +259,6 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         REQUIREMENT: ${{ steps.tasklib.outputs.requirement }}
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip install "${REQUIREMENT}"
 
@@ -299,7 +275,6 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         # install-args is split on whitespace but not expanded as a glob
         set -f
@@ -328,8 +303,6 @@ runs:
         package-name: ${{ inputs.package-name }}
         package-version: ${{ inputs.package-version }}
         uv-args: ${{ inputs.package-install-args }}
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
     # Step 6 (Optional): Install additional packages
     # Only runs if extra-packages is provided, with one requirement per line
@@ -343,7 +316,6 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         EXTRA_PACKAGES: ${{ inputs.extra-packages }}
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         packages=()
         while IFS= read -r line; do
@@ -368,8 +340,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv --version
         which python
@@ -381,8 +351,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip list
 
@@ -393,8 +361,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip tree --show-version-specifiers
 
@@ -405,8 +371,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip check
 
