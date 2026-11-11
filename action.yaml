@@ -44,10 +44,6 @@ inputs:
     default: "."
     description: "Directory that contains the project ('pyproject.toml', 'tasks.py', 'invoke.yaml'), relative to the workspace. Use it for repositories where the Python project is in a subfolder."
     required: false
-  verbose:
-    default: "true"
-    description: "Run the diagnostic steps that show the Python configuration, the installed packages, the dependency tree and the environment check ('true' or 'false'). Set it to 'false' for quieter logs. Defaults to 'true'."
-    required: false
   uv-no-progress:
     default: "true"
     description: "Disable uv progress bars ('true' or 'false'). Defaults to 'true'."
@@ -68,7 +64,7 @@ runs:
   using: "composite"
   steps:
     # Step 1.1: Validate enable-cache
-    # Steps 1.1 to 1.10 validate the inputs and the project files before anything
+    # Steps 1.1 to 1.9 validate the inputs and the project files before anything
     # is installed, so that an invalid value fails immediately with a clear
     # message. A step validates one input and reports all the problems of that
     # input, and the first step that fails stops the action
@@ -166,20 +162,7 @@ runs:
           exit 1
         fi
 
-    # Step 1.6: Validate verbose
-    # verbose must be 'true' or 'false'
-    - name: Validate verbose
-      shell: bash
-      env:
-        VERBOSE: ${{ inputs.verbose }}
-      run: |
-        if [ "${VERBOSE}" != "true" ] && [ "${VERBOSE}" != "false" ]; then
-          echo "::error title=Invalid input::The input 'verbose' must be" \
-            "'true' or 'false', got '${VERBOSE}'."
-          exit 1
-        fi
-
-    # Step 1.7: Validate package-name
+    # Step 1.6: Validate package-name
     # package-name must be a package name, optionally followed by extras
     # (e.g., 'numpy' or 'uvicorn[standard]'), not an option or a requirement
     - name: Validate package-name
@@ -199,11 +182,11 @@ runs:
           exit 1
         fi
 
-    # Step 1.8: Validate package-version
+    # Step 1.7: Validate package-version
     # package-version must be a version, not a specifier (e.g., '1.26.0' or
     # '2.12.*', not '>=1.0' or '1.0 --pre'): it is installed as
     # 'package-name==package-version'
-    # It is ignored without package-name (see step 1.9)
+    # It is ignored without package-name (see step 1.8)
     - name: Validate package-version
       if: ${{ inputs.package-name != '' && inputs.package-version != '' }}
       shell: bash
@@ -219,7 +202,7 @@ runs:
           exit 1
         fi
 
-    # Step 1.9: Warn about the ignored package inputs
+    # Step 1.8: Warn about the ignored package inputs
     # package-version and package-install-args are ignored without package-name
     - name: Warn about ignored package inputs
       if: ${{ inputs.package-name == '' && (inputs.package-version != '' || inputs.package-install-args != '') }}
@@ -235,7 +218,7 @@ runs:
           echo "::warning title=Ignored input::The input 'package-install-args' is ignored because 'package-name' is empty."
         fi
 
-    # Step 1.10: Notice about an empty python-version
+    # Step 1.9: Notice about an empty python-version
     # An empty python-version is valid: uv selects the Python version of the project
     - name: Notice about an empty python-version
       if: ${{ inputs.python-version == '' }}
@@ -266,27 +249,13 @@ runs:
         enable-cache: ${{ inputs.enable-cache }}
         activate-environment: true
 
-    # Step 3: Verify that uv and python are available in PATH
-    # Safety check to ensure the environment setup succeeded
-    # Outputs the full paths and the versions of both executables for debugging
-    # It runs in the working-directory input, like the other steps that use uv,
-    # so that uv reads the same configuration ('uv.toml', 'pyproject.toml')
-    - name: Verify uv and python installation
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        which uv
-        uv --version
-        which python
-        python --version
-
-    # Step 4.1: Read the locked invoke-tasklib version
+    # Step 3.1: Read the locked invoke-tasklib version
     # invoke-tasklib provides the invoke tasks used below (env.install)
     # The exact version is read from uv.lock, so that the bootstrap is
     # reproducible and needs no Python before the setup of the environment
     # 'uv export --frozen' neither resolves nor modifies the lock file
     # It fails when invoke-tasklib is not in the lock file of the project
-    # The requirement is used in step 4.2
+    # The requirement is used in step 3.2
     - name: Read the locked invoke-tasklib version
       id: tasklib
       shell: bash
@@ -300,7 +269,7 @@ runs:
         fi
         echo "requirement=${requirement}" >> "${GITHUB_OUTPUT}"
 
-    # Step 4.2: Install invoke-tasklib
+    # Step 3.2: Install invoke-tasklib
     # It runs in the working-directory input, so that 'uv pip install' reads the
     # 'uv.toml' of the project (e.g., its index settings) like the next steps
     - name: Install invoke-tasklib
@@ -312,7 +281,7 @@ runs:
       run: |
         uv pip install "${REQUIREMENT}"
 
-    # Step 5: Install project dependencies using the env.install task
+    # Step 4: Install project dependencies using the env.install task
     # The task is executed in the working-directory input
     # Optional install-args can be passed to customize the installation
     # (e.g., --no-optional-deps to skip installing optional dependencies)
@@ -331,7 +300,7 @@ runs:
         set -f
         inv env.install ${INSTALL_ARGS}
 
-    # Step 6 (Optional): Install a specific package version for compatibility testing
+    # Step 5 (Optional): Install a specific package version for compatibility testing
     # Only runs if package-name is provided
     # Useful for testing your project against different versions of a dependency
     # (e.g., test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy)
@@ -352,7 +321,7 @@ runs:
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
-    # Step 7 (Optional): Install additional packages
+    # Step 6 (Optional): Install additional packages
     # Only runs if extra-packages is provided, with one requirement per line
     # Useful for tools that are not dependencies of the project (e.g., pytest-xdist)
     # Blank lines are ignored and every line is passed to uv as a single argument
@@ -379,45 +348,48 @@ runs:
           uv pip install "${packages[@]}"
         fi
 
-    # Steps 8 to 11 are diagnostic steps: they are skipped when verbose is 'false'
-    # Like every step that runs uv, they receive UV_NO_PROGRESS (uv-no-progress)
-    # Step 8: Display the Python configuration for debugging and verification
-    # The task is executed in the working-directory input
-    # Useful for troubleshooting version-related issues
-    # Uses continue-on-error so a reporting failure does not fail the workflow
-    - name: Show python config
-      if: ${{ inputs.verbose == 'true' }}
+    # Steps 7.1 to 7.5 report the environment for debugging
+    # Each step runs one command, so that a failure never hides the output of the
+    # others, and uses continue-on-error so a reporting failure does not fail the
+    # action. They always run
+    # Step 7.1: Show the versions of uv and python
+    # Shows which python is active (the virtual environment of the project)
+    - name: Show the versions
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
-        inv env.show-python-config
+        uv --version
+        which python
+        python --version
 
-    # Step 9: Display all installed packages with their versions
-    # Provides a complete inventory of the Python environment
+    # Step 7.2: Show the Python interpreters managed by uv
+    - name: Show the Python interpreters
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      continue-on-error: true
+      env:
+        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
+      run: |
+        uv python list --only-installed
+
+    # Step 7.3: Show all the installed packages with their versions
     # Helpful for debugging dependency issues and verifying installations
-    # Uses continue-on-error so a reporting failure does not fail the workflow
-    - name: Show installed packages
-      if: ${{ inputs.verbose == 'true' }}
+    - name: Show the installed packages
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
-        inv env.show-installed-packages
+        uv pip list
 
-    # Step 10: Display the dependency tree with version constraints
-    # Shows the full dependency graph including:
-    # - Direct dependencies
-    # - Transitive (indirect) dependencies
-    # - Version specifiers (e.g., >=1.0.0, <2.0)
-    # Useful for understanding dependency relationships and conflicts
-    # Uses continue-on-error so a reporting failure does not fail the workflow
-    - name: Show dependency tree
-      if: ${{ inputs.verbose == 'true' }}
+    # Step 7.4: Show the dependency tree with the version constraints
+    # Shows the direct and transitive dependencies with their specifiers
+    # (e.g., >=1.0.0, <2.0), to understand dependency relationships and conflicts
+    - name: Show the dependency tree
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
@@ -426,15 +398,10 @@ runs:
       run: |
         uv pip tree --show-version-specifiers
 
-    # Step 11: Verify environment integrity
-    # Runs 'uv pip check' to detect:
-    # - Missing dependencies
-    # - Version conflicts
-    # - Broken installations
-    # Uses continue-on-error so the workflow continues even with conflicts
-    # (conflicts are logged for debugging but don't fail the build)
-    - name: Verify the current environment
-      if: ${{ inputs.verbose == 'true' }}
+    # Step 7.5: Check the environment
+    # Runs 'uv pip check' to detect missing dependencies, version conflicts and
+    # broken installations. The conflicts are logged but do not fail the action
+    - name: Check the environment
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
@@ -443,7 +410,7 @@ runs:
       run: |
         uv pip check
 
-    # Step 12: Set the outputs of the action
+    # Step 8: Set the outputs of the action
     # Reads the version from the interpreter that is active at the end of the
     # action (after the dependencies are installed), not from the requested input
     # 'uv python find' returns the interpreter of the active virtual environment,

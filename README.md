@@ -18,8 +18,8 @@ and resolver.
   with dependency checks and diagnostics
 - **Linux and macOS**: Tested on the Linux and macOS GitHub-hosted runners.
   Windows runners are not tested and not supported
-- **Debug-Friendly**: Provides detailed output of Python configuration,
-  installed packages, and dependency tree
+- **Debug-Friendly**: Always shows the Python interpreters, the installed
+  packages, and the dependency tree
 
 ## Usage
 
@@ -118,15 +118,6 @@ jobs:
     working-directory: "python"
 ```
 
-### With Quieter Logs
-
-```yaml
-- name: Setup Python environment without the diagnostic steps
-  uses: durandtibo/setup-venv-uv-action@v0.2.0
-  with:
-    verbose: "false"
-```
-
 ### With Extra Packages
 
 ```yaml
@@ -160,7 +151,6 @@ jobs:
 | `working-directory`    | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`    |
 | `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"` |
 | `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`     |
-| `verbose`              | Run the diagnostic steps (Python configuration, installed packages, dependency tree, environment check). Set to `"false"` for quieter logs.                           | No       | `"true"` |
 | `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                           | No       | `"true"` |
 
 ## Outputs
@@ -199,47 +189,41 @@ This action performs the following steps:
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager (see `uv-version`), set up the requested
    `python-version`, and activate the environment, and restores the `uv` cache
-   (see `enable-cache`)
-3. **Verifies Installation**: Checks that `uv` and `python` are available in
-   PATH, and logs their paths and versions
-4. **Installs Task Runner** (steps 4.1 and 4.2): Reads the exact version of
+   (see `enable-cache`). It fails if `uv` or Python cannot be installed
+3. **Installs Task Runner** (steps 3.1 and 3.2): Reads the exact version of
    [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) from
    `uv.lock` (`uv export --frozen`), then installs it for running project tasks.
    It fails when `invoke-tasklib` is not in `uv.lock`
    (see [Error: `Missing invoke-tasklib`](#error-missing-invoke-tasklib)). These
    steps run in `working-directory`, so `uv` reads the `uv.toml` of the project
    (for example its index settings)
-5. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
+4. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
    `uv sync --frozen` and install the current project in editable mode
-6. **Optional Package**: If `package-name` is set, installs that specific
+5. **Optional Package**: If `package-name` is set, installs that specific
    package/version via
    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
    (useful for dependency compatibility testing)
-7. **Extra Packages**: If `extra-packages` is set, installs each listed
+6. **Extra Packages**: If `extra-packages` is set, installs each listed
    requirement with `uv pip install`
-8. **Shows Python Config**: Runs `inv env.show-python-config` to display all
-   Python versions managed by `uv`, the active interpreter, and its full path
-9. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to list
-   every installed package and version
-10. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
-    display the full dependency graph
-11. **Verifies Environment**: Runs `uv pip check` to detect missing
-    dependencies, version conflicts, or broken installations
-12. **Sets Outputs**: Exposes the full `python-version` of the environment
-    (the `uv-version` output comes from `astral-sh/setup-uv`)
+7. **Reports the Environment** (steps 7.1 to 7.5, one command each, always run):
+   shows the versions of `uv` and Python, the Python interpreters managed by
+   `uv` (`uv python list --only-installed`), the installed packages
+   (`uv pip list`), the dependency tree (`uv pip tree --show-version-specifiers`)
+   and the result of `uv pip check`, which detects missing dependencies, version
+   conflicts and broken installations
+8. **Sets Outputs**: Exposes the full `python-version` of the environment
+   (the `uv-version` output comes from `astral-sh/setup-uv`)
 
-Steps 8 to 11 are diagnostic steps: they only run when `verbose` is `"true"`,
-and they use `continue-on-error: true`, so a failure is logged but does not fail
-the action (see [Failure Behavior](#failure-behavior)).
+The steps of the report (7.1 to 7.5) use `continue-on-error: true`, so a failure
+is logged but does not fail the action (see
+[Failure Behavior](#failure-behavior)).
 
 ## Failure Behavior
 
 | Steps                                                                                                                                     | On error                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Validate inputs and project files, install `uv`, install `invoke-tasklib`, install dependencies, install packages, install extra packages | The action fails                                            |
-| Show Python config, show installed packages, show dependency tree, `uv pip check`                                                         | Logged, but the action succeeds (`continue-on-error: true`) |
-
-The four diagnostic steps are skipped when `verbose` is `"false"`.
+| The report steps (7.1 to 7.5), including `uv pip check`                                                                                   | Logged, but the action succeeds (`continue-on-error: true`) |
 
 ## Advanced Usage
 
@@ -323,13 +307,8 @@ repository root, or the `working-directory` input):
   dependency group), so that it is in `uv.lock`: the action installs the exact
   locked version
 
-The action uses the following tasks of the collection:
-
-| Task                          | Used by                      | If missing                                                             |
-| ----------------------------- | ---------------------------- | ---------------------------------------------------------------------- |
-| `env.install`                 | Installs the dependencies    | The action fails (`No idea what 'env.install' is!`)                    |
-| `env.show-python-config`      | Shows the Python config      | A warning, then the diagnostic step fails but does not fail the action |
-| `env.show-installed-packages` | Shows the installed packages | A warning, then the diagnostic step fails but does not fail the action |
+The action uses one task of the collection, `env.install`, which installs the
+dependencies. If it is missing, the action fails.
 
 Note: The action installs the version of `invoke-tasklib` that is locked in
 `uv.lock` before running your tasks, and fails when it is not in the lock file.
@@ -415,7 +394,7 @@ uv lock
 
 ### Error: `Invalid input`
 
-The inputs `uv-no-progress`, `verbose` and `enable-cache` must be `"true"` or
+The inputs `uv-no-progress` and `enable-cache` must be `"true"` or
 `"false"` (`enable-cache` also accepts `"auto"`). Quote the values in YAML so
 that they are passed as strings.
 

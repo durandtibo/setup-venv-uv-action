@@ -226,9 +226,9 @@ jobs:
           # is not in the validation
           uv --version
           python --version
-          # nothing was installed: step 4.1 failed, before steps 4.2 and 5
+          # nothing was installed: step 3.1 failed, before steps 3.2 and 4
           if uv pip show --quiet invoke-tasklib; then
-            echo "invoke-tasklib is installed: the failure is not in step 4.1"
+            echo "invoke-tasklib is installed: the failure is not in step 3.1"
             exit 1
           fi
           if python -c "import myproject" 2> /dev/null; then
@@ -365,24 +365,6 @@ jobs:
           python -c "import importlib.metadata as m; assert m.version('six') == '1.17.0', m.version('six')"
           python -c "import attr, iniconfig; print(attr.__version__)"
 
-  test-not-verbose:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Setup python environment
-        uses: ./
-        with:
-          verbose: "false"
-
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          uv pip check
-
   test-invalid-inputs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -392,7 +374,6 @@ jobs:
         include:
           - { name: enable-cache, enable-cache: "maybe" }
           - { name: uv-no-progress, uv-no-progress: "yes" }
-          - { name: verbose, verbose: "1" }
           - { name: working-directory-absolute, working-directory: "/tmp" }
           - { name: working-directory-parent, working-directory: "../project" }
           - {
@@ -441,7 +422,6 @@ jobs:
         with:
           enable-cache: ${{ matrix.enable-cache || 'auto' }}
           uv-no-progress: ${{ matrix.uv-no-progress || 'true' }}
-          verbose: ${{ matrix.verbose || 'true' }}
           working-directory: ${{ matrix.working-directory || '.' }}
           extra-packages: ${{ matrix.extra-packages }}
           package-name: ${{ matrix.package-name }}
@@ -452,7 +432,7 @@ jobs:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # the validation (steps 1.1 to 1.10) failed: uv was not installed yet
+          # the validation (steps 1.1 to 1.9) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
@@ -620,13 +600,13 @@ jobs:
           # is not in the first steps
           uv --version
           python --version
-          # step 4.2 ran in 'subproject', read its uv.toml and found no index:
+          # step 3.2 ran in 'subproject', read its uv.toml and found no index:
           # invoke-tasklib is not installed
           if uv pip show --quiet invoke-tasklib; then
-            echo "invoke-tasklib is installed: step 4.2 ignored the uv.toml"
+            echo "invoke-tasklib is installed: step 3.2 ignored the uv.toml"
             exit 1
           fi
-          # the dependencies were not installed: step 5 did not run
+          # the dependencies were not installed: step 4 did not run
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
