@@ -14,17 +14,18 @@ These are the properties the target state must satisfy. They come from
 `CLAUDE.md` and `README.md`, tightened where the current action drifts from
 them.
 
-| #   | Property            | Meaning                                                                                                                                                      |
-| --- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| P1  | Single purpose      | Install `uv`, set up Python, and install the project dependencies with the `inv env.install` task of `invoke-tasklib`. Nothing else.                         |
-| P2  | Reproducible        | Dependencies come from the committed `uv.lock` (`--frozen`). The bootstrap tool (`invoke-tasklib`) is also taken from the lock file, so nothing is unpinned. |
-| P3  | Fail early, clearly | Every invalid input or missing project file fails in the first step, before anything is installed, with an `::error title=Invalid input::` style message.    |
-| P4  | Fast                | Few steps (each step is a process and a log group), no network call that is not needed, `uv` cache on by default on GitHub-hosted runners.                   |
-| P5  | Small surface       | Few inputs, each one tested and documented. Little third-party code: only `astral-sh/setup-uv`, pinned to a SHA with a `ratchet` comment.                    |
-| P6  | Safe                | Inputs reach shell code only through `env:`. `shell: bash` on every `run:`. Least-privilege permissions in the workflows.                                    |
-| P7  | Observable          | Installation steps fail the action. Reporting steps never do (`continue-on-error: true`). The result is exposed as outputs.                                  |
-| P8  | Portable            | Linux and macOS GitHub-hosted runners (and self-hosted runners with `bash`). Windows is not supported and not tested.                                        |
-| P9  | Maintainable        | Docs, `action.yaml` and tests say the same thing. The step list is short enough to read in one sitting. Every input has a test that asserts its effect.      |
+| #   | Property            | Meaning                                                                                                                                                              |
+| --- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | Single purpose      | Install `uv`, set up Python, and install the project dependencies with the `inv env.install` task of `invoke-tasklib`. Nothing else.                                 |
+| P2  | Reproducible        | Dependencies come from the committed `uv.lock` (`--frozen`). The bootstrap tool (`invoke-tasklib`) is also taken from the lock file, so nothing is unpinned.         |
+| P3  | Fail early, clearly | Every invalid input or missing project file fails in the first steps (group 1), before anything is installed, with an `::error title=Invalid input::` style message. |
+| P4  | Fast                | No network call or action that is not needed (no extra action before the setup), `uv` cache on by default on GitHub-hosted runners.                                  |
+| P5  | Small surface       | Few inputs, each one tested and documented. Little third-party code: only `astral-sh/setup-uv`, pinned to a SHA with a `ratchet` comment.                            |
+| P6  | Safe                | Inputs reach shell code only through `env:`. `shell: bash` on every `run:`. Least-privilege permissions in the workflows.                                            |
+| P7  | Observable          | Installation steps fail the action. Reporting steps never do (`continue-on-error: true`). The result is exposed as outputs.                                          |
+| P8  | Portable            | Linux and macOS runners with `bash`. Windows is not a target: no code, test or documentation handles it.                                                             |
+| P9  | Maintainable        | Docs, `action.yaml` and tests say the same thing. The step list is short enough to read in one sitting. Every input has a test that asserts its effect.              |
+| P10 | Simple steps        | One concern per step, a few lines each, numbered `N.M` inside a group. Several small steps are preferred to one big step. The log shows which check failed.          |
 
 ## 2. Findings on the current state
 
@@ -56,19 +57,21 @@ Ordered by impact on the properties above.
    - `uv-no-progress` sets `UV_NO_PROGRESS`, copied into 11 steps. `uv` hides
      its progress bars when the output is not a terminal, which is always the
      case in a workflow log. To be confirmed (open point 3).
-   - `verbose` toggles 4 diagnostic steps that cost about a second in total.
+   - `verbose` toggles the diagnostic steps that cost about a second in total.
      They are most useful exactly when a build breaks, so switching them off
      saves little.
    - `python-version` defaults to a hard-coded `"3.14"` that must be bumped by
      hand. `uv` already knows how to pick the project's version
      (`.python-version`, `requires-python`).
 
-4. **Too many steps for the work done (P4, P9).** Three validation steps
-   (three process spawns, three log groups) could be one. Step 6 (`which uv`,
+4. **Steps that are redundant or too big (P9, P10).** Step 6 (`which uv`,
    `uv --version`, ...) re-checks what `setup-uv` just did and would already
-   have failed on. Four diagnostic steps are one logical report. Step 16 calls
-   `uv python find` and then a Python to print a version, where `python` is
-   already on `PATH`.
+   have failed on. Step 9 mixes the installation with a reinstall workaround.
+   Step 3 mixes five validations in one 60-line script, where a failure
+   names the step but not the input. Step 16 calls `uv python find` and then a
+   Python to print a version, where `python` is already on `PATH`. The
+   target keeps small steps (one per validated input, one per report) and
+   removes the redundant ones.
 
 5. **The diagnostics depend on tasks that are not needed.**
    `env.show-python-config` and `env.show-installed-packages` can be replaced
@@ -136,14 +139,14 @@ Consequences:
 
 Under `working-directory`:
 
-- `pyproject.toml` and a committed `uv.lock` (checked in step 1).
-- `tasks.py` exposing the `invoke-tasklib` collection (checked in step 1) and
+- `pyproject.toml` and a committed `uv.lock` (checked in step 1.3).
+- `tasks.py` exposing the `invoke-tasklib` collection (checked in step 1.3) and
   an `invoke.yaml` configuring it.
 - `invoke-tasklib` in a dependency group or extra that `install-args` installs
   (the `dev` group by default). It must therefore be in `uv.lock`; the action
   reads its exact version there.
 
-If `invoke-tasklib` is absent from the lock file, the action fails in step 3
+If `invoke-tasklib` is absent from the lock file, the action fails in step 3.1
 with an error that shows the `pyproject.toml` snippet to add. This replaces the
 "unpinned" warning and the "reinstalled" notice: one rule instead of three
 behaviours.
@@ -155,43 +158,60 @@ that needs `inv` is the caller's responsibility (documented in one sentence).
 
 ## 4. Target `action.yaml`
 
-Seven steps instead of sixteen. Step comments follow the `CLAUDE.md` rule
-(`# Step N:` directly above `- name:`).
+Design rule: **one concern per step.** A step is a few lines that one reader can
+check at a glance, with its own name, so the log shows which check or action
+failed. Steps are grouped by a number and numbered `N.M` inside a group
+(`1.1`, `1.2`, ...), and the `# Step N.M:` comment sits directly above each
+`- name:` (the `CLAUDE.md` rule, extended to sub-steps). The number of steps is
+not a goal: 16 steps become 15, but 4 of them are one-line reports and the 3
+validation steps become 4 that are each shorter than today's.
 
-| #   | Step                               | Fails the action | Replaces (current steps) |
-| --- | ---------------------------------- | ---------------- | ------------------------ |
-| 1   | Validate inputs and project files  | Yes              | 1, 2, 3, 8 (partly)      |
-| 2   | Install uv and Python (`setup-uv`) | Yes              | 4, 5, 6                  |
-| 3   | Install invoke-tasklib (from lock) | Yes              | 7, 9 (reinstall)         |
-| 4   | Install dependencies               | Yes              | 9                        |
-| 5   | Install extra packages (optional)  | Yes              | 10, 11                   |
-| 6   | Show the environment               | No               | 12, 13, 14, 15           |
-| 7   | Set outputs                        | Yes              | 16                       |
+| #   | Step                                     | Fails the action | Replaces (current steps) |
+| --- | ---------------------------------------- | ---------------- | ------------------------ |
+| 1.1 | Validate `enable-cache`                  | Yes              | 1 (part)                 |
+| 1.2 | Validate `working-directory`             | Yes              | 2                        |
+| 1.3 | Validate the project files               | Yes              | 8 (part)                 |
+| 1.4 | Validate `extra-packages`                | Yes              | 3 (part)                 |
+| 2   | Install uv and Python (`setup-uv`)       | Yes              | 4, 5, 6                  |
+| 3.1 | Read the locked `invoke-tasklib` version | Yes              | 4 (replaced)             |
+| 3.2 | Install `invoke-tasklib`                 | Yes              | 7                        |
+| 4   | Install the project dependencies         | Yes              | 9                        |
+| 5   | Install extra packages (optional)        | Yes              | 10, 11                   |
+| 6.1 | Show the uv and Python versions          | No               | 6, 12 (part)             |
+| 6.2 | Show the Python interpreters             | No               | 12                       |
+| 6.3 | Show the installed packages              | No               | 13                       |
+| 6.4 | Show the dependency tree                 | No               | 14                       |
+| 6.5 | Check the environment                    | No               | 15                       |
+| 7   | Set the outputs                          | Yes              | 16                       |
 
 Third-party actions after the change: `astral-sh/setup-uv` only (was 3).
 
-### Step 1: Validate inputs and project files
+Every validation step has the same shape: the input in `env:`, an optional
+`if:`, a short `run:` that prints an `::error title=Invalid input::` message
+and exits 1. A step validates one input, and reports all the problems of that
+input (for example every bad line of `extra-packages`). The first failing step
+stops the action, before anything is installed.
 
-One script, one `env:` block, one helper that records an error and continues, so
-that all problems of a run are reported together and the step ends with a single
-`exit 1`.
+### Group 1: validation
 
-Checks:
+**Step 1.1: Validate `enable-cache`.** `true`, `false` or `auto`.
 
-- `enable-cache` is `true`, `false` or `auto`.
-- `working-directory` is not absolute (`/`, `\`, `C:`), has no `..` segment, and
-  is a directory of `${GITHUB_WORKSPACE}`. The message keeps the hint about
-  `actions/checkout`.
-- In that directory: `pyproject.toml`, `uv.lock` and `tasks.py` exist. This
-  moves the `tasks.py` check of step 8 before any installation and adds the
-  missing lock-file check, which today surfaces as an obscure `uv sync` error.
-- No line of `extra-packages` starts with `-` after trimming (the existing rule,
-  kept as is).
+**Step 1.2: Validate `working-directory`.** Not absolute (starts with `/`), no
+`..` segment, and a directory of `${GITHUB_WORKSPACE}`. The error keeps the hint
+about `actions/checkout`.
+
+**Step 1.3: Validate the project files.** In `working-directory`:
+`pyproject.toml`, `uv.lock` and `tasks.py` exist. Today a missing `uv.lock`
+surfaces as an obscure `uv sync` error after the installation, and `tasks.py`
+is checked only after `uv` and Python are installed. It runs after 1.2, so the
+directory is known to be valid.
+
+**Step 1.4: Validate `extra-packages`.** No line starts with `-` after trimming
+the leading whitespace (that would be an option of `uv`, not a requirement).
+Skipped (`if:`) when the input is empty.
 
 Not validated, and stated in the README and in the PR: `python-version`,
 `uv-version`, `install-args` (see the table in 3.1).
-
-The file checks run only if `working-directory` is valid.
 
 ### Step 2: Install uv and Python
 
@@ -210,20 +230,29 @@ The file checks run only if `working-directory` is valid.
 ```
 
 No separate "which uv / python --version" step: `setup-uv` fails if it cannot
-install, and the version is printed by step 6.
+install, and the versions are printed by step 6.1.
 
-### Step 3: Install invoke-tasklib from the lock file
+### Group 3: invoke-tasklib
+
+Two steps, so that a missing entry in the lock file and a failing installation
+are different lines in the log.
+
+**Step 3.1: Read the locked `invoke-tasklib` version** (`id: tasklib`, in
+`working-directory`):
 
 ```bash
-# in working-directory
-pin=$(uv export --frozen --no-hashes --no-emit-project --all-groups --all-extras \
-  | grep -E '^invoke-tasklib==' | head -n 1 | cut -d' ' -f1)   # e.g. invoke-tasklib==0.0.9
+pin=$(uv export --frozen --no-hashes --no-emit-project --all-groups --all-extras |
+  grep -E '^invoke-tasklib==' | head -n 1 | cut -d' ' -f1)
 if [ -z "${pin}" ]; then
-  echo "::error title=Missing invoke-tasklib::... add it to a dependency group, then run 'uv lock'."
+  echo "::error title=Missing invoke-tasklib::'invoke-tasklib' is not in uv.lock. Add it to a dependency group, then run 'uv lock'."
   exit 1
 fi
-uv pip install "${pin}"
+echo "requirement=${pin}" >> "${GITHUB_OUTPUT}"   # e.g. invoke-tasklib==0.0.9
 ```
+
+**Step 3.2: Install `invoke-tasklib`:**
+`uv pip install "${REQUIREMENT}"`, with
+`REQUIREMENT: ${{ steps.tasklib.outputs.requirement }}` in `env:`.
 
 Why this is better than reading `pyproject.toml`:
 
@@ -232,7 +261,7 @@ Why this is better than reading `pyproject.toml`:
 - No unpinned case, so no warning, and no "reinstalled" path.
 - `uv export --frozen` does not modify the lock file or resolve anything.
 
-### Step 4: Install dependencies
+### Step 4: Install the project dependencies
 
 ```bash
 set -f                  # no globbing of install-args
@@ -247,49 +276,51 @@ documented.
 ### Step 5: Install extra packages
 
 Same as the current step 11, in `working-directory`, one requirement per line,
-blank lines ignored. It now also covers the former `package-*` use case.
+blank lines ignored, `if: inputs.extra-packages != ''`. It now also covers the
+former `package-*` use case.
 
-### Step 6: Show the environment
+### Group 6: reports
 
-One step, `continue-on-error: true`, with a collapsed group per section:
+Five steps, each one command, each `continue-on-error: true`, each in
+`working-directory`. Because they are separate steps, a failure of one never
+hides the output of the others, and no `|| true` or group markers are needed.
+They always run: there is no `verbose` input.
+
+| Step | Name                         | Command                                        |
+| ---- | ---------------------------- | ---------------------------------------------- |
+| 6.1  | Show the versions            | `uv --version; which python; python --version` |
+| 6.2  | Show the Python interpreters | `uv python list --only-installed`              |
+| 6.3  | Show the installed packages  | `uv pip list`                                  |
+| 6.4  | Show the dependency tree     | `uv pip tree --show-version-specifiers`        |
+| 6.5  | Check the environment        | `uv pip check`                                 |
+
+### Step 7: Set the outputs
 
 ```bash
-echo "::group::Versions"; uv --version; which python; python --version; echo "::endgroup::"
-echo "::group::Python interpreters"; uv python list --only-installed; echo "::endgroup::"
-echo "::group::Installed packages"; uv pip list; echo "::endgroup::"
-echo "::group::Dependency tree"; uv pip tree --show-version-specifiers; echo "::endgroup::"
-echo "::group::Environment check"; uv pip check; echo "::endgroup::"
+python_version="$(python -c 'import platform; print(platform.python_version())')"
+echo "python-version=${python_version}" >> "${GITHUB_OUTPUT}"
 ```
 
-Each command must not stop the others: use `|| true` per command (or run without
-`set -e`, which is the composite default for `bash` only if `-e` is not
-requested; set it explicitly). Not conditional on an input.
-
-### Step 7: Set outputs
-
-```bash
-echo "python-version=$(python -c 'import platform; print(platform.python_version())')" >> "${GITHUB_OUTPUT}"
-```
-
-`python` is the activated virtual environment of the project (`activate-environment`),
-so `uv python find` is not needed. The command substitution is inside `echo`,
-so a failure of `python` would still write an empty value: assign to a variable
-first, as the current step does, to fail the step instead.
+`python` is the activated virtual environment of the project
+(`activate-environment`), so `uv python find` is not needed. The assignment
+is on its own line, so a failure of `python` fails the step instead of writing
+an empty output.
 
 ### Cross-cutting rules (unchanged, all kept)
 
 - Inputs only through `env:`; `shell: bash` everywhere.
-- Installation steps fail the action; only step 6 uses `continue-on-error`.
+- Installation steps fail the action; only the steps of group 6 use
+  `continue-on-error`.
 - Third-party actions pinned to a SHA with a `ratchet` comment.
 - Only the steps that need a project directory set `working-directory:`
-  (2 to 7).
+  (1.3, 3 to 7).
 
 ## 5. Expected effect
 
 | Metric                          | Current                                | Target                           |
 | ------------------------------- | -------------------------------------- | -------------------------------- |
-| Steps                           | 16                                     | 7                                |
-| `action.yaml` lines             | 452                                    | about 220 (estimate)             |
+| Steps                           | 16, three of them 40 to 60 lines       | 15, each one a few lines         |
+| `action.yaml` lines             | 452                                    | about 300 (estimate)             |
 | Inputs                          | 11                                     | 6                                |
 | Validated inputs                | 7 (+ 2 ignored)                        | 3                                |
 | Third-party actions             | 3                                      | 1                                |
@@ -298,10 +329,13 @@ first, as the current step does, to fail the step instead.
 | Tasks required from the project | 1 required, 2 optional                 | 1 (`env.install`)                |
 | Test jobs                       | 28                                     | about 11                         |
 
-Speed: the target removes about 9 step start-ups and the extraction action, and
-adds one `uv export` (milliseconds). The expected gain is a few seconds per run;
-the main time (Python download, dependency install, cache restore) is
-unchanged. This is an estimate to confirm on a real run.
+Speed: the target removes the extraction action (which needs its own setup
+before Python) and the redundant checks, and adds one `uv export`
+(milliseconds). A composite step costs little, so splitting the validation and
+the reports into small steps has no measurable cost. The gain is small, a few
+seconds per run; the main time (Python download, dependency install, cache
+restore) is unchanged. This is an estimate to confirm on a real run. The
+target is chosen for simplicity, not for speed.
 
 ## 6. Tests and workflows
 
@@ -327,7 +361,7 @@ unchanged. This is an estimate to confirm on a real run.
 | `test-cache`                 | `enable-cache`: `true`, `false`, `auto`; asserts `cache-hit` is empty when disabled and `true` on the second run.                            |
 | `test-working-directory`     | `working-directory`: project in a subfolder; a `uv.toml` there is honoured (merges today's `-uv-config` job).                                |
 | `test-invalid-inputs`        | One job with a matrix, see below.                                                                                                            |
-| `test-missing-files`         | No `tasks.py`; no `uv.lock`: the action fails in step 1 (nothing installed).                                                                 |
+| `test-missing-files`         | No `tasks.py`; no `uv.lock`: the action fails in step 1.3 (nothing installed).                                                               |
 | `test-tasklib-lock`          | The installed `invoke-tasklib` version equals the one in `uv.lock`; a project without it fails with the `Missing invoke-tasklib` error.      |
 | `test-tasklib-not-in-groups` | `install-args` excluding the group: the action still succeeds and the environment check does not fail.                                       |
 
@@ -400,18 +434,19 @@ copies the new file. State this in the PR.
   - One inputs table generated from, or checked against, `action.yaml` (a small
     `make` target that fails on a mismatch of names, defaults and descriptions)
     to enforce the `CLAUDE.md` consistency rule.
-  - "What This Action Does": 7 steps.
+  - "What This Action Does": the 15 steps, listed by number (1.1 to 7).
   - A single `Invalid input` section holding the rules, and not repeated in the
     step list.
   - A migration section (section 7).
   - Replace the `invoke-tasklib` troubleshooting entries (`Unpinned`,
     `reinstalled`, `Relative Paths`, `Custom Install Arguments` kept) with
     `Missing invoke-tasklib`.
-  - Keep the Linux and macOS statement; add the project contract of 3.3.
+  - Keep the Linux and macOS statement; remove the sentences about Windows
+    (not a target); add the project contract of 3.3.
 - `.github/OVERVIEW.md`: describe test groups, not job names; update the
   nightly description.
-- `CLAUDE.md`: update the repository purpose paragraph only if the decision in
-  section 8 changes; otherwise keep it. Update the test rules to mention the
+- `CLAUDE.md`: keep the repository purpose paragraph (decision in section 8).
+  Add the `N.M` step numbering and the one-concern-per-step rule. Update the test rules to mention the
   generated stable file and the matrix for invalid inputs.
 
 ## 7. Migration and release
@@ -419,7 +454,7 @@ copies the new file. State this in the PR.
 This is a breaking release (the project is `0.x`, so bump the minor version:
 `v0.3.0`). The PR description must say, as `CLAUDE.md` requires:
 
-- **Changed**: the 7-step structure, the removal of the inputs `package-name`,
+- **Changed**: the 15 small steps (groups 1 to 7), the removal of the inputs `package-name`,
   `package-version`, `package-install-args`, `verbose`, `uv-no-progress`, the
   default of `python-version`, the `invoke-tasklib` bootstrap from `uv.lock`,
   the new early checks of `uv.lock` and `tasks.py`.
@@ -428,16 +463,16 @@ This is a breaking release (the project is `0.x`, so bump the minor version:
   `install-args`, `extra-packages`, `enable-cache`, `working-directory`.
 - **Behaviour changes** (a table in the PR and in the release notes):
 
-| Before                                                  | After                                                               |
-| ------------------------------------------------------- | ------------------------------------------------------------------- |
-| `package-name: x` + `package-version: 1.0`              | `extra-packages: x==1.0`                                            |
-| `package-install-args: --upgrade`                       | Pin or range in `extra-packages` (`x>=1`)                           |
-| `verbose: "false"`                                      | Input removed; diagnostics always run, in collapsed groups          |
-| `uv-no-progress: "false"`                               | Input removed; `UV_NO_PROGRESS` can be set by the caller's `env:`   |
-| `python-version` default `3.14`                         | Default empty: `.python-version` or `requires-python` is used       |
-| `invoke-tasklib` missing from the project               | Fails in step 3 with the fix (was a warning/notice and a reinstall) |
-| `invoke-tasklib` version from the `pyproject.toml` spec | Exact version from `uv.lock`                                        |
-| Project without `uv.lock`                               | Fails in step 1 (was an error from `uv sync`)                       |
+| Before                                                  | After                                                                 |
+| ------------------------------------------------------- | --------------------------------------------------------------------- |
+| `package-name: x` + `package-version: 1.0`              | `extra-packages: x==1.0`                                              |
+| `package-install-args: --upgrade`                       | Pin or range in `extra-packages` (`x>=1`)                             |
+| `verbose: "false"`                                      | Input removed; diagnostics always run, in collapsed groups            |
+| `uv-no-progress: "false"`                               | Input removed; `UV_NO_PROGRESS` can be set by the caller's `env:`     |
+| `python-version` default `3.14`                         | Default empty: `.python-version` or `requires-python` is used         |
+| `invoke-tasklib` missing from the project               | Fails in step 3.1 with the fix (was a warning/notice and a reinstall) |
+| `invoke-tasklib` version from the `pyproject.toml` spec | Exact version from `uv.lock`                                          |
+| Project without `uv.lock`                               | Fails in step 1.3 (was an error from `uv sync`)                       |
 
 - **Not validated and why**: `python-version`, `uv-version`, `install-args`
   (only `uv`, `setup-uv` and `invoke-tasklib` can interpret them).
@@ -447,11 +482,11 @@ This is a breaking release (the project is `0.x`, so bump the minor version:
 Split the work into small PRs (one branch and PR per logical change, per
 `CLAUDE.md`), in this order, each one green on its own:
 
-1. `refactor/single-validation-step`: merge steps 1 to 3 and the file checks;
-   matrix-based invalid-input test.
+1. `refactor/split-validation-steps`: one step per validated input (1.1 to
+   1.4) and the project file checks; matrix-based invalid-input test.
 2. `refactor/tasklib-from-lock`: remove the metadata action, the reinstall
    path and the `inv --list` parsing; add the lock-file bootstrap.
-3. `refactor/uv-diagnostics`: one report step with `uv` commands; remove step 6
+3. `refactor/uv-diagnostics`: one step per report command (6.1 to 6.5); remove step 6
    and `verbose`.
 4. `refactor/remove-package-inputs`: remove `package-*` and the third-party
    action; extend `extra-packages` tests and README.
@@ -464,22 +499,15 @@ Steps 1 to 3 are not breaking and can ship first. Steps 4 and 5 hold the
 breaking changes and can be dropped independently if the usage of those inputs
 turns out to be real.
 
-## 8. Decision for the maintainer
+## 8. Decisions taken
 
-**Keep or drop `invoke-tasklib`.** This review keeps it because `CLAUDE.md`
-defines it as the purpose of the action (P1). Be aware of what it costs: with
-the target above, `inv env.install` is the only use left, and it wraps
-`uv sync --frozen` plus a few options. Dropping it would remove step 3, the
-`tasks.py` and `invoke.yaml` requirements, the lock-file contract, and the
-`install-args` quirks (whitespace splitting), replacing them with
-`uv sync --frozen ${UV_SYNC_ARGS}`. The action would then work on any `uv`
-project with no setup. The price is a different public contract (`install-args`
-would take `uv sync` options such as `--group docs` or `--no-dev`, not the
-`invoke-tasklib` ones) and that projects relying on a customised
-`env.install` task lose it. If the plan is to keep the action only for the
-author's own repositories, which all use `invoke-tasklib`, keep it. If the plan
-is wider use, drop it. This is the only decision in this document that changes
-the purpose, so it should be made before step 2 of the plan in section 7.
+- **`invoke-tasklib` is kept.** `inv env.install` stays the installation method
+  and `CLAUDE.md` keeps its repository purpose paragraph. The project contract
+  (3.3) therefore requires `tasks.py`, `invoke.yaml` and `invoke-tasklib` in the
+  lock file. Dropping it in favour of `uv sync --frozen` is not planned.
+- **Small steps over big steps.** Validation and reports are split into
+  numbered sub-steps (`N.M`).
+- **Windows is ignored.** No path handling, test or documentation for it.
 
 ## Open points to verify before implementing
 
