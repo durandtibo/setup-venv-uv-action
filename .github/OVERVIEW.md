@@ -52,20 +52,21 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Purpose**: Tests the action using the current repository code (`uses: ./`)
 - **Config**: The OS and Python version lists come from
   `durandtibo/workflow-config-action`
-- **Jobs**: One job per input or behavior of the action:
-  - `test`: default inputs, on every Unix OS of the config
-  - `test-python-version`: every standard Python version of the config;
-    `test-python-version-file`: the empty value reads `.python-version`
-  - `test-install-args`, `test-install-args-glob`, `test-package`, `test-package-latest`,
-    `test-package-args`, `test-package-extras`, `test-package-python-specifier`,
-    `test-extra-packages`: installation inputs
-  - `test-tasklib-version`, `test-tasklib-missing`,
-    `test-tasklib-not-in-groups` (the version is read from `uv.lock`)
-  - `test-working-directory`, `test-working-directory-uv-config`,
-    `test-missing-files` (one case per missing project file)
-  - `test-uv-version`, `test-cache`, `test-progress-bar`
-  - `test-invalid-inputs` (one matrix case per invalid value),
-    `test-ignored-inputs`
+- **Jobs**: The jobs are grouped by what they cover (the job names are in the
+  file):
+  - Defaults and outputs: the default inputs on every Unix OS of the config,
+    and the `python-version` and `uv-version` outputs
+  - Python and `uv` versions: every standard Python version of the config, a
+    version range, the `.python-version` file, a pinned `uv` version
+  - Installation inputs: `install-args` (including glob characters),
+    `extra-packages`, `package-*` (version, extras, arguments, version range),
+    `enable-cache`, `uv-no-progress`, `working-directory` (including its
+    `uv.toml`)
+  - `invoke-tasklib`: the version of `uv.lock` is installed, a project without
+    it fails, a group that is not installed does not break the action
+  - Failures: one matrix job with a case per invalid input, one with a case per
+    missing project file, and one for the ignored inputs. Each failure case
+    asserts that the action failed before `uv` was installed
 - **Permissions**: `actions: write`, `contents: read`
 
 #### Test Stable Action (test-stable.yaml)
