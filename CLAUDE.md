@@ -35,7 +35,9 @@ there.
   output of the action).
 - When a PR conflicts with `main`, merge `origin/main` into the branch (do not
   rebase and force-push).
-- Update `README.md` and `.github/OVERVIEW.md` when inputs or workflows change.
+- Update `README.md` and `.github/OVERVIEW.md` when inputs or workflows change. `make check-readme`
+  (part of `make lint`) fails when the inputs, outputs or defaults of the README
+  tables differ from `action.yaml`.
 
 ## Action (`action.yaml`)
 
