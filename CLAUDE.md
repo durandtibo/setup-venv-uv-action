@@ -1,6 +1,8 @@
-# Instructions for coding agents
+# CLAUDE.md
 
-## Repository
+Guidance for coding agents working in this repository.
+
+## Repository purpose
 
 This repository is a GitHub composite action (`action.yaml`) that installs
 `uv`, sets up Python, and installs the project dependencies with the `inv
@@ -59,6 +61,36 @@ true`. Installation steps must fail the action.
   and say in the PR which inputs are not validated and why. Document the rule
   of each validated input in `README.md` (the validation steps and the
   `Invalid input` section).
+
+## Workflow structure (`.github/workflows/`)
+
+Files are prefixed by role:
+
+- `ci.yaml`: entry point for pull requests, pushes to `main` and manual runs. It
+  holds no steps, only jobs that call the reusable workflows below.
+  - `format.yaml`: YAML, Makefile, shell and Markdown format check.
+  - `test-local.yaml`: tests the action from this checkout (`uses: ./`), i.e.
+    the version not released yet.
+  - `test-stable.yaml`: tests the last release.
+- `nightly-tests.yaml`: scheduled entry point that calls the same three
+  workflows as `ci.yaml`.
+- `ci-verify-workflows.yaml`: lints the workflow files themselves. It has its
+  own triggers and is not called from `ci.yaml`.
+- `bot-*.yaml`: scheduled automation that opens PRs or acts on runs (format
+  files, pin actions, sync `.make/`, cancel stale runs).
+- `dependency-review.yml`: dependency review on pull requests.
+
+Conventions:
+
+- Set least-privilege `permissions` (explicit, never broader than needed) and
+  `timeout-minutes` on jobs. `bot-*.yaml` workflows use `permissions: {}` at the
+  workflow level and grant per job.
+- Reusable workflows (`ci.yaml` callees) also have `workflow_dispatch`, so they
+  can be run alone.
+- Put `make` targets in the steps rather than duplicating commands, so local
+  runs and CI match.
+- Start each file with a comment saying what it does, and update it when the
+  behaviour changes.
 
 ## Tests
 
