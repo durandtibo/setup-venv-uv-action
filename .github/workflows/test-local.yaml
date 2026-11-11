@@ -297,7 +297,6 @@ jobs:
       matrix:
         include:
           - { name: enable-cache, enable-cache: "maybe" }
-          - { name: uv-no-progress, uv-no-progress: "yes" }
           - { name: working-directory-absolute, working-directory: "/tmp" }
           - { name: working-directory-parent, working-directory: "../project" }
           - {
@@ -330,7 +329,6 @@ jobs:
         continue-on-error: true
         with:
           enable-cache: ${{ matrix.enable-cache || 'auto' }}
-          uv-no-progress: ${{ matrix.uv-no-progress || 'true' }}
           working-directory: ${{ matrix.working-directory || '.' }}
           extra-packages: ${{ matrix.extra-packages }}
 
@@ -339,27 +337,11 @@ jobs:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # the validation (steps 1.1 to 1.6) failed: uv was not installed yet
+          # the validation (steps 1.1 to 1.5) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
           fi
-
-  test-progress-bar:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Setup python environment
-        uses: ./
-        with:
-          uv-no-progress: "false"
-
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
 
   test-tasklib-not-in-groups:
     runs-on: ubuntu-latest

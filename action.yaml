@@ -32,10 +32,6 @@ inputs:
     default: "."
     description: "Directory that contains the project ('pyproject.toml', 'tasks.py', 'invoke.yaml'), relative to the workspace. Use it for repositories where the Python project is in a subfolder."
     required: false
-  uv-no-progress:
-    default: "true"
-    description: "Disable uv progress bars ('true' or 'false'). Defaults to 'true'."
-    required: false
 
 outputs:
   cache-hit:
@@ -52,7 +48,7 @@ runs:
   using: "composite"
   steps:
     # Step 1.1: Validate enable-cache
-    # Steps 1.1 to 1.6 validate the inputs and the project files before anything
+    # Steps 1.1 to 1.5 validate the inputs and the project files before anything
     # is installed, so that an invalid value fails immediately with a clear
     # message. A step validates one input and reports all the problems of that
     # input, and the first step that fails stops the action
@@ -136,21 +132,7 @@ runs:
         done <<< "${EXTRA_PACKAGES}"
         exit "${status}"
 
-    # Step 1.5: Validate uv-no-progress
-    # uv-no-progress must be 'true' or 'false'
-    - name: Validate uv-no-progress
-      shell: bash
-      env:
-        UV_NO_PROGRESS_INPUT: ${{ inputs.uv-no-progress }}
-      run: |
-        if [ "${UV_NO_PROGRESS_INPUT}" != "true" ] &&
-          [ "${UV_NO_PROGRESS_INPUT}" != "false" ]; then
-          echo "::error title=Invalid input::The input 'uv-no-progress' must" \
-            "be 'true' or 'false', got '${UV_NO_PROGRESS_INPUT}'."
-          exit 1
-        fi
-
-    # Step 1.6: Notice about an empty python-version
+    # Step 1.5: Notice about an empty python-version
     # An empty python-version is valid: uv selects the Python version of the project
     - name: Notice about an empty python-version
       if: ${{ inputs.python-version == '' }}
@@ -166,14 +148,9 @@ runs:
     # - Activates the virtual environment so subsequent steps can use 'python' and 'uv pip'
     # - Restores and saves the uv cache when the enable-cache input allows it
     # The project files are searched in the working-directory input
-    # It receives UV_NO_PROGRESS (uv-no-progress) like the other steps that run
-    # uv, because uv also downloads the Python interpreter and creates the
-    # virtual environment in this step
     - name: Install uv and set the python version
       id: setup-uv
       uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # ratchet:astral-sh/setup-uv@v10.3.3
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       with:
         version: ${{ inputs.uv-version }}
         python-version: ${{ inputs.python-version }}
@@ -209,7 +186,6 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         REQUIREMENT: ${{ steps.tasklib.outputs.requirement }}
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip install "${REQUIREMENT}"
 
@@ -226,7 +202,6 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         # install-args is split on whitespace but not expanded as a glob
         set -f
@@ -245,7 +220,6 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         EXTRA_PACKAGES: ${{ inputs.extra-packages }}
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         packages=()
         while IFS= read -r line; do
@@ -270,8 +244,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv --version
         which python
@@ -282,8 +254,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv python list --only-installed
 
@@ -293,8 +263,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip list
 
@@ -305,8 +273,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip tree --show-version-specifiers
 
@@ -317,8 +283,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         uv pip check
 
@@ -334,8 +298,6 @@ runs:
       id: python-version
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         python_bin="$(uv python find)"
         python_version="$("${python_bin}" -c 'import platform; print(platform.python_version())')"
