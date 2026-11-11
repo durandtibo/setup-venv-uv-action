@@ -365,7 +365,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        enable-cache: ["true", "false"]
+        enable-cache: ["true", "false", "auto"]
 
     steps:
       - name: Checkout
@@ -384,8 +384,9 @@ jobs:
         run: |
           python -c "import myproject; print(myproject)"
           echo "cache-hit='${CACHE_HIT}'"
-          if [ "${ENABLE_CACHE}" = "true" ]; then
-            # the cache is enabled: the output reports whether it was restored
+          if [ "${ENABLE_CACHE}" = "true" ] || [ "${ENABLE_CACHE}" = "auto" ]; then
+            # the cache is enabled ('auto' enables it on GitHub-hosted runners):
+            # the output reports whether it was restored
             [ "${CACHE_HIT}" = "true" ] || [ "${CACHE_HIT}" = "false" ] || (echo "expected cache-hit to be true or false" && exit 1)
           else
             # the cache is disabled: it cannot be restored
@@ -427,6 +428,28 @@ jobs:
       matrix:
         include:
           - { name: enable-cache, enable-cache: "maybe" }
+          - { name: enable-cache-case, enable-cache: "True" }
+          - {
+              name: working-directory-file,
+              working-directory: "pyproject.toml",
+            }
+          - {
+              name: working-directory-inner-parent,
+              working-directory: "src/../..",
+            }
+          - { name: working-directory-only-parent, working-directory: ".." }
+          - {
+              name: extra-packages-requirements-file,
+              extra-packages: "-r requirements.txt",
+            }
+          - { name: package-name-version, package-name: "numpy==2.4.0" }
+          - { name: package-name-space, package-name: "numpy 2.4.0" }
+          - { name: package-name-path, package-name: "-e ." }
+          - {
+              name: package-version-injection,
+              package-name: "numpy",
+              package-version: "2.4.0; echo injected",
+            }
           - { name: working-directory-absolute, working-directory: "/tmp" }
           - { name: working-directory-parent, working-directory: "../project" }
           - {
@@ -711,3 +734,176 @@ jobs:
           installed = importlib.util.find_spec('numpy') is not None
           assert installed == (os.environ['EXPECTED'] == 'true'), installed
           "
+
+  test-python-version-invalid:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      # python-version is not validated by the action: uv rejects it
+      - name: Setup python environment with a Python version that does not exist
+        id: setup
+        uses: ./
+        continue-on-error: true
+        with:
+          python-version: "3.99"
+
+      - name: Test that the action failed before installing the project
+        env:
+          OUTCOME: ${{ steps.setup.outcome }}
+        run: |
+          test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+          if python -c "import myproject" 2> /dev/null; then
+            echo "myproject is installed: the action did not stop earlier"
+            exit 1
+          fi
+
+  test-python-version-no-hint:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Remove the .python-version file of the project
+        run: |
+          rm .python-version
+
+      # no input and no .python-version: uv follows requires-python (>=3.10)
+      - name: Setup python environment
+        id: setup
+        uses: ./
+
+      - name: Test environment
+        env:
+          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import sys; assert sys.version_info[:2] >= (3, 10), sys.version"
+          python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
+
+  test-uv-version-range:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { uv-version: "0.12.x", pattern: '^0\.12\.[0-9]+$' }
+          - { uv-version: ">=0.11,<0.12", pattern: '^0\.11\.[0-9]+$' }
+          - { uv-version: "latest", pattern: '^[0-9]+\.[0-9]+\.[0-9]+$' }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment with a uv version request
+        id: setup
+        uses: ./
+        with:
+          uv-version: ${{ matrix.uv-version }}
+
+      - name: Test environment
+        env:
+          PATTERN: ${{ matrix.pattern }}
+          OUTPUT_VERSION: ${{ steps.setup.outputs.uv-version }}
+        run: |
+          python -c "import myproject; print(myproject)"
+          # the output is the resolved version and matches the request
+          [[ "${OUTPUT_VERSION}" =~ ${PATTERN} ]] || (echo "unexpected uv-version '${OUTPUT_VERSION}'" && exit 1)
+          # the installed uv is the one reported by the output
+          uv --version | grep -qE "^uv ${OUTPUT_VERSION//./\\.}( |$)" || (echo "uv does not match '${OUTPUT_VERSION}'" && exit 1)
+
+  test-working-directory-paths:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        working-directory: ["sub/project", "./sub/project/", "my project"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Move the project to the working directory
+        env:
+          WORKING_DIRECTORY: ${{ matrix.working-directory }}
+        run: |
+          mkdir -p "${WORKING_DIRECTORY}"
+          mv pyproject.toml uv.lock tasks.py invoke.yaml src .python-version "${WORKING_DIRECTORY}/"
+
+      - name: Setup python environment
+        uses: ./
+        with:
+          working-directory: ${{ matrix.working-directory }}
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import sys; assert sys.prefix.endswith('/.venv') and not sys.prefix.endswith('/setup-venv-uv-action/.venv'), sys.prefix"
+          # nothing was created at the root of the workspace
+          test ! -e .venv || (echo "the virtual environment is at the workspace root" && exit 1)
+
+  test-package-version-wildcard:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment with a wildcard package version
+        id: setup
+        uses: ./
+        with:
+          python-version: "3.14"
+          package-name: numpy
+          package-version: "2.4.*"
+
+      - name: Test environment
+        env:
+          PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+        run: |
+          python -c "import myproject; print(myproject)"
+          test "${PACKAGE_INSTALLED}" = "true" || (echo "expected package-installed true, got '${PACKAGE_INSTALLED}'" && exit 1)
+          python -c "import numpy; assert numpy.__version__.startswith('2.4.'), numpy.__version__"
+
+  test-package-and-extra-packages:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment with a package and extra packages
+        uses: ./
+        with:
+          package-name: numpy
+          package-version: 2.4.0
+          extra-packages: |
+            six==1.17.0
+
+      - name: Test environment
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
+          python -c "import importlib.metadata as m; assert m.version('six') == '1.17.0', m.version('six')"
+          uv pip check
