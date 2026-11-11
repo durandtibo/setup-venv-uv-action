@@ -195,58 +195,49 @@ This action performs the following steps:
    [Error: `Missing project file`](#error-missing-project-file). It warns about
    inputs that are ignored (`package-version` or `package-install-args` without
    `package-name`)
-2. **Reads the invoke-tasklib Version**: Uses
-   [durandtibo/extract-pyproject-metadata-action](https://github.com/durandtibo/extract-pyproject-metadata-action)
-   to read the version specifier of `invoke-tasklib` from the `pyproject.toml`
-   of the project (dependencies, extras and dependency groups). It needs a
-   Python 3.11 or later on `PATH`, which the GitHub-hosted runners provide
-3. **Installs uv and Python**: Uses
+2. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager (see `uv-version`), set up the requested
    `python-version`, and activate the environment, and restores the `uv` cache
    (see `enable-cache`)
-4. **Verifies Installation**: Checks that `uv` and `python` are available in
+3. **Verifies Installation**: Checks that `uv` and `python` are available in
    PATH, and logs their paths and versions
-5. **Installs Task Runner**: Installs
-   [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib), with the
-   version specifier of the project, for running project tasks. It emits a
-   warning and installs the latest version when the project does not declare
-   a specifier. Steps 4 and 5 run in `working-directory`, so `uv`
-   reads the `uv.toml` of the project (for example its index settings)
-6. **Verifies Project Tasks**: Fails early with a clear message if `inv --list`
-   fails or the `env.install` task is missing
-7. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
-   `uv sync --frozen` and install the current project in editable mode. If
-   `invoke-tasklib` is no longer installed afterwards, because it is not a
-   dependency of the project, installs it again (with the
-   version of the project) and reports it with a notice
-8. **Optional Package**: If `package-name` is set, installs that specific
+4. **Installs Task Runner** (steps 4.1 and 4.2): Reads the exact version of
+   [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) from
+   `uv.lock` (`uv export --frozen`), then installs it for running project tasks.
+   It fails when `invoke-tasklib` is not in `uv.lock`
+   (see [Error: `Missing invoke-tasklib`](#error-missing-invoke-tasklib)). These
+   steps run in `working-directory`, so `uv` reads the `uv.toml` of the project
+   (for example its index settings)
+5. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
+   `uv sync --frozen` and install the current project in editable mode
+6. **Optional Package**: If `package-name` is set, installs that specific
    package/version via
    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
    (useful for dependency compatibility testing)
-9. **Extra Packages**: If `extra-packages` is set, installs each listed
+7. **Extra Packages**: If `extra-packages` is set, installs each listed
    requirement with `uv pip install`
-10. **Shows Python Config**: Runs `inv env.show-python-config` to display all
-    Python versions managed by `uv`, the active interpreter, and its full path
-11. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to
-    list every installed package and version
-12. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
+8. **Shows Python Config**: Runs `inv env.show-python-config` to display all
+   Python versions managed by `uv`, the active interpreter, and its full path
+9. **Shows Installed Packages**: Runs `inv env.show-installed-packages` to list
+   every installed package and version
+10. **Shows Dependency Tree**: Runs `uv pip tree --show-version-specifiers` to
     display the full dependency graph
-13. **Verifies Environment**: Runs `uv pip check` to detect missing
+11. **Verifies Environment**: Runs `uv pip check` to detect missing
     dependencies, version conflicts, or broken installations
-14. **Sets Outputs**: Exposes the full `python-version` of the environment
+12. **Sets Outputs**: Exposes the full `python-version` of the environment
     (the `uv-version` output comes from `astral-sh/setup-uv`)
 
-Steps 10 to 13 are diagnostic steps: they only run when `verbose` is `"true"`,
+Steps 8 to 11 are diagnostic steps: they only run when `verbose` is `"true"`,
 and they use `continue-on-error: true`, so a failure is logged but does not fail
 the action (see [Failure Behavior](#failure-behavior)).
 
 ## Failure Behavior
 
-| Steps                                                                                                                                 | On error                                                    |
-| ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Validate inputs and project files, install `uv`, verify project tasks, install dependencies, install packages, install extra packages | The action fails                                            |
-| Show Python config, show installed packages, show dependency tree, `uv pip check`                                                     | Logged, but the action succeeds (`continue-on-error: true`) |
+| Steps                                                                                                                                     | On error                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Validate inputs and project files, install `uv`, install `invoke-tasklib`, install dependencies, install packages, install extra packages | The action fails                                            |
+| Show Python config, show installed packages, show dependency tree, `uv pip check`                                                         | Logged, but the action succeeds (`continue-on-error: true`) |
 
 The four diagnostic steps are skipped when `verbose` is `"false"`.
 
@@ -329,23 +320,23 @@ repository root, or the `working-directory` input):
   collection
 - An `invoke.yaml` file configuring `invoke-tasklib` with your package name
 - `invoke-tasklib>=0.0.8,<1.0.0` in your project dependencies (e.g., in a dev
-  dependency group)
+  dependency group), so that it is in `uv.lock`: the action installs the exact
+  locked version
 
 The action uses the following tasks of the collection:
 
 | Task                          | Used by                      | If missing                                                             |
 | ----------------------------- | ---------------------------- | ---------------------------------------------------------------------- |
-| `env.install`                 | Installs the dependencies    | The action fails                                                       |
+| `env.install`                 | Installs the dependencies    | The action fails (`No idea what 'env.install' is!`)                    |
 | `env.show-python-config`      | Shows the Python config      | A warning, then the diagnostic step fails but does not fail the action |
 | `env.show-installed-packages` | Shows the installed packages | A warning, then the diagnostic step fails but does not fail the action |
 
-Note: The action installs `invoke-tasklib` before running your tasks. The
-`uv sync` step removes it when it is not in your lock file, and the action then
-installs it again, so `inv` stays available. Including `invoke-tasklib` in your
-project dependencies is still recommended: its version is then locked with the
-other dependencies. The version installed by the action is the specifier
-declared in your `pyproject.toml`; without a specifier, the action installs the
-latest version and emits a warning.
+Note: The action installs the version of `invoke-tasklib` that is locked in
+`uv.lock` before running your tasks, and fails when it is not in the lock file.
+If your `install-args` excludes the dependency group of `invoke-tasklib`,
+`inv env.install` may remove it from the environment afterwards: the action
+does not need `inv` after that step, but a later step of your workflow that
+uses `inv` must install the group itself.
 
 ### Example `pyproject.toml`
 
@@ -400,30 +391,16 @@ from invoke_tasklib import ns
 
 ### Error: `Missing env.install task`
 
-The step "Verify project tasks" runs `inv --list` in the project directory and
-fails if the `env.install` task is not defined. Check that `tasks.py` exposes
-the `invoke-tasklib` collection (see above).
+`inv env.install` fails with `No idea what 'env.install' is!` if the task is
+not defined. Check that `tasks.py` exposes the `invoke-tasklib` collection (see
+above).
 
-### Warning: `Unpinned invoke-tasklib`
+### Error: `Missing invoke-tasklib`
 
-The action reads the version of `invoke-tasklib` from the `pyproject.toml` of
-the project (in the dependencies, an extra or a dependency group). When it is
-not declared there, or declared without a specifier, the action installs the
-latest version. Declare it with a specifier, for example
-`"invoke-tasklib >=0.0.8,<1.0.0"`, in the `dev` dependency group.
-
-### Notice: `invoke-tasklib reinstalled`
-
-The action installs `invoke-tasklib` before your project dependencies, and
-`inv env.install` runs `uv sync --frozen`, which removes every package that is
-not in your lock file. If `invoke-tasklib` is not a dependency of your project,
-it is removed, so the action installs it again with the version of your
-`pyproject.toml` (the latest version when there is none). The diagnostic steps and your own later steps that use
-`inv` keep working, but the version of `invoke-tasklib` is not locked.
-
-Add `invoke-tasklib` to a dependency group installed by `inv env.install` (the
-`dev` group by default), then update `uv.lock`. Its version is then locked and
-the notice disappears:
+The action reads the exact version of `invoke-tasklib` from `uv.lock` before
+installing the dependencies, so that the version is locked with the other
+dependencies. The error means that `invoke-tasklib` is not in the lock file. Add
+it to a dependency group, then update and commit `uv.lock`:
 
 ```toml
 [dependency-groups]
@@ -432,7 +409,9 @@ dev = [
 ]
 ```
 
-The notice and the reinstallation do not depend on `verbose`.
+```shell
+uv lock
+```
 
 ### Error: `Invalid input`
 

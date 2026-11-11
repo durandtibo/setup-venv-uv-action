@@ -243,20 +243,7 @@ runs:
       run: |
         echo "::notice title=Empty python-version::The input 'python-version' is empty: uv selects the Python version of the project."
 
-    # Step 2: Read the invoke-tasklib version from the project
-    # Looks for the 'invoke-tasklib' requirement in the pyproject.toml of the
-    # working-directory input (dependencies, extras and dependency groups), so
-    # that the version is declared in one place. The specifier is used in steps 5 and 7
-    # It runs before the setup of the virtual environment (step 3) because the
-    # action needs a Python 3.11 or later on PATH, which the runners provide
-    - name: Read the invoke-tasklib version
-      id: metadata
-      uses: durandtibo/extract-pyproject-metadata-action@6d9935d8d2af1ffc9baa090b516342e152dac85f # ratchet:durandtibo/extract-pyproject-metadata-action@v0.3.0
-      with:
-        pyproject-path: ${{ inputs.working-directory }}/pyproject.toml
-        dependencies: '["invoke-tasklib"]'
-
-    # Step 3: Install uv and configure the Python environment
+    # Step 2: Install uv and configure the Python environment
     # Uses the astral-sh/setup-uv action which:
     # - Installs uv (ultra-fast Python package installer and resolver), in the
     #   version of the uv-version input
@@ -279,7 +266,7 @@ runs:
         enable-cache: ${{ inputs.enable-cache }}
         activate-environment: true
 
-    # Step 4: Verify that uv and python are available in PATH
+    # Step 3: Verify that uv and python are available in PATH
     # Safety check to ensure the environment setup succeeded
     # Outputs the full paths and the versions of both executables for debugging
     # It runs in the working-directory input, like the other steps that use uv,
@@ -293,92 +280,58 @@ runs:
         which python
         python --version
 
-    # Step 5: Install invoke-tasklib
-    # invoke-tasklib provides the shared invoke tasks used below
-    # (env.install, env.show-python-config, env.show-installed-packages)
-    # The version specifier is read from the project (step 2). When the project
-    # does not declare invoke-tasklib (or declares it without a specifier), the
-    # latest version is installed and a warning is emitted
+    # Step 4.1: Read the locked invoke-tasklib version
+    # invoke-tasklib provides the invoke tasks used below (env.install)
+    # The exact version is read from uv.lock, so that the bootstrap is
+    # reproducible and needs no Python before the setup of the environment
+    # 'uv export --frozen' neither resolves nor modifies the lock file
+    # It fails when invoke-tasklib is not in the lock file of the project
+    # The requirement is used in step 4.2
+    - name: Read the locked invoke-tasklib version
+      id: tasklib
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        requirements="$(uv export --frozen --no-hashes --no-emit-project --all-groups --all-extras)"
+        requirement="$(grep -E '^invoke-tasklib==' <<< "${requirements}" | sed -n '1p' | cut -d' ' -f1 || true)"
+        if [ -z "${requirement}" ]; then
+          echo "::error title=Missing invoke-tasklib::'invoke-tasklib' is not in 'uv.lock'. Add it to a dependency group of 'pyproject.toml' (for example 'dev = [\"invoke-tasklib >=0.0.8,<1.0.0\"]'), then run 'uv lock' and commit the result."
+          exit 1
+        fi
+        echo "requirement=${requirement}" >> "${GITHUB_OUTPUT}"
+
+    # Step 4.2: Install invoke-tasklib
     # It runs in the working-directory input, so that 'uv pip install' reads the
     # 'uv.toml' of the project (e.g., its index settings) like the next steps
     - name: Install invoke-tasklib
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
-        TASKLIB_VERSION: ${{ fromJSON(steps.metadata.outputs.dependency-specifiers)['invoke-tasklib'] }}
+        REQUIREMENT: ${{ steps.tasklib.outputs.requirement }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
-        if [ -z "${TASKLIB_VERSION}" ]; then
-          echo "::warning title=Unpinned invoke-tasklib::The project does not" \
-            "declare a version specifier for 'invoke-tasklib' in its" \
-            "'pyproject.toml', so the latest version is installed. Add it to" \
-            "the project dependencies (see the README)."
-        fi
-        uv pip install "invoke-tasklib${TASKLIB_VERSION}"
+        uv pip install "${REQUIREMENT}"
 
-    # Step 6: Verify that the project defines the invoke tasks used by this action
-    # Fails early with a clear message when 'inv --list' fails or the 'env.install'
-    # task is missing, instead of an obscure error from 'inv' in the next step
-    # The existence of 'tasks.py' is checked before the installation (step 1.3)
-    # A missing show task only emits a warning because these tasks are optional
-    - name: Verify project tasks
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        if ! tasks=$(inv --list 2>&1); then
-          echo "${tasks}"
-          echo "::error title=Invalid tasks.py::'inv --list' failed in '$(pwd)'. Check that 'tasks.py' and 'invoke.yaml' are valid."
-          exit 1
-        fi
-        echo "${tasks}"
-        # Match whole task names only, so that 'env.show-python-config-extra' is
-        # not mistaken for 'env.show-python-config'
-        has_task() {
-          grep -qE "(^|[[:space:]])${1//./[.]}([[:space:]]|\$)" <<< "${tasks}"
-        }
-        if ! has_task env.install; then
-          echo "::error title=Missing env.install task::The 'env.install' task is not defined in 'tasks.py'. Expose the invoke-tasklib collection: 'from invoke_tasklib import ns'."
-          exit 1
-        fi
-        for task in env.show-python-config env.show-installed-packages; do
-          if ! has_task "${task}"; then
-            echo "::warning title=Missing ${task} task::The '${task}' task is not defined; the corresponding diagnostic step will fail."
-          fi
-        done
-
-    # Step 7: Install project dependencies using the env.install task
+    # Step 5: Install project dependencies using the env.install task
     # The task is executed in the working-directory input
     # Optional install-args can be passed to customize the installation
     # (e.g., --no-optional-deps to skip installing optional dependencies)
     # The arguments are split on whitespace (no quoting) and are not glob-expanded
-    # 'uv sync --frozen' removes the packages that are not in the lock file, so
-    # invoke-tasklib (installed in step 5) is removed when the project does not
-    # depend on it: install it again (with the version of the project, see step 2),
-    # because the diagnostic steps and the later steps of the workflow need
-    # 'inv', and report it with a notice whatever the verbose input is: the
-    # environment contains a package that is not in the lock file
+    # If the task is missing, 'inv' reports it (No idea what 'env.install' is!)
+    # If install-args excludes the group of invoke-tasklib, the action does not
+    # need 'inv' after this step, but later steps of the caller may
     - name: Install dependencies
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
-        TASKLIB_VERSION: ${{ fromJSON(steps.metadata.outputs.dependency-specifiers)['invoke-tasklib'] }}
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
         # install-args is split on whitespace but not expanded as a glob
         set -f
         inv env.install ${INSTALL_ARGS}
-        set +f
-        if ! uv pip show --quiet invoke-tasklib; then
-          uv pip install "invoke-tasklib${TASKLIB_VERSION}"
-          title="invoke-tasklib reinstalled"
-          echo "::notice title=${title}::'invoke-tasklib' was removed from" \
-            "the environment because it is not a dependency of the project," \
-            "so the action installed it again. Add it to the project" \
-            "dependencies (see the README)."
-        fi
 
-    # Step 8 (Optional): Install a specific package version for compatibility testing
+    # Step 6 (Optional): Install a specific package version for compatibility testing
     # Only runs if package-name is provided
     # Useful for testing your project against different versions of a dependency
     # (e.g., test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy)
@@ -399,7 +352,7 @@ runs:
       env:
         UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
 
-    # Step 9 (Optional): Install additional packages
+    # Step 7 (Optional): Install additional packages
     # Only runs if extra-packages is provided, with one requirement per line
     # Useful for tools that are not dependencies of the project (e.g., pytest-xdist)
     # Blank lines are ignored and every line is passed to uv as a single argument
@@ -426,9 +379,9 @@ runs:
           uv pip install "${packages[@]}"
         fi
 
-    # Steps 10 to 13 are diagnostic steps: they are skipped when verbose is 'false'
+    # Steps 8 to 11 are diagnostic steps: they are skipped when verbose is 'false'
     # Like every step that runs uv, they receive UV_NO_PROGRESS (uv-no-progress)
-    # Step 10: Display the Python configuration for debugging and verification
+    # Step 8: Display the Python configuration for debugging and verification
     # The task is executed in the working-directory input
     # Useful for troubleshooting version-related issues
     # Uses continue-on-error so a reporting failure does not fail the workflow
@@ -442,7 +395,7 @@ runs:
       run: |
         inv env.show-python-config
 
-    # Step 11: Display all installed packages with their versions
+    # Step 9: Display all installed packages with their versions
     # Provides a complete inventory of the Python environment
     # Helpful for debugging dependency issues and verifying installations
     # Uses continue-on-error so a reporting failure does not fail the workflow
@@ -456,7 +409,7 @@ runs:
       run: |
         inv env.show-installed-packages
 
-    # Step 12: Display the dependency tree with version constraints
+    # Step 10: Display the dependency tree with version constraints
     # Shows the full dependency graph including:
     # - Direct dependencies
     # - Transitive (indirect) dependencies
@@ -473,7 +426,7 @@ runs:
       run: |
         uv pip tree --show-version-specifiers
 
-    # Step 13: Verify environment integrity
+    # Step 11: Verify environment integrity
     # Runs 'uv pip check' to detect:
     # - Missing dependencies
     # - Version conflicts
@@ -490,7 +443,7 @@ runs:
       run: |
         uv pip check
 
-    # Step 14: Set the outputs of the action
+    # Step 12: Set the outputs of the action
     # Reads the version from the interpreter that is active at the end of the
     # action (after the dependencies are installed), not from the requested input
     # 'uv python find' returns the interpreter of the active virtual environment,
