@@ -74,8 +74,8 @@ Files are prefixed by role:
   - `test-local.yaml`: tests the action from this checkout (`uses: ./`), i.e.
     the version not released yet.
   - `test-stable.yaml`: tests the last release.
-- `nightly-tests.yaml`: scheduled entry point that calls the same three
-  workflows as `ci.yaml`.
+- `nightly-tests.yaml`: scheduled entry point that calls `test-local.yaml` and
+  `test-stable.yaml` (not `format.yaml`: formatting does not change with time).
 - `ci-verify-workflows.yaml`: lints the workflow files themselves. It has its
   own triggers and is not called from `ci.yaml`.
 - `bot-*.yaml`: scheduled automation that opens PRs or acts on runs (format

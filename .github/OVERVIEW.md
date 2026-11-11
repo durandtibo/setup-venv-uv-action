@@ -81,7 +81,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 - **Trigger**: Daily at 9:00 AM UTC, manual dispatch
 - **Purpose**: Regular testing to catch issues early
-- **Jobs**: Runs complete CI pipeline (format + tests)
+- **Jobs**: Calls test-local and test-stable (no format check: formatting does
+  not change with time)
 - **Permissions**: `actions: write`, `contents: read`
 
 #### Cancel Stale Queued Runs (bot-cancel-stale-queued-runs.yaml)
@@ -153,7 +154,6 @@ ci.yaml
 └─→ test-stable.yaml (test with published version)
 
 nightly-tests.yaml
-├─→ format.yaml
 ├─→ test-local.yaml
 └─→ test-stable.yaml
 ```
