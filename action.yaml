@@ -9,8 +9,8 @@ branding:
 
 inputs:
   python-version:
-    default: "3.14"
-    description: "Python version to use (e.g., '3.13', '3.12', '3.11', '3.10') or any version request supported by uv (e.g., '>=3.12,<3.14'). Defaults to Python 3.14."
+    default: ""
+    description: "Python version to use (e.g., '3.13', '3.12', '3.11', '3.10') or any version request supported by uv (e.g., '>=3.12,<3.14'). Leave empty (default) to let uv follow the project: the '.python-version' file, then 'requires-python' of 'pyproject.toml'."
     required: false
   uv-version:
     default: ""
@@ -63,7 +63,7 @@ runs:
   using: "composite"
   steps:
     # Step 1.1: Validate enable-cache
-    # Steps 1.1 to 1.8 validate the inputs and the project files before anything
+    # Steps 1.1 to 1.7 validate the inputs and the project files before anything
     # is installed, so that an invalid value fails immediately with a clear
     # message. A step validates one input and reports all the problems of that
     # input, and the first step that fails stops the action
@@ -203,19 +203,13 @@ runs:
           echo "::warning title=Ignored input::The input 'package-install-args' is ignored because 'package-name' is empty."
         fi
 
-    # Step 1.8: Notice about an empty python-version
-    # An empty python-version is valid: uv selects the Python version of the project
-    - name: Notice about an empty python-version
-      if: ${{ inputs.python-version == '' }}
-      shell: bash
-      run: |
-        echo "::notice title=Empty python-version::The input 'python-version' is empty: uv selects the Python version of the project."
-
     # Step 2: Install uv and configure the Python environment
     # Uses the astral-sh/setup-uv action which:
     # - Installs uv (ultra-fast Python package installer and resolver), in the
     #   version of the uv-version input
-    # - Sets up the specified Python version
+    # - Sets up the specified Python version. When the python-version input is
+    #   empty (default), uv follows the project: '.python-version', then
+    #   'requires-python' of 'pyproject.toml', in the working-directory input
     # - Activates the virtual environment so subsequent steps can use 'python' and 'uv pip'
     # - Restores and saves the uv cache when the enable-cache input allows it
     # The project files are searched in the working-directory input

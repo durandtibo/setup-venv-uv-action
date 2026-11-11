@@ -49,6 +49,11 @@ jobs:
           python -m pytest
 ```
 
+### With the Python Version of the Project
+
+By default, the action does not choose the Python version: `uv` follows the
+project (the committed `.python-version` file, then `requires-python`).
+
 ### With Custom Python Version
 
 ```yaml
@@ -137,17 +142,17 @@ jobs:
 
 ## Inputs
 
-| Input                  | Description                                                                                                                                        | Required | Default  |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
-| `python-version`       | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)             | No       | `"3.14"` |
-| `uv-version`           | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest. | No       | `""`     |
-| `package-name`         | Optional package whose version varies in a test matrix, checked against PyPI and the Python version. Leave empty to skip.                          | No       | `""`     |
-| `package-version`      | Optional version of `package-name` (e.g., `"1.0.0"`), not a specifier. Leave empty to install the latest.                                          | No       | `""`     |
-| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.    | No       | `""`     |
-| `package-install-args` | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.      | No       | `""`     |
-| `working-directory`    | Directory that contains the project (`pyproject.toml`, `uv.lock`, `tasks.py`), relative to the workspace.                                          | No       | `"."`    |
-| `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                      | No       | `"auto"` |
-| `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line. Not locked. Leave empty to skip.                 | No       | `""`     |
+| Input                  | Description                                                                                                                                                                                                                              | Required | Default  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `python-version`       | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`). Leave empty to use the Python version of the project (`.python-version`, then `requires-python`) | No       | `""`     |
+| `uv-version`           | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                                                                                       | No       | `""`     |
+| `package-name`         | Optional package whose version varies in a test matrix, checked against PyPI and the Python version. Leave empty to skip.                                                                                                                | No       | `""`     |
+| `package-version`      | Optional version of `package-name` (e.g., `"1.0.0"`), not a specifier. Leave empty to install the latest.                                                                                                                                | No       | `""`     |
+| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                                                                                          | No       | `""`     |
+| `package-install-args` | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                                                                                            | No       | `""`     |
+| `working-directory`    | Directory that contains the project (`pyproject.toml`, `uv.lock`, `tasks.py`), relative to the workspace.                                                                                                                                | No       | `"."`    |
+| `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                                                                                            | No       | `"auto"` |
+| `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line. Not locked. Leave empty to skip.                                                                                                       | No       | `""`     |
 
 Use `package-name` for one package whose version varies in a matrix and may not
 exist for the Python version (the install is skipped with a warning in that
@@ -314,6 +319,10 @@ repository root, or the `working-directory` input):
   (`tasklib.package.name`), usually in an `invoke.yaml` file. `inv env.install`
   fails without it, unless `--groups` is passed in `install-args`. The action
   does not check it, because `invoke` reads other configuration sources too
+- A `.python-version` file, committed (recommended): when `python-version` is
+  empty (the default), `uv` uses it to choose the Python version. Without it, `uv` uses
+  `requires-python` of `pyproject.toml` and picks a matching interpreter that
+  it finds on the runner or downloads, which may change with the runner image
 - `invoke-tasklib>=0.0.8,<1.0.0` in your project dependencies (e.g., in a dev
   dependency group), so that it is in `uv.lock`: the action installs the exact
   locked version
