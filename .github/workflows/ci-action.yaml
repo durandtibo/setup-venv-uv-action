@@ -643,3 +643,55 @@ jobs:
             echo "myproject is installed: the action did not stop earlier"
             exit 1
           fi
+
+  test-package-installed:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # installed: the version exists for the Python version
+          - package-name: numpy
+            package-version: "2.4.0"
+            expected: "true"
+          # installed: the latest version
+          - package-name: numpy
+            package-version: ""
+            expected: "true"
+          # skipped: numpy 1.24 does not exist for Python 3.14, the action succeeds
+          - package-name: numpy
+            package-version: "1.24.0"
+            expected: "false"
+          # no package requested
+          - package-name: ""
+            package-version: ""
+            expected: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Setup python environment
+        id: setup
+        uses: ./
+        with:
+          python-version: "3.14"
+          package-name: ${{ matrix.package-name }}
+          package-version: ${{ matrix.package-version }}
+
+      - name: Test the package-installed output
+        env:
+          EXPECTED: ${{ matrix.expected }}
+          PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+        run: |
+          python -c "import myproject; print(myproject)"
+          test "${PACKAGE_INSTALLED}" = "${EXPECTED}" || (echo "expected package-installed '${EXPECTED}', got '${PACKAGE_INSTALLED}'" && exit 1)
+          # the output matches what is installed
+          python -c "
+          import importlib.util, os
+          installed = importlib.util.find_spec('numpy') is not None
+          assert installed == (os.environ['EXPECTED'] == 'true'), installed
+          "

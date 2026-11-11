@@ -59,8 +59,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   workflow file is the list of jobs):
   - defaults and versions: default inputs on every Unix OS of the config, the
     Python versions of the config, `uv-version`
-  - installation inputs: `install-args`, the `package-*` inputs,
-    `extra-packages`
+  - installation inputs: `install-args`, the `package-*` inputs (including
+    the `package-installed` output and the skipped versions), `extra-packages`
   - `invoke-tasklib`: the version read from `uv.lock`, a missing entry, a
     dependency group that is excluded
   - project location: `working-directory` and the missing project files
