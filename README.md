@@ -43,6 +43,12 @@ jobs:
           python -m pytest
 ```
 
+### With the Python Version of the Project
+
+By default, `python-version` is empty and `uv` selects the Python version of the
+project: the `.python-version` file of `working-directory`, otherwise the
+`requires-python` of its `pyproject.toml`.
+
 ### With Custom Python Version
 
 ```yaml
@@ -140,18 +146,18 @@ jobs:
 
 ## Inputs
 
-| Input                  | Description                                                                                                                                                           | Required | Default  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
-| `python-version`       | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)                                | No       | `"3.14"` |
-| `uv-version`           | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                    | No       | `""`     |
-| `package-name`         | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                                              | No       | `""`     |
-| `package-version`      | Optional package version to install (e.g., `"1.0.0"`). Must be a version, not a specifier. Only used when `package-name` is specified. Leave empty to install latest. | No       | `""`     |
-| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                       | No       | `""`     |
-| `package-install-args` | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                         | No       | `""`     |
-| `working-directory`    | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`    |
-| `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"` |
-| `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`     |
-| `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                           | No       | `"true"` |
+| Input                  | Description                                                                                                                                                                                                                        | Required | Default  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `python-version`       | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`). Leave empty to use the version of the project (`.python-version`, then `requires-python`). | No       | `""`     |
+| `uv-version`           | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                                                                                 | No       | `""`     |
+| `package-name`         | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                                                                                                           | No       | `""`     |
+| `package-version`      | Optional package version to install (e.g., `"1.0.0"`). Must be a version, not a specifier. Only used when `package-name` is specified. Leave empty to install latest.                                                              | No       | `""`     |
+| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                                                                                    | No       | `""`     |
+| `package-install-args` | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                                                                                      | No       | `""`     |
+| `working-directory`    | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                                                                                      | No       | `"."`    |
+| `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                                                                                      | No       | `"auto"` |
+| `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.                                                                | No       | `""`     |
+| `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                                                                                        | No       | `"true"` |
 
 ## Outputs
 
@@ -178,7 +184,7 @@ Example:
 
 This action performs the following steps:
 
-1. **Validates the Inputs and the Project** (steps 1.1 to 1.10, one step per
+1. **Validates the Inputs and the Project** (steps 1.1 to 1.8, one step per
    input or check): fails with a clear message, before anything is installed,
    when an input is invalid or a project file is missing. The rules are in
    [Error: `Invalid input`](#error-invalid-input) and
