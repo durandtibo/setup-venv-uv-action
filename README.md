@@ -18,8 +18,8 @@ and resolver.
   with dependency checks and diagnostics
 - **Linux and macOS**: Tested on the Linux and macOS GitHub-hosted runners.
   Windows runners are not tested and not supported
-- **Debug-Friendly**: Always shows the Python interpreters, the installed
-  packages, and the dependency tree
+- **Debug-Friendly**: Always shows the versions, the installed packages, and the
+  dependency tree
 
 ## Usage
 
@@ -216,8 +216,7 @@ This action performs the following steps:
    requirement with `uv pip install`. These packages are not locked: they are
    not in `uv.lock`, and they are not checked against PyPI
 7. **Reports the Environment** (one command per step, always run):
-   shows the versions of `uv` and Python, the Python interpreters managed by
-   `uv` (`uv python list --only-installed`), the installed packages
+   shows the versions of `uv` and Python, the installed packages
    (`uv pip list`), the dependency tree (`uv pip tree --show-version-specifiers`)
    and the result of `uv pip check`, which detects missing dependencies, version
    conflicts and broken installations
