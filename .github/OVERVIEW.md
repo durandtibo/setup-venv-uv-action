@@ -21,7 +21,6 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 │   ├── security-scorecard.yaml        # OSSF Scorecard analysis
 │   ├── security-dependency-review.yaml # Reviews dependencies changed by a PR
 │   ├── bot-cancel-stale-queued-runs.yaml # Cleans up queued workflow runs
-│   ├── bot-report-queued-runs.yaml    # Hourly report of queued runs
 │   ├── bot-format-files.yaml          # Weekly formatting PR
 │   ├── bot-pin-action.yaml            # Weekly PR pinning actions to SHAs
 │   └── bot-sync-shared-makefile.yaml  # Weekly PR syncing the .make subtree
@@ -51,29 +50,31 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 #### Test Action (ci-action.yaml)
 
-- **Trigger**: Called by CI workflow, manual dispatch
+- **Trigger**: Called by CI workflow (it has inputs, so it has no manual
+  dispatch of its own)
 - **Purpose**: Tests the action using the current repository code (`uses: ./`)
 - **Config**: The OS and Python version lists come from
   `durandtibo/workflow-config-action`
-- **Jobs**: One job per input or behavior of the action:
-  - `test`: default inputs, on every Unix OS of the config
-  - `test-python-version`: every standard Python version of the config
-  - `test-install-args`, `test-install-args-glob`, `test-package`, `test-package-latest`,
-    `test-package-args`, `test-package-extras`, `test-package-python-specifier`,
-    `test-extra-packages`: installation inputs
-  - `test-tasklib-version`, `test-tasklib-missing`,
-    `test-tasklib-not-in-groups` (the version is read from `uv.lock`)
-  - `test-working-directory`, `test-working-directory-uv-config`,
-    `test-missing-files` (one case per missing project file)
-  - `test-uv-version`, `test-cache`, `test-progress-bar`
-  - `test-invalid-inputs` (one matrix case per invalid value),
-    `test-ignored-inputs`
+- **Jobs**: One job per input or behavior of the action, in these groups (the
+  workflow file is the list of jobs):
+  - defaults and versions: default inputs on every Unix OS of the config, the
+    Python versions of the config, `uv-version`
+  - installation inputs: `install-args`, the `package-*` inputs,
+    `extra-packages`
+  - `invoke-tasklib`: the version read from `uv.lock`, a missing entry, a
+    dependency group that is excluded
+  - project location: `working-directory` and the missing project files
+  - `enable-cache` and the `cache-hit` output
+  - validation: one matrix case per invalid value, and the ignored inputs
 - **Permissions**: `actions: write`, `contents: read`
 
 #### Test Released Action (nightly-test-released.yaml)
 
-- **Trigger**: Called by CI workflow, manual dispatch
-- **Purpose**: Tests the last published release to detect regressions
+- **Trigger**: Called by the nightly workflow (it has inputs, so it has no
+  manual dispatch of its own)
+- **Purpose**: Tests the last published release, which is what consumers run,
+  to detect regressions caused by upstream changes (`uv`, `setup-uv`,
+  `invoke-tasklib`)
 - **Jobs**: Same as ci-action, except for the jobs of inputs added after that
   release, which only exist in ci-action until the release is bumped
 - **Permissions**: `actions: write`, `contents: read`
@@ -82,10 +83,10 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 #### Nightly Tests (nightly-tests.yaml)
 
-- **Trigger**: Daily at 9:00 AM UTC, manual dispatch
+- **Trigger**: Daily at 10:30 AM UTC, manual dispatch
 - **Purpose**: Regular testing to catch issues early
-- **Jobs**: Calls nightly-test-released (ci.yaml runs the current code nightly; no format check: formatting does
-  not change with time)
+- **Jobs**: Calls nightly-test-released (ci.yaml runs the current code nightly
+  at 9:10 AM UTC; no format check: formatting does not change with time)
 - **Permissions**: `actions: write`, `contents: read`
 
 #### Cancel Stale Queued Runs (bot-cancel-stale-queued-runs.yaml)
@@ -97,8 +98,6 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 #### Bot Workflows (bot-*.yaml)
 
-- **bot-report-queued-runs.yaml**: Hourly, reports the queued runs of each
-  public repository of a user in the job summary
 - **bot-format-files.yaml**: Fridays at 6:00 AM UTC, opens a PR when files
   drifted out of format
 - **bot-pin-action.yaml**: Wednesdays at 8:00 AM UTC, opens a PR that pins
@@ -157,6 +156,9 @@ The `dependabot.yml` configures automatic dependency updates for:
 
 - GitHub Actions: Weekly updates for action versions in workflows
 
+`bot-pin-action.yaml` also updates the action pins (with `ratchet`). Whether
+both are needed is not decided.
+
 ## Workflow Dependencies
 
 ```text
@@ -172,15 +174,16 @@ nightly-tests.yaml
 
 ## Testing Strategy
 
-The repository uses a dual-testing approach:
+The action is tested by two workflows with different roles:
 
-1. **Local Testing** (`ci-action.yaml`): Tests uncommitted changes using `uses:
-./`
-2. **Stable Testing** (`nightly-test-released.yaml`): Tests the published action version
-   for regression detection
+1. **Current code** (`ci-action.yaml`): Tests the code under review with
+   `uses: ./`, on every pull request, push and nightly run of `ci.yaml`
+2. **Last release** (`nightly-test-released.yaml`): Tests the published action
+   version, to detect regressions caused by upstream changes
 
-This ensures both new changes work correctly and the published version remains
-functional.
+The two files are identical except for the header comment, the `name` and the
+`uses:` line. A job that tests an input added after the last release exists only
+in `ci-action.yaml` until the release is bumped.
 
 ## Permissions
 
@@ -192,7 +195,10 @@ All workflows follow the principle of least privilege:
 
 ## Workflow Dispatch
 
-All workflows support manual triggering via `workflow_dispatch`, enabling:
+Workflows that are entry points, and reusable workflows without inputs
+(`ci-format.yaml`, `lib-get-test-matrix.yaml`), support manual triggering via
+`workflow_dispatch`. Reusable workflows with inputs (`ci-action.yaml`,
+`nightly-test-released.yaml`) do not. Manual triggering enables:
 
 - On-demand testing during development
 - Manual verification before releases
