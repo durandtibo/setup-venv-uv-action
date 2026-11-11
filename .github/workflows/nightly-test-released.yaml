@@ -19,7 +19,6 @@ permissions: {}
 jobs:
   test:
     permissions:
-      actions: write
       contents: read
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
@@ -49,7 +48,6 @@ jobs:
 
   test-python-version:
     permissions:
-      actions: write
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -77,7 +75,6 @@ jobs:
 
   test-install-args:
     permissions:
-      actions: write
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -97,7 +94,6 @@ jobs:
 
   test-package:
     permissions:
-      actions: write
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -119,7 +115,6 @@ jobs:
 
   test-package-latest:
     permissions:
-      actions: write
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -140,7 +135,6 @@ jobs:
 
   test-package-args:
     permissions:
-      actions: write
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -168,7 +162,6 @@ jobs:
 
   test-package-extras:
     permissions:
-      actions: write
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -192,7 +185,6 @@ jobs:
 
   test-progress-bar:
     permissions:
-      actions: write
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -38,7 +38,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Trigger**: Push/PR to main branch, nightly schedule, manual dispatch
 - **Purpose**: Main continuous integration pipeline
 - **Jobs**: Calls lib-get-test-matrix, ci-format and ci-action workflows
-- **Permissions**: set per job (`contents: read`, plus `actions: write` for the tests)
+- **Permissions**: set per job (`contents: read`)
 
 #### Format (ci-format.yaml)
 
@@ -66,7 +66,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   - project location: `working-directory` and the missing project files
   - `enable-cache` and the `cache-hit` output
   - validation: one matrix case per invalid value, and the ignored inputs
-- **Permissions**: `actions: write`, `contents: read`
+- **Permissions**: `contents: read`
 
 #### Test Released Action (nightly-test-released.yaml)
 
@@ -77,7 +77,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   `invoke-tasklib`)
 - **Jobs**: Same as ci-action, except for the jobs of inputs added after that
   release, which only exist in ci-action until the release is bumped
-- **Permissions**: `actions: write`, `contents: read`
+- **Permissions**: `contents: read`
 
 ### Scheduled Workflows
 
@@ -87,7 +87,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Purpose**: Regular testing to catch issues early
 - **Jobs**: Calls nightly-test-released (ci.yaml runs the current code nightly
   at 9:10 AM UTC; no format check: formatting does not change with time)
-- **Permissions**: `actions: write`, `contents: read`
+- **Permissions**: `contents: read`
 
 #### Cancel Stale Queued Runs (bot-cancel-stale-queued-runs.yaml)
 
