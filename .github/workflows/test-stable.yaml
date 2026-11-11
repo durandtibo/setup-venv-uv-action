@@ -1,9 +1,9 @@
 # Tests the last stable release (durandtibo/setup-venv-uv-action@v0.2.0) across
-# Linux/macOS, python/install/package input variants. Detects regressions in the published action.
-# Keep the jobs identical to test-local.yaml: only the tested version of the
-# action differs. Exception: a job that tests an input or a behaviour added
-# after the tested release only exists in test-local.yaml. Add it here when the
-# release is bumped.
+# Linux/macOS and the inputs of the action. Detects regressions in the published action.
+# Generated from test-local.yaml by 'make generate-stable-workflow': do not edit it
+# by hand. A job of test-local.yaml that tests an input or a behaviour added after
+# the tested release has a '# local-only' comment above it: it is not copied here
+# until the release is bumped.
 
 name: Test Stable Action
 

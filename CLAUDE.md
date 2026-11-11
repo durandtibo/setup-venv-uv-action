@@ -99,11 +99,15 @@ Conventions:
 The action is tested by `.github/workflows/test-local.yaml` (`uses: ./`) and
 `.github/workflows/test-stable.yaml` (the last release).
 
-- The two files must stay identical except for the header comment, the `name`
-  and the `uses:` line. Change one, then apply the same change to the other.
-  Exception: a job that tests an input added after the latest release goes only
-  in `test-local.yaml`, because the stable release does not know the input. Add
-  it to `test-stable.yaml` when the release in `test-stable.yaml` is bumped.
+- `test-stable.yaml` is generated from `test-local.yaml` by `make
+generate-stable-workflow` (`scripts/generate-stable-workflow.sh`), which `make
+format` runs. Edit `test-local.yaml` only and never `test-stable.yaml` by hand:
+  `format.yaml` fails when the generated file differs. The two files differ by
+  the header comment, the `name` and the `uses:` lines.
+- A job that tests an input or a behaviour added after the latest release has a
+  `# local-only` comment line directly above its key in `test-local.yaml`, so
+  the generator does not copy it. Remove the marker when the release in
+  `test-stable.yaml` is bumped (edit one `uses:` line there, then regenerate).
 - Every input of the action needs a job that sets it and asserts its effect (not
   only that the action succeeds). Add a job when adding an input.
 - Every validated input needs a test that passes an invalid value and asserts
