@@ -274,8 +274,32 @@ runs:
         set -f
         inv env.install ${INSTALL_ARGS}
 
-    # Step 5 (Optional): Install a specific package version for compatibility testing
-    # Only runs if package-name is provided
+    # Step 5.1 (Optional): Install the latest version or a wildcard version of a package
+    # Only runs if package-name is provided and package-version is empty or has
+    # a wildcard (e.g., '2.12.*'): uv-install-package-action (step 5.2) only
+    # accepts a concrete version, and checks it against the Python version
+    # The requirement is passed to uv, which resolves the version: an
+    # installation that fails fails the step
+    # package-install-args is split on whitespace, like install-args (step 4)
+    - name: Install latest or wildcard package version
+      id: package-direct
+      if: ${{ inputs.package-name != '' && (inputs.package-version == '' || contains(inputs.package-version, '*')) }}
+      shell: bash
+      env:
+        PACKAGE_NAME: ${{ inputs.package-name }}
+        PACKAGE_VERSION: ${{ inputs.package-version }}
+        INSTALL_ARGS: ${{ inputs.package-install-args }}
+      run: |
+        requirement="${PACKAGE_NAME}"
+        if [ -n "${PACKAGE_VERSION}" ]; then
+          requirement="${PACKAGE_NAME}==${PACKAGE_VERSION}"
+        fi
+        set -f
+        uv pip install "${requirement}" ${INSTALL_ARGS}
+        echo "installed=true" >> "${GITHUB_OUTPUT}"
+
+    # Step 5.2 (Optional): Install a specific package version for compatibility testing
+    # Only runs if package-name is provided and package-version is a concrete version
     # Useful for testing your project against different versions of a dependency
     # (e.g., test against numpy 1.24.0, 1.25.0, etc. in a matrix strategy)
     # This step runs in the workspace root, not in the working-directory input:
@@ -291,7 +315,7 @@ runs:
     # (step 8 sets the package-installed output from is-valid-version)
     - name: Install specific package version
       id: package
-      if: ${{ inputs.package-name != '' }}
+      if: ${{ inputs.package-name != '' && inputs.package-version != '' && !contains(inputs.package-version, '*') }}
       uses: durandtibo/uv-install-package-action@fe64eac38f69e851b5e79b74ee255ed95a159bc0 # ratchet:durandtibo/uv-install-package-action@v0.2.0
       with:
         package-name: ${{ inputs.package-name }}
@@ -384,7 +408,8 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         PACKAGE_VALID: ${{ steps.package.outputs.is-valid-version }}
+        PACKAGE_DIRECT: ${{ steps.package-direct.outputs.installed }}
       run: |
         python_version="$(python -c 'import platform; print(platform.python_version())')"
         echo "python-version=${python_version}" >> "${GITHUB_OUTPUT}"
-        echo "package-installed=${PACKAGE_VALID:-false}" >> "${GITHUB_OUTPUT}"
+        echo "package-installed=${PACKAGE_DIRECT:-${PACKAGE_VALID:-false}}" >> "${GITHUB_OUTPUT}"

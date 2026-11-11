@@ -207,7 +207,9 @@ This action performs the following steps:
    package/version via
    [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
    (useful for dependency compatibility testing: it checks that the version
-   exists for the Python version)
+   exists for the Python version). When `package-version` is empty or has a
+   wildcard (`2.12.*`), the package is installed with `uv pip install`
+   instead, without that check, and `package-installed` is `true`
 6. **Extra Packages**: If `extra-packages` is set, installs each listed
    requirement with `uv pip install`. These packages are not locked: they are
    not in `uv.lock`, and they are not checked against PyPI
