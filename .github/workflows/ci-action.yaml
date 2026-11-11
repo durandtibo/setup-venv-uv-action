@@ -479,18 +479,15 @@ jobs:
               package-name: "numpy",
               package-version: "2.4.0 --pre",
             }
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Test that uv is not installed before the action
         run: |
           if command -v uv; then
             echo "uv is already installed, the test is not valid"
             exit 1
           fi
-
       - name: Setup python environment with an invalid input (${{ matrix.name }})
         id: setup
         uses: ./
@@ -501,7 +498,6 @@ jobs:
           extra-packages: ${{ matrix.extra-packages }}
           package-name: ${{ matrix.package-name }}
           package-version: ${{ matrix.package-version }}
-
       - name: Test that the action failed in the validation
         env:
           OUTCOME: ${{ steps.setup.outcome }}
@@ -512,7 +508,6 @@ jobs:
             echo "uv is installed: the action did not fail in the validation"
             exit 1
           fi
-
   test-ignored-inputs:
     permissions:
       contents: read
@@ -528,57 +523,54 @@ jobs:
         with:
           package-version: 2.4.0
           package-install-args: "--upgrade"
-
       - name: Test environment
+
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import importlib.util as u; assert u.find_spec('numpy') is None, 'numpy should not be installed'"
-
   test-tasklib-not-in-groups:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Setup python environment without the dependency groups
         uses: ./
         with:
           # an empty list of groups: invoke-tasklib is not synced from the lock
           install-args: "--groups="
-
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
           # the environment is consistent whether or not sync kept invoke-tasklib
-          uv pip check
 
+          uv pip check
   test-package-python-specifier:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-    timeout-minutes: 5
 
+    timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Setup python environment with a Python version range
         uses: ./
         with:
           python-version: ">=3.12,<3.14"
+
           package-name: numpy
           package-version: 2.4.0
-
       - name: Test environment
         run: |
+
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), sys.version"
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
-
   test-install-args-glob:
     permissions:
       contents: read
@@ -588,26 +580,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Create a file that matches the glob pattern of the argument
         run: |
-          touch ./--no-optional-deps
 
+          touch ./--no-optional-deps
       - name: Setup python environment with a glob character in install-args
         id: setup
         uses: ./
         continue-on-error: true
+
         with:
           install-args: "--no-optional-dep?"
-
       - name: Test that the argument was not expanded
         env:
           OUTCOME: ${{ steps.setup.outcome }}
+
         run: |
           # expanded to the valid flag '--no-optional-deps', the action would succeed;
           # passed as is, 'inv env.install' rejects the unknown flag
-          test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
 
+          test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
   test-uv-version:
     permissions:
       contents: read
@@ -617,52 +609,52 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment with a pinned uv version
         id: setup
+
         uses: ./
         with:
           uv-version: "0.12.0"
-
       - name: Test environment
         env:
           OUTPUT_VERSION: ${{ steps.setup.outputs.uv-version }}
         run: |
           python -c "import myproject; print(myproject)"
+
           uv --version
           # the pinned version is installed, not the latest one
           uv --version | grep -qE "^uv 0\.12\.0( |$)" || (echo "expected uv 0.12.0" && exit 1)
+
           # the output is the installed version
           test "${OUTPUT_VERSION}" = "0.12.0" || (echo "expected output 0.12.0, got '${OUTPUT_VERSION}'" && exit 1)
-
   test-working-directory-uv-config:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-    timeout-minutes: 5
 
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Move the project to a subfolder with a restrictive uv.toml
         run: |
           mkdir subproject
+
           mv pyproject.toml uv.lock tasks.py invoke.yaml src subproject/
           # 'uv pip install' only finds invoke-tasklib if it ignores this file
           printf '[pip]\nno-index = true\n' > subproject/uv.toml
-
       - name: Setup python environment
         id: setup
+
         uses: ./
         continue-on-error: true
         with:
           working-directory: subproject
-
       - name: Test that uv read the uv.toml of the working directory
         env:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
+
           if [ "${OUTCOME}" != "failure" ]; then
             echo "expected the action to fail, got '${OUTCOME}'"
             exit 1
@@ -673,27 +665,31 @@ jobs:
           python --version
           # step 3.2 ran in 'subproject', read its uv.toml and found no index:
           # invoke-tasklib is not installed
+
           if uv pip show --quiet invoke-tasklib; then
             echo "invoke-tasklib is installed: step 3.2 ignored the uv.toml"
             exit 1
           fi
           # the dependencies were not installed: step 4 did not run
+
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
-          fi
 
+          fi
   test-package-installed:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     strategy:
       fail-fast: false
       matrix:
         include:
           # installed: the version exists for the Python version
           - package-name: numpy
+
             package-version: "2.4.0"
             expected: "true"
           # installed: the latest version
@@ -708,19 +704,17 @@ jobs:
           - package-name: ""
             package-version: ""
             expected: "false"
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         id: setup
         uses: ./
         with:
           python-version: "3.14"
           package-name: ${{ matrix.package-name }}
-          package-version: ${{ matrix.package-version }}
 
+          package-version: ${{ matrix.package-version }}
       - name: Test the package-installed output
         env:
           EXPECTED: ${{ matrix.expected }}
@@ -734,49 +728,44 @@ jobs:
           installed = importlib.util.find_spec('numpy') is not None
           assert installed == (os.environ['EXPECTED'] == 'true'), installed
           "
-
   test-python-version-invalid:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       # python-version is not validated by the action: uv rejects it
       - name: Setup python environment with a Python version that does not exist
         id: setup
+
         uses: ./
         continue-on-error: true
         with:
           python-version: "3.99"
-
       - name: Test that the action failed before installing the project
         env:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
           if python -c "import myproject" 2> /dev/null; then
+
             echo "myproject is installed: the action did not stop earlier"
             exit 1
           fi
-
   test-python-version-no-hint:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Remove the .python-version file of the project
         run: |
-          rm .python-version
 
+          rm .python-version
       # no input and no .python-version: uv follows requires-python (>=3.10)
       - name: Setup python environment
         id: setup
@@ -785,14 +774,15 @@ jobs:
       - name: Test environment
         env:
           OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
+
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.version_info[:2] >= (3, 10), sys.version"
           python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
-
   test-uv-version-range:
     permissions:
       contents: read
+
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -806,9 +796,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment with a uv version request
         id: setup
+
         uses: ./
         with:
           uv-version: ${{ matrix.uv-version }}
@@ -816,57 +806,55 @@ jobs:
       - name: Test environment
         env:
           PATTERN: ${{ matrix.pattern }}
+
           OUTPUT_VERSION: ${{ steps.setup.outputs.uv-version }}
         run: |
           python -c "import myproject; print(myproject)"
           # the output is the resolved version and matches the request
+
           [[ "${OUTPUT_VERSION}" =~ ${PATTERN} ]] || (echo "unexpected uv-version '${OUTPUT_VERSION}'" && exit 1)
           # the installed uv is the one reported by the output
           uv --version | grep -qE "^uv ${OUTPUT_VERSION//./\\.}( |$)" || (echo "uv does not match '${OUTPUT_VERSION}'" && exit 1)
-
   test-working-directory-paths:
     permissions:
       contents: read
     runs-on: ubuntu-latest
+
     timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
         working-directory: ["sub/project", "./sub/project/", "my project"]
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Move the project to the working directory
         env:
           WORKING_DIRECTORY: ${{ matrix.working-directory }}
         run: |
+
           mkdir -p "${WORKING_DIRECTORY}"
           mv pyproject.toml uv.lock tasks.py invoke.yaml src .python-version "${WORKING_DIRECTORY}/"
-
       - name: Setup python environment
+
         uses: ./
         with:
           working-directory: ${{ matrix.working-directory }}
-
       - name: Test environment
         run: |
+
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.prefix.endswith('/.venv') and not sys.prefix.endswith('/setup-venv-uv-action/.venv'), sys.prefix"
           # nothing was created at the root of the workspace
           test ! -e .venv || (echo "the virtual environment is at the workspace root" && exit 1)
-
   test-package-version-wildcard:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment with a wildcard package version
         id: setup
         uses: ./
@@ -878,32 +866,32 @@ jobs:
       - name: Test environment
         env:
           PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+
         run: |
           python -c "import myproject; print(myproject)"
           test "${PACKAGE_INSTALLED}" = "true" || (echo "expected package-installed true, got '${PACKAGE_INSTALLED}'" && exit 1)
           python -c "import numpy; assert numpy.__version__.startswith('2.4.'), numpy.__version__"
-
   test-package-and-extra-packages:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment with a package and extra packages
         uses: ./
         with:
           package-name: numpy
+
           package-version: 2.4.0
           extra-packages: |
             six==1.17.0
-
       - name: Test environment
         run: |
+
           python -c "import myproject; print(myproject)"
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
           python -c "import importlib.metadata as m; assert m.version('six') == '1.17.0', m.version('six')"
+
           uv pip check
