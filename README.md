@@ -100,15 +100,6 @@ jobs:
     package-install-args: "--upgrade"
 ```
 
-### With UV Progress Bars Enabled
-
-```yaml
-- name: Setup Python environment with uv progress bars
-  uses: durandtibo/setup-venv-uv-action@v0.2.0
-  with:
-    uv-no-progress: "false"
-```
-
 ### With a Project in a Subfolder
 
 ```yaml
@@ -151,7 +142,6 @@ jobs:
 | `working-directory`    | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`    |
 | `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"` |
 | `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`     |
-| `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                           | No       | `"true"` |
 
 ## Outputs
 
@@ -394,9 +384,8 @@ uv lock
 
 ### Error: `Invalid input`
 
-The inputs `uv-no-progress` and `enable-cache` must be `"true"` or
-`"false"` (`enable-cache` also accepts `"auto"`). Quote the values in YAML so
-that they are passed as strings.
+The input `enable-cache` must be `"true"`, `"false"` or `"auto"`. Quote the
+value in YAML so that it is passed as a string.
 
 The input `working-directory` must be a path relative to the workspace (it does
 not start with `/`), without `..`, of a directory that exists. If it does not exist, check that
@@ -433,6 +422,13 @@ which has no working directory option, so this step runs in the workspace root
 and not in `working-directory`. A relative path in `package-install-args` (for
 example `--constraint constraints.txt`) starts at the workspace root. Other
 inputs, such as `install-args` and `extra-packages`, run in `working-directory`.
+
+### Progress Bars
+
+`uv` hides its progress bars when its output is not a terminal, which is the
+case in the log of a workflow, so the action has no input for it. To force a
+`uv` setting for all the steps, set the environment variable in your workflow,
+for example `env: { UV_NO_PROGRESS: "1" }` at the job level.
 
 ### Custom Install Arguments Not Working
 

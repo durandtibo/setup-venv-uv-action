@@ -62,7 +62,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
     `test-tasklib-not-in-groups` (the version is read from `uv.lock`)
   - `test-working-directory`, `test-working-directory-uv-config`,
     `test-missing-files` (one case per missing project file)
-  - `test-uv-version`, `test-cache`, `test-progress-bar`
+  - `test-uv-version`, `test-cache`
   - `test-invalid-inputs` (one matrix case per invalid value),
     `test-ignored-inputs`
 - **Permissions**: `actions: write`, `contents: read`
