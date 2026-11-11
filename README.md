@@ -109,15 +109,6 @@ jobs:
     uv-no-progress: "false"
 ```
 
-### With a Specific invoke-tasklib Version
-
-```yaml
-- name: Setup Python environment with a pinned invoke-tasklib
-  uses: durandtibo/setup-venv-uv-action@v0.2.0
-  with:
-    invoke-tasklib-version: "==0.0.8"
-```
-
 ### With a Project in a Subfolder
 
 ```yaml
@@ -166,7 +157,6 @@ jobs:
 | `package-version`        | Optional package version to install (e.g., `"1.0.0"`). Must be a version, not a specifier. Only used when `package-name` is specified. Leave empty to install latest. | No       | `""`               |
 | `install-args`           | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                       | No       | `""`               |
 | `package-install-args`   | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                         | No       | `""`               |
-| `invoke-tasklib-version` | Version specifier of `invoke-tasklib` installed before running the project tasks (e.g., `">=0.0.8,<1.0.0"`, `"==0.0.8"`). Must include the operator.                  | No       | `">=0.0.8,<1.0.0"` |
 | `working-directory`      | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`              |
 | `enable-cache`           | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"`           |
 | `extra-packages`         | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`               |
@@ -202,13 +192,16 @@ This action performs the following steps:
    `uv-no-progress`, `verbose` or `enable-cache` is invalid
 2. **Validates the Working Directory**: Fails when `working-directory` is
    absolute, outside of the workspace or not an existing directory
-3. **Validates the invoke-tasklib Version**: Fails when `invoke-tasklib-version`
-   is not a version specifier that starts with an operator
-4. **Validates Python and Package Inputs**: Fails when `package-name` is not a
+3. **Validates Python and Package Inputs**: Fails when `package-name` is not a
    package name, when `package-version` is not a version, or when a line of
    `extra-packages` starts with `-` (an option instead of a requirement). It
    warns about inputs that are ignored (`package-version` or
    `package-install-args` without `package-name`)
+4. **Reads the invoke-tasklib Version**: Uses
+   [durandtibo/extract-pyproject-metadata-action](https://github.com/durandtibo/extract-pyproject-metadata-action)
+   to read the version specifier of `invoke-tasklib` from the `pyproject.toml`
+   of the project (dependencies, extras and dependency groups). It needs a
+   Python 3.11 or later on `PATH`, which the GitHub-hosted runners provide
 5. **Installs uv and Python**: Uses
    [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) to install the
    `uv` package manager (see `uv-version`), set up the requested
@@ -217,16 +210,18 @@ This action performs the following steps:
 6. **Verifies Installation**: Checks that `uv` and `python` are available in
    PATH, and logs their paths and versions
 7. **Installs Task Runner**: Installs
-   [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) for
-   running project tasks. Steps 6 and 7 run in `working-directory`, so `uv`
+   [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib), with the
+   version specifier of the project, for running project tasks. It emits a
+   warning and installs the latest version when the project does not declare
+   a specifier. Steps 6 and 7 run in `working-directory`, so `uv`
    reads the `uv.toml` of the project (for example its index settings)
 8. **Verifies Project Tasks**: Fails early with a clear message if `tasks.py`
    or the `env.install` task is missing
 9. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
    `uv sync --frozen` and install the current project in editable mode. If
    `invoke-tasklib` is no longer installed afterwards, because it is not a
-   dependency of the project, installs it again (see
-   `invoke-tasklib-version`) and reports it with a notice
+   dependency of the project, installs it again (with the
+   version of the project) and reports it with a notice
 10. **Optional Package**: If `package-name` is set, installs that specific
     package/version via
     [durandtibo/uv-install-package-action](https://github.com/durandtibo/uv-install-package-action)
@@ -350,8 +345,9 @@ Note: The action installs `invoke-tasklib` before running your tasks. The
 `uv sync` step removes it when it is not in your lock file, and the action then
 installs it again, so `inv` stays available. Including `invoke-tasklib` in your
 project dependencies is still recommended: its version is then locked with the
-other dependencies. Use the `invoke-tasklib-version` input to change the
-version installed by the action.
+other dependencies. The version installed by the action is the specifier
+declared in your `pyproject.toml`; without a specifier, the action installs the
+latest version and emits a warning.
 
 ### Example `pyproject.toml`
 
@@ -403,13 +399,21 @@ subfolder) and contains:
 from invoke_tasklib import ns
 ```
 
+### Warning: `Unpinned invoke-tasklib`
+
+The action reads the version of `invoke-tasklib` from the `pyproject.toml` of
+the project (in the dependencies, an extra or a dependency group). When it is
+not declared there, or declared without a specifier, the action installs the
+latest version. Declare it with a specifier, for example
+`"invoke-tasklib >=0.0.8,<1.0.0"`, in the `dev` dependency group.
+
 ### Notice: `invoke-tasklib reinstalled`
 
 The action installs `invoke-tasklib` before your project dependencies, and
 `inv env.install` runs `uv sync --frozen`, which removes every package that is
 not in your lock file. If `invoke-tasklib` is not a dependency of your project,
-it is removed, so the action installs it again with the version of
-`invoke-tasklib-version`. The diagnostic steps and your own later steps that use
+it is removed, so the action installs it again with the version of your
+`pyproject.toml` (the latest version when there is none). The diagnostic steps and your own later steps that use
 `inv` keep working, but the version of `invoke-tasklib` is not locked.
 
 Add `invoke-tasklib` to a dependency group installed by `inv env.install` (the
@@ -434,11 +438,6 @@ that they are passed as strings.
 The input `working-directory` must be a path relative to the workspace, without
 `..`, of a directory that exists. If it does not exist, check that
 `actions/checkout` runs before the action.
-
-The input `invoke-tasklib-version` must be a version specifier whose clauses
-start with an operator, separated by commas (e.g., `">=0.0.8,<1.0.0"` or
-`"==0.0.8"`). A bare version such as `"0.0.8"` is rejected: use `"==0.0.8"`. An
-empty value is accepted and installs the latest version of `invoke-tasklib`.
 
 The input `package-name` must be a package name made of letters, digits, `.`,
 `_` and `-`, optionally followed by extras in brackets (e.g., `"numpy"` or

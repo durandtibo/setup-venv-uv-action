@@ -188,10 +188,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
+      - name: Pin invoke-tasklib in the project dependencies
+        run: |
+          pipx run uv add --no-sync --group dev "invoke-tasklib==0.0.8"
+
       - name: Setup python environment
         uses: ./
-        with:
-          invoke-tasklib-version: "==0.0.8"
 
       - name: Test environment
         run: |
@@ -206,12 +208,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
+      - name: Require an unsatisfiable invoke-tasklib version in the project dependencies
+        run: |
+          sed -i 's/"invoke-tasklib >=0.0.8,<1.0.0"/"invoke-tasklib >=999.0.0"/' pyproject.toml
+          grep -q 'invoke-tasklib >=999.0.0' pyproject.toml
+
       - name: Setup python environment with an unsatisfiable invoke-tasklib version
         id: setup
         uses: ./
         continue-on-error: true
-        with:
-          invoke-tasklib-version: ">=999.0.0"
 
       - name: Test that the action failed while installing invoke-tasklib
         env:
@@ -412,13 +417,6 @@ jobs:
         with:
           enable-cache: "maybe"
 
-      - name: Setup python environment with an invalid invoke-tasklib-version
-        id: tasklib-version
-        uses: ./
-        continue-on-error: true
-        with:
-          invoke-tasklib-version: "0.0.8"
-
       - name: Setup python environment with an invalid package-name
         id: package-name
         uses: ./
@@ -432,18 +430,16 @@ jobs:
           OUTCOME_UV_NO_PROGRESS: ${{ steps.uv-no-progress.outcome }}
           OUTCOME_VERBOSE: ${{ steps.verbose.outcome }}
           OUTCOME_ENABLE_CACHE: ${{ steps.enable-cache.outcome }}
-          OUTCOME_TASKLIB_VERSION: ${{ steps.tasklib-version.outcome }}
           OUTCOME_PACKAGE_NAME: ${{ steps.package-name.outcome }}
         run: |
           for outcome in \
             "${OUTCOME_UV_NO_PROGRESS}" \
             "${OUTCOME_VERBOSE}" \
             "${OUTCOME_ENABLE_CACHE}" \
-            "${OUTCOME_TASKLIB_VERSION}" \
             "${OUTCOME_PACKAGE_NAME}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
-          # the validation (steps 1 to 4) failed: uv was not installed yet
+          # the validation (steps 1 to 3) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
@@ -500,19 +496,21 @@ jobs:
         run: |
           pipx run uv remove --no-sync --group dev invoke-tasklib
 
+      - name: Pin invoke-tasklib in the project dependencies
+        run: |
+          pipx run uv add --no-sync --group dev "invoke-tasklib==0.0.8"
+
       - name: Setup python environment
         uses: ./
-        with:
-          invoke-tasklib-version: "==0.0.8"
           verbose: ${{ matrix.verbose }}
 
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
           # invoke-tasklib is not a dependency of the project: sync removed it,
-          # and the action installed it again with the requested version
-          if ! uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$"; then
-            echo "expected invoke-tasklib 0.0.8"
+          # and the action installed it again (latest version, with a warning)
+          if ! uv pip show --quiet invoke-tasklib; then
+            echo "expected invoke-tasklib to be installed"
             exit 1
           fi
           # the tasks are still available for the next steps of the workflow
@@ -591,7 +589,7 @@ jobs:
           for outcome in "${OUTCOME_OUTSIDE}" "${OUTCOME_ABSOLUTE}" "${OUTCOME_MISSING}"; do
             test "${outcome}" = "failure" || (echo "expected the action to fail, got '${outcome}'" && exit 1)
           done
-          # the validation (steps 1 to 4) failed: uv was not installed yet
+          # the validation (steps 1 to 3) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
@@ -739,7 +737,7 @@ jobs:
               exit 1
             fi
           done
-          # the validation (steps 1 to 4) failed: uv was not installed yet
+          # the validation (steps 1 to 3) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
@@ -787,7 +785,7 @@ jobs:
               exit 1
             fi
           done
-          # the validation (steps 1 to 4) failed: uv was not installed yet
+          # the validation (steps 1 to 3) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
