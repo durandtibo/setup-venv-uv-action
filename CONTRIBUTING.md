@@ -138,7 +138,7 @@ Write clear, concise commit messages following these guidelines:
 The action is tested through GitHub Actions workflows. To test locally:
 
 1. **Test with the local action**:
-   Create a test workflow in `.github/workflows/test-local.yaml` (already
+   Create a test workflow in `.github/workflows/ci-action.yaml` (already
    exists)
 
 2. **Verify formatting**:
@@ -151,9 +151,9 @@ The action is tested through GitHub Actions workflows. To test locally:
 
 The project includes several test workflows:
 
-- **test-local.yaml**: Tests the action from the local repository
-- **test-stable.yaml**: Tests the published stable version
-- **format.yaml**: Validates code formatting (markdown, YAML)
+- **ci-action.yaml**: Tests the action from the local repository
+- **nightly-test-released.yaml**: Tests the published stable version (nightly)
+- **ci-format.yaml**: Validates code formatting (markdown, YAML)
 - **ci.yaml**: Main CI pipeline that runs all checks
 
 Test your changes by pushing to your fork and checking the Actions tab.
