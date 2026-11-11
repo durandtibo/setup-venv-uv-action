@@ -1,4 +1,5 @@
-# Checks that YAML, Makefile, shell, and Markdown files follow the repo's formatting rules.
+# Checks that YAML, Makefile, shell, and Markdown files follow the repo's formatting rules,
+# and that test-stable.yaml is up to date with test-local.yaml (make generate-stable-workflow).
 
 name: Format
 on:
