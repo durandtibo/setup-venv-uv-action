@@ -78,7 +78,7 @@ Files are prefixed by role:
   - `ci-format.yaml`: YAML, Makefile, shell and Markdown format check.
   - `ci-action.yaml`: tests the action from this checkout (`uses: ./`), i.e.
     the version not released yet.
-- `nightly-tests.yaml`: scheduled entry point that calls
+- `nightly.yaml`: scheduled entry point that calls
   `nightly-test-released.yaml`, which tests the last release (the current code
   is tested nightly by `ci.yaml`).
 - `ci-verify-workflows.yaml`: lints the workflow files themselves. It has its

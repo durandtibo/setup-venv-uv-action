@@ -1,7 +1,7 @@
 # Main CI workflow that orchestrates all quality checks and tests.
 # Runs on pull requests, pushes to main, a nightly schedule, and manual dispatch.
 # It tests the current repository code, including the action
-# that is not released yet. The last release is tested by nightly-tests.yaml.
+# that is not released yet. The last release is tested by nightly.yaml.
 #
 # Deliberately NOT called from here, with its own trigger:
 #   - ci-verify-workflows.yaml: lints .github/workflows/* itself.

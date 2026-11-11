@@ -47,11 +47,13 @@ jobs:
   test-python-version:
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
+      max-parallel: 8
       fail-fast: false
       matrix:
+        os: ${{ fromJson(inputs.test-matrix).os_matrix }}
         python-version: ${{ fromJson(inputs.test-matrix).python_versions_standard }}
 
     steps:

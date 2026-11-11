@@ -16,7 +16,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 │   ├── ci-format.yaml                 # Formatting checks
 │   ├── ci-action.yaml                 # Tests the action of this repository
 │   ├── nightly-test-released.yaml     # Tests the last stable release
-│   ├── nightly-tests.yaml             # Scheduled nightly test runs
+│   ├── nightly.yaml             # Scheduled nightly test runs
 │   ├── ci-verify-workflows.yaml       # Validates workflow file syntax
 │   ├── security-scorecard.yaml        # OSSF Scorecard analysis
 │   ├── security-dependency-review.yaml # Reviews dependencies changed by a PR
@@ -84,7 +84,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 ### Scheduled Workflows
 
-#### Nightly Tests (nightly-tests.yaml)
+#### Nightly Tests (nightly.yaml)
 
 - **Trigger**: Daily at 10:30 AM UTC, manual dispatch
 - **Purpose**: Regular testing to catch issues early
@@ -170,7 +170,7 @@ ci.yaml
 ├─→ ci-format.yaml (make format + git diff)
 └─→ ci-action.yaml (test with current code)
 
-nightly-tests.yaml
+nightly.yaml
 ├─→ lib-get-test-matrix.yaml
 └─→ nightly-test-released.yaml (test with published version)
 ```
