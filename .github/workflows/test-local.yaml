@@ -38,12 +38,17 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Setup python environment
+        id: setup
         uses: ./
 
       - name: Test environment
+        env:
+          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
         run: |
           python -c "import myproject; print(myproject)"
-          python --version | grep -q "3\.14\." || (echo "expected default python 3.14.x" && exit 1)
+          # no python-version: uv selects a version that satisfies requires-python
+          python -c "import sys; assert sys.version_info >= (3, 10), sys.version"
+          python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
           # the virtual environment must be active
           python -c "import sys; assert sys.prefix != sys.base_prefix, 'venv not active'"
           # no package should be installed when 'extra-packages' is empty
@@ -337,7 +342,7 @@ jobs:
           OUTCOME: ${{ steps.setup.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
-          # the validation (steps 1.1 to 1.5) failed: uv was not installed yet
+          # the validation (steps 1.1 to 1.4) failed: uv was not installed yet
           if command -v uv; then
             echo "uv is installed: the action did not fail in the validation"
             exit 1
@@ -362,6 +367,30 @@ jobs:
           python -c "import myproject; print(myproject)"
           # the environment is consistent whether or not sync kept invoke-tasklib
           uv pip check
+
+  test-python-version-file:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Add a .python-version file to the project
+        run: |
+          echo "3.12" > .python-version
+
+      - name: Setup python environment without python-version
+        id: setup
+        uses: ./
+
+      - name: Test that uv selected the version of .python-version
+        env:
+          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import sys; assert sys.version_info[:2] == (3, 12), sys.version"
+          python -c "import os; v = os.environ['OUTPUT_VERSION']; assert v.startswith('3.12.'), v"
 
   test-python-version-range:
     runs-on: ubuntu-latest

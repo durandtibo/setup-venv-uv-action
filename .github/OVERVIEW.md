@@ -54,7 +54,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   `durandtibo/workflow-config-action`
 - **Jobs**: One job per input or behavior of the action:
   - `test`: default inputs, on every Unix OS of the config
-  - `test-python-version`: every standard Python version of the config
+  - `test-python-version`: every standard Python version of the config;
+    `test-python-version-file`: the empty value reads `.python-version`
   - `test-install-args`, `test-install-args-glob`, `test-extra-packages`,
     `test-python-version-range`: installation inputs
   - `test-tasklib-version`, `test-tasklib-missing`,
