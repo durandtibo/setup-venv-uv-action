@@ -165,11 +165,12 @@ case), and `extra-packages` for tools that always exist (`pytest-xdist`).
 
 ## Outputs
 
-| Output           | Description                                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| `cache-hit`      | Whether the `uv` cache was restored (`true` or `false`). Empty when the cache is disabled. |
-| `uv-version`     | Version of `uv` that was installed (`0.9.0`).                                              |
-| `python-version` | Full version of the Python interpreter of the environment (`3.14.0`)                       |
+| Output              | Description                                                                                                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cache-hit`         | Whether the `uv` cache was restored (`true` or `false`). Empty when the cache is disabled.                                                                                       |
+| `uv-version`        | Version of `uv` that was installed (`0.9.0`).                                                                                                                                    |
+| `python-version`    | Full version of the Python interpreter of the environment (`3.14.0`)                                                                                                             |
+| `package-installed` | Whether `package-name` was installed (`true` or `false`). `false` when `package-name` is empty or when the version is not valid for the Python version (the install is skipped). |
 
 Example:
 
@@ -220,8 +221,9 @@ This action performs the following steps:
    (`uv pip list`), the dependency tree (`uv pip tree --show-version-specifiers`)
    and the result of `uv pip check`, which detects missing dependencies, version
    conflicts and broken installations
-8. **Sets Outputs**: Exposes the full `python-version` of the environment
-   (the `uv-version` output comes from `astral-sh/setup-uv`)
+8. **Sets Outputs**: Exposes the full `python-version` of the environment and
+   `package-installed` (the `uv-version` and `cache-hit` outputs come from
+   `astral-sh/setup-uv`)
 
 The steps of the report use `continue-on-error: true`, so a failure
 is logged but does not fail the action (see
@@ -270,14 +272,21 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup with specific dependency version
+        id: setup
         uses: durandtibo/setup-venv-uv-action@v0.2.0
         with:
           package-name: "requests"
           package-version: ${{ matrix.package-version }}
 
       - name: Test with this version
+        if: ${{ steps.setup.outputs.package-installed == 'true' }}
         run: python -m pytest
 ```
+
+A version that does not exist for the Python version is skipped with a warning,
+and the action succeeds. `package-installed` is then `false`, so the tests of
+that combination can be skipped, as above. A matrix of packages and Python
+versions does not fail for the combinations that do not exist.
 
 ### Testing on Linux and macOS
 

@@ -59,6 +59,9 @@ outputs:
   python-version:
     description: "Full version of the Python interpreter of the environment (e.g., '3.14.0')."
     value: ${{ steps.python-version.outputs.python-version }}
+  package-installed:
+    description: "Whether 'package-name' was installed ('true' or 'false'). 'false' when 'package-name' is empty, or when the requested version is not valid for the Python version (the installation is skipped with a warning). Use it to skip the tests of a combination that does not exist."
+    value: ${{ steps.python-version.outputs.package-installed }}
 
 runs:
   using: "composite"
@@ -313,7 +316,12 @@ runs:
     # The python-version input is not forwarded: uv-install-package-action only
     # accepts 'X.Y' versions, whereas python-version can be any uv version
     # request (e.g., '>=3.12'). It detects the version of the active interpreter
+    # Its is-valid-version output is false when the requested version does not
+    # exist for the Python version: the installation is then skipped and the
+    # step succeeds. A failed installation fails the step, so the action fails
+    # (step 8 sets the package-installed output from is-valid-version)
     - name: Install specific package version
+      id: package
       if: ${{ inputs.package-name != '' }}
       uses: durandtibo/uv-install-package-action@fe64eac38f69e851b5e79b74ee255ed95a159bc0 # ratchet:durandtibo/uv-install-package-action@v0.2.0
       with:
@@ -410,10 +418,15 @@ runs:
     # failure fails the step instead of silently setting an empty output
     # It runs in the working-directory input, like the other steps, so that the
     # interpreter is found in the same project as the install
+    # package-installed is true only when the package step reports a valid
+    # version (the output is empty when the step did not run, hence 'false')
     - name: Set outputs
       id: python-version
       shell: bash
       working-directory: ${{ inputs.working-directory }}
+      env:
+        PACKAGE_VALID: ${{ steps.package.outputs.is-valid-version }}
       run: |
         python_version="$(python -c 'import platform; print(platform.python_version())')"
         echo "python-version=${python_version}" >> "${GITHUB_OUTPUT}"
+        echo "package-installed=${PACKAGE_VALID:-false}" >> "${GITHUB_OUTPUT}"
