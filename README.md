@@ -16,8 +16,7 @@ and resolver.
   installations, and additional install arguments
 - **Environment Verification**: Automatically verifies the environment setup
   with dependency checks and diagnostics
-- **Linux and macOS**: Tested on the Linux and macOS GitHub-hosted runners.
-  Windows runners are not tested and not supported
+- **Linux and macOS**: Tested on the Linux and macOS GitHub-hosted runners
 - **Debug-Friendly**: Always shows the Python interpreters, the installed
   packages, and the dependency tree
 
@@ -140,18 +139,24 @@ jobs:
 
 ## Inputs
 
-| Input                  | Description                                                                                                                                                           | Required | Default  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
-| `python-version`       | Python version to use (e.g., `"3.13"`, `"3.12"`, `"3.11"`, `"3.10"`) or any version request supported by `uv` (e.g., `">=3.12,<3.14"`)                                | No       | `"3.14"` |
-| `uv-version`           | Version of `uv` to install (e.g., `"0.9.0"`, `"0.9.x"`, `">=0.9,<0.10"`). Leave empty to use the `required-version` of the project, or the latest.                    | No       | `""`     |
-| `package-name`         | Optional package name to install for dependency compatibility testing. Used with `package-version`. Leave empty to skip.                                              | No       | `""`     |
-| `package-version`      | Optional package version to install (e.g., `"1.0.0"`). Must be a version, not a specifier. Only used when `package-name` is specified. Leave empty to install latest. | No       | `""`     |
-| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`). Split on whitespace, no globbing.                       | No       | `""`     |
-| `package-install-args` | Optional arguments passed to `uv pip install` when installing `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root.                         | No       | `""`     |
-| `working-directory`    | Directory that contains the project (`pyproject.toml`, `tasks.py`, `invoke.yaml`), relative to the workspace.                                                         | No       | `"."`    |
-| `enable-cache`         | Enable the GitHub Actions cache of `uv` (`"true"`, `"false"` or `"auto"`). `"auto"` enables it on GitHub-hosted runners only.                                         | No       | `"auto"` |
-| `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line, not options (no `-` at the start of a line). Leave empty to skip.   | No       | `""`     |
-| `uv-no-progress`       | Disable `uv` progress bars (sets the `UV_NO_PROGRESS` env var for the steps that run `uv`).                                                                           | No       | `"true"` |
+The table is generated from `action.yaml` by `make generate-readme-inputs`.
+
+<!-- inputs:start -->
+
+| Input                  | Description                                                                                                                                                                                                                                                                    | Required | Default  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- |
+| `python-version`       | Python version to use (e.g., `3.13`, `3.12`, `3.11`, `3.10`) or any version request supported by uv (e.g., `>=3.12,<3.14`). Defaults to Python 3.14.                                                                                                                           | No       | `"3.14"` |
+| `uv-version`           | Version of uv to install (e.g., `0.9.0`, `0.9.x`, `>=0.9,<0.10` or `latest`). Leave empty to use the `required-version` of the project (`uv.toml` or `pyproject.toml`) if any, and the latest version otherwise.                                                               | No       | `""`     |
+| `package-name`         | Optional package name to install for dependency compatibility testing. Use with `package-version` to test specific versions. Leave empty to skip.                                                                                                                              | No       | `""`     |
+| `package-version`      | Optional package version to install (e.g., `1.0.0`). It must be a version, not a specifier (e.g., `>=1.0` is rejected). Only used when `package-name` is specified. Leave empty to install the latest version.                                                                 | No       | `""`     |
+| `install-args`         | Optional arguments passed to the `inv env.install` command (e.g., `--no-optional-deps`, `--groups=dev,docs`, or custom flags supported by your invoke-tasklib configuration). The value is split on whitespace: quotes are not interpreted and glob characters are kept as is. | No       | `""`     |
+| `package-install-args` | Optional arguments passed to the `uv pip install` command used to install `package-name` (e.g., `--upgrade`). Relative paths start at the workspace root, not at `working-directory`.                                                                                          | No       | `""`     |
+| `extra-packages`       | Optional additional packages to install after the project dependencies, one requirement per line (e.g., `pytest-xdist` or `requests>=2.31`). A line cannot be an option: it must not start with `-`. Leave empty to skip.                                                      | No       | `""`     |
+| `enable-cache`         | Enable the GitHub Actions cache of uv (`true`, `false` or `auto`). `auto` (default) enables the cache on GitHub-hosted runners and disables it elsewhere, like astral-sh/setup-uv. The cache is keyed on the lock files of the project.                                        | No       | `"auto"` |
+| `working-directory`    | Directory that contains the project (`pyproject.toml`, `uv.lock`, `tasks.py`, `invoke.yaml`), relative to the workspace. Use it for repositories where the Python project is in a subfolder.                                                                                   | No       | `"."`    |
+| `uv-no-progress`       | Disable uv progress bars (`true` or `false`). Defaults to `true`.                                                                                                                                                                                                              | No       | `"true"` |
+
+<!-- inputs:end -->
 
 ## Outputs
 
@@ -178,7 +183,7 @@ Example:
 
 This action performs the following steps:
 
-1. **Validates the Inputs and the Project** (steps 1.1 to 1.10, one step per
+1. **Validates the Inputs and the Project** (steps 1.1 to 1.9, one step per
    input or check): fails with a clear message, before anything is installed,
    when an input is invalid or a project file is missing. The rules are in
    [Error: `Invalid input`](#error-invalid-input) and
@@ -272,8 +277,6 @@ jobs:
 
 ### Testing on Linux and macOS
 
-Windows runners are not tested, so they are not part of this example.
-
 ```yaml
 jobs:
   test:
@@ -293,8 +296,10 @@ jobs:
 
 ## Requirements
 
-This action expects the following files in the project directory (the
-repository root, or the `working-directory` input):
+The project contract: the project directory (the repository root, or the
+`working-directory` input) must contain the following files. The action checks
+the first three before installing anything (see
+[Error: `Missing project file`](#error-missing-project-file)).
 
 - A `pyproject.toml` file (for dependency management)
 - A `uv.lock` file, committed to the repository: dependencies are installed
@@ -303,19 +308,19 @@ repository root, or the `working-directory` input):
   [`invoke-tasklib`](https://github.com/durandtibo/invoke-tasklib) task
   collection
 - An `invoke.yaml` file configuring `invoke-tasklib` with your package name
-- `invoke-tasklib>=0.0.8,<1.0.0` in your project dependencies (e.g., in a dev
-  dependency group), so that it is in `uv.lock`: the action installs the exact
-  locked version
+- `invoke-tasklib>=0.0.8,<1.0.0` in a dependency group or an extra of
+  `pyproject.toml` that `install-args` installs (the `dev` group by default).
+  It must be in `uv.lock`: the action installs the exact locked version and
+  fails otherwise (see
+  [Error: `Missing invoke-tasklib`](#error-missing-invoke-tasklib))
 
 The action uses one task of the collection, `env.install`, which installs the
 dependencies. If it is missing, the action fails.
 
-Note: The action installs the version of `invoke-tasklib` that is locked in
-`uv.lock` before running your tasks, and fails when it is not in the lock file.
 If your `install-args` excludes the dependency group of `invoke-tasklib`,
-`inv env.install` may remove it from the environment afterwards: the action
+`inv env.install` may remove it from the environment afterwards. The action
 does not need `inv` after that step, but a later step of your workflow that
-uses `inv` must install the group itself.
+uses `inv` is responsible for installing the group.
 
 ### Example `pyproject.toml`
 
@@ -339,6 +344,20 @@ tasklib:
   package:
     name: my_package
 ```
+
+## Migrating from v0.2.0
+
+The next release removes an input and tightens the checks. Unknown inputs only
+produce a workflow warning, so a workflow that still passes a removed input
+keeps running, but loses the feature.
+
+| Before                                                  | After                                                                         |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `verbose: "false"`                                      | Input removed; the report steps always run                                    |
+| `invoke-tasklib` missing from the project               | Fails in step 3.1 with the fix (was a warning or notice and a reinstall)      |
+| `invoke-tasklib` version from the `pyproject.toml` spec | Exact version from `uv.lock`                                                  |
+| Project without `uv.lock`                               | Fails in step 1.3 (was an error from `uv sync`)                               |
+| `env.show-*` tasks used by the diagnostics              | Not needed: the reports use `uv` commands, and only `env.install` is required |
 
 ## Troubleshooting
 
@@ -393,6 +412,11 @@ uv lock
 ```
 
 ### Error: `Invalid input`
+
+Each validated input has its own step (1.1 to 1.9), which fails before anything
+is installed. The inputs `python-version`, `uv-version` and `install-args` are
+not validated, because only `uv`, `setup-uv` and `invoke-tasklib` can interpret
+them: an invalid value fails in the step that uses it.
 
 The inputs `uv-no-progress` and `enable-cache` must be `"true"` or
 `"false"` (`enable-cache` also accepts `"auto"`). Quote the values in YAML so

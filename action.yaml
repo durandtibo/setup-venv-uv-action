@@ -42,7 +42,7 @@ inputs:
     required: false
   working-directory:
     default: "."
-    description: "Directory that contains the project ('pyproject.toml', 'tasks.py', 'invoke.yaml'), relative to the workspace. Use it for repositories where the Python project is in a subfolder."
+    description: "Directory that contains the project ('pyproject.toml', 'uv.lock', 'tasks.py', 'invoke.yaml'), relative to the workspace. Use it for repositories where the Python project is in a subfolder."
     required: false
   uv-no-progress:
     default: "true"
