@@ -44,8 +44,10 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 - **Trigger**: Called by CI workflow, manual dispatch
 - **Purpose**: Checks that YAML, Makefile, shell, and Markdown files follow the
-  formatting rules
-- **Jobs**: Runs `make format`, then fails if `git diff` shows changes
+  formatting rules, and that the README matches `action.yaml`
+- **Jobs**: Runs `make format`, then fails if `git diff` shows changes. Then
+  runs `make check-readme`, which fails when the inputs, the outputs or the
+  defaults of `action.yaml` differ from the README tables
 - **Permissions**: `contents: read`
 
 #### Test Action (ci-action.yaml)
