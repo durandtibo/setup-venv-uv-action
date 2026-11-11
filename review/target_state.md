@@ -92,7 +92,7 @@ Verified against the files:
 | `README.md`           | "Validates ... (steps 1.1 to 1.10)"                                                                                                        | The action has steps 1.1 to 1.9.                                                           |
 | `README.md`           | `invoke.yaml` is required                                                                                                                  | Nothing checks it (open point 5): either it is required and validated, or it is optional.  |
 | `.github/OVERVIEW.md` | Lists `bot-report-queued-runs.yaml`                                                                                                        | The file does not exist.                                                                   |
-| `.github/OVERVIEW.md` | Nightly runs at 9:00 UTC; `nightly-test-released` is "called by CI workflow"                                                               | `nightly-tests.yaml` runs at 10:30 UTC and is the caller; `ci.yaml` runs at 9:10.          |
+| `.github/OVERVIEW.md` | Nightly runs at 9:00 UTC; `nightly-test-released` is "called by CI workflow"                                                               | `nightly.yaml` runs at 10:30 UTC and is the caller; `ci.yaml` runs at 9:10.                |
 | `.github/OVERVIEW.md` | "All workflows support `workflow_dispatch`"                                                                                                | Reusable workflows with inputs do not (and `CLAUDE.md` says so).                           |
 | `.github/OVERVIEW.md` | Lists the test jobs by name                                                                                                                | The list goes stale at every test change.                                                  |
 | `tasks.py`            | Docstring documents `env.show-installed-packages` and `env.show-python-config`                                                             | The action uses only `env.install`.                                                        |
@@ -396,7 +396,7 @@ Keep both files, with the roles of 2.5 and the `CLAUDE.md` rule unchanged:
 
 - `ci-action.yaml` (`uses: ./`) is called by `ci.yaml`.
 - `nightly-test-released.yaml` (`uses: durandtibo/setup-venv-uv-action@<sha>`
-  of the last release) is called by `nightly-tests.yaml`.
+  of the last release) is called by `nightly.yaml`.
 - The jobs are the same, except for the jobs of inputs or behaviour added after
   the release, which exist only in `ci-action.yaml` until the release is bumped.
 
@@ -449,7 +449,7 @@ lines of Python or `yq`. It does not replace review, but it catches the
 - `ci.yaml`, `ci-format.yaml`, `lib-get-test-matrix.yaml`,
   `ci-verify-workflows.yaml`, `security-*.yaml`: no change proposed. They
   follow the conventions of `CLAUDE.md`.
-- `nightly-tests.yaml`: calls the same `ci-action.yaml` with the latest release
+- `nightly.yaml`: calls the same `ci-action.yaml` with the latest release
   (section 6.2). It no longer calls a separate file.
 - `bot-*.yaml`: not audited beyond their headers.
 - `dependabot.yml` and `bot-pin-action.yaml` both update action pins (open
