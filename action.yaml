@@ -254,6 +254,8 @@ runs:
     # The exact version is read from uv.lock, so that the bootstrap is
     # reproducible and needs no Python before the setup of the environment
     # 'uv export --frozen' neither resolves nor modifies the lock file
+    # The export is assigned on its own line, so that a failure of uv fails the
+    # step (the failure is not hidden by the search of the requirement)
     # It fails when invoke-tasklib is not in the lock file of the project
     # The requirement is used in step 3.2
     - name: Read the locked invoke-tasklib version
@@ -262,7 +264,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         requirements="$(uv export --frozen --no-hashes --no-emit-project --all-groups --all-extras)"
-        requirement="$(grep -E '^invoke-tasklib==' <<< "${requirements}" | sed -n '1p' | cut -d' ' -f1 || true)"
+        requirement="$(awk '/^invoke-tasklib==/ { print $1; exit }' <<< "${requirements}")"
         if [ -z "${requirement}" ]; then
           echo "::error title=Missing invoke-tasklib::'invoke-tasklib' is not in 'uv.lock'. Add it to a dependency group of 'pyproject.toml' (for example 'dev = [\"invoke-tasklib >=0.0.8,<1.0.0\"]'), then run 'uv lock' and commit the result."
           exit 1
@@ -348,7 +350,7 @@ runs:
           uv pip install "${packages[@]}"
         fi
 
-    # Steps 7.1 to 7.5 report the environment for debugging
+    # Steps 7.1 to 7.4 report the environment for debugging
     # Each step runs one command, so that a failure never hides the output of the
     # others, and uses continue-on-error so a reporting failure does not fail the
     # action. They always run
@@ -365,17 +367,7 @@ runs:
         which python
         python --version
 
-    # Step 7.2: Show the Python interpreters managed by uv
-    - name: Show the Python interpreters
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      continue-on-error: true
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
-      run: |
-        uv python list --only-installed
-
-    # Step 7.3: Show all the installed packages with their versions
+    # Step 7.2: Show all the installed packages with their versions
     # Helpful for debugging dependency issues and verifying installations
     - name: Show the installed packages
       shell: bash
@@ -386,7 +378,7 @@ runs:
       run: |
         uv pip list
 
-    # Step 7.4: Show the dependency tree with the version constraints
+    # Step 7.3: Show the dependency tree with the version constraints
     # Shows the direct and transitive dependencies with their specifiers
     # (e.g., >=1.0.0, <2.0), to understand dependency relationships and conflicts
     - name: Show the dependency tree
@@ -398,7 +390,7 @@ runs:
       run: |
         uv pip tree --show-version-specifiers
 
-    # Step 7.5: Check the environment
+    # Step 7.4: Check the environment
     # Runs 'uv pip check' to detect missing dependencies, version conflicts and
     # broken installations. The conflicts are logged but do not fail the action
     - name: Check the environment
@@ -413,18 +405,15 @@ runs:
     # Step 8: Set the outputs of the action
     # Reads the version from the interpreter that is active at the end of the
     # action (after the dependencies are installed), not from the requested input
-    # 'uv python find' returns the interpreter of the active virtual environment,
-    # and the version is read before writing the output so that a failure fails
-    # the step instead of silently setting an empty output
-    # It runs in the working-directory input, like the other steps that use uv,
-    # so that the interpreter is found in the same project as the install
+    # 'python' is the interpreter of the virtual environment (activated by
+    # setup-uv), and the version is read before writing the output so that a
+    # failure fails the step instead of silently setting an empty output
+    # It runs in the working-directory input, like the other steps, so that the
+    # interpreter is found in the same project as the install
     - name: Set outputs
       id: python-version
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      env:
-        UV_NO_PROGRESS: ${{ inputs.uv-no-progress }}
       run: |
-        python_bin="$(uv python find)"
-        python_version="$("${python_bin}" -c 'import platform; print(platform.python_version())')"
+        python_version="$(python -c 'import platform; print(platform.python_version())')"
         echo "python-version=${python_version}" >> "${GITHUB_OUTPUT}"
