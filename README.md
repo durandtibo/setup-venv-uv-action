@@ -1,8 +1,10 @@
 # setup-venv-uv-action
 
 [![CI](https://github.com/durandtibo/setup-venv-uv-action/actions/workflows/ci.yaml/badge.svg)](https://github.com/durandtibo/setup-venv-uv-action/actions/workflows/ci.yaml)
-[![Nightly Tests](https://github.com/durandtibo/setup-venv-uv-action/actions/workflows/nightly.yaml/badge.svg)](https://github.com/durandtibo/setup-venv-uv-action/actions/workflows/nightly.yaml)
-[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://github.com/durandtibo/setup-venv-uv-action/blob/main/LICENSE)
+[![Nightly](https://github.com/durandtibo/setup-venv-uv-action/actions/workflows/nightly.yaml/badge.svg)](https://github.com/durandtibo/setup-venv-uv-action/actions/workflows/nightly.yaml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/durandtibo/setup-venv-uv-action/badge)](https://scorecard.dev/viewer/?uri=github.com/durandtibo/setup-venv-uv-action)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/tag/durandtibo/setup-venv-uv-action?label=release)](https://github.com/durandtibo/setup-venv-uv-action/tags)
 
 A GitHub Action to setup a Python virtual environment using
 [uv](https://github.com/astral-sh/uv), the ultra-fast Python package installer
