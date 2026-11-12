@@ -427,58 +427,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: enable-cache, enable-cache: "maybe" }
-          - { name: enable-cache-case, enable-cache: "True" }
-          - {
-              name: working-directory-file,
-              working-directory: "pyproject.toml",
-            }
-          - {
-              name: working-directory-inner-parent,
-              working-directory: "src/../..",
-            }
-          - { name: working-directory-only-parent, working-directory: ".." }
-          - {
-              name: extra-packages-requirements-file,
-              extra-packages: "-r requirements.txt",
-            }
-          - { name: package-name-version, package-name: "numpy==2.4.0" }
-          - { name: package-name-space, package-name: "numpy 2.4.0" }
-          - { name: package-name-path, package-name: "-e ." }
-          - {
-              name: package-version-injection,
-              package-name: "numpy",
-              package-version: "2.4.0; echo injected",
-            }
-          - { name: working-directory-absolute, working-directory: "/tmp" }
-          - { name: working-directory-parent, working-directory: "../project" }
-          - {
-              name: working-directory-missing,
-              working-directory: "missing-directory",
-            }
-          - {
-              name: extra-packages-option,
-              extra-packages: "six==1.17.0\n--index-url=https://example.invalid/simple",
-            }
-          - {
-              name: extra-packages-indented-option,
-              extra-packages: "six==1.17.0\n  -e .",
-            }
-          - {
-              name: package-name-option,
-              package-name: "--upgrade",
-              package-version: "2.4.0",
-            }
-          - {
-              name: package-version-specifier,
-              package-name: "numpy",
-              package-version: ">=2.0",
-            }
-          - {
-              name: package-version-option,
-              package-name: "numpy",
-              package-version: "2.4.0 --pre",
-            }
+          - name: enable-cache
+            enable-cache: "maybe"
+          - name: enable-cache-case
+            enable-cache: "True"
+          - name: working-directory-file
+            working-directory: "pyproject.toml"
+          - name: working-directory-inner-parent
+            working-directory: "src/../.."
+          - name: working-directory-only-parent
+            working-directory: ".."
+          - name: extra-packages-requirements-file
+            extra-packages: "-r requirements.txt"
+          - name: package-name-version
+            package-name: "numpy==2.4.0"
+          - name: package-name-space
+            package-name: "numpy 2.4.0"
+          - name: package-name-path
+            package-name: "-e ."
+          - name: package-version-injection
+            package-name: "numpy"
+            package-version: "2.4.0; echo injected"
+          - name: working-directory-absolute
+            working-directory: "/tmp"
+          - name: working-directory-parent
+            working-directory: "../project"
+          - name: working-directory-missing
+            working-directory: "missing-directory"
+          - name: extra-packages-option
+            extra-packages: "six==1.17.0\n--index-url=https://example.invalid/simple"
+          - name: extra-packages-indented-option
+            extra-packages: "six==1.17.0\n  -e ."
+          - name: package-name-option
+            package-name: "--upgrade"
+            package-version: "2.4.0"
+          - name: package-version-specifier
+            package-name: "numpy"
+            package-version: ">=2.0"
+          - name: package-version-option
+            package-name: "numpy"
+            package-version: "2.4.0 --pre"
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
@@ -789,9 +777,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { uv-version: "0.12.x", pattern: '^0\.12\.[0-9]+$' }
-          - { uv-version: ">=0.11,<0.12", pattern: '^0\.11\.[0-9]+$' }
-          - { uv-version: "latest", pattern: '^[0-9]+\.[0-9]+\.[0-9]+$' }
+          - uv-version: "0.12.x"
+            pattern: '^0\.12\.[0-9]+$'
+          - uv-version: ">=0.11,<0.12"
+            pattern: '^0\.11\.[0-9]+$'
+          - uv-version: "latest"
+            pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
 
     steps:
       - name: Checkout

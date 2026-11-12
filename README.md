@@ -187,7 +187,8 @@ Example:
 This action performs the following steps:
 
 1. **Validates the Inputs and the Project** (one step per input or check): fails
-   with a clear message, before anything is installed, when an input is invalid or a project file is missing. The rules are in
+   with a clear message, before anything is installed, when an input is
+   invalid or a project file is missing. The rules are in
    [Error: `Invalid input`](#error-invalid-input) and
    [Error: `Missing project file`](#error-missing-project-file). It warns about
    [ignored inputs](#warning-ignored-input)

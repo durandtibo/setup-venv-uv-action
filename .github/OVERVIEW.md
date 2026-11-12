@@ -16,7 +16,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 │   ├── ci-format.yaml                 # Formatting checks
 │   ├── ci-action.yaml                 # Tests the action of this repository
 │   ├── nightly-test-released.yaml     # Tests the last stable release
-│   ├── nightly.yaml             # Scheduled nightly test runs
+│   ├── nightly.yaml                   # Scheduled nightly test runs
 │   ├── ci-verify-workflows.yaml       # Validates workflow file syntax
 │   ├── security-scorecard.yaml        # OSSF Scorecard analysis
 │   ├── security-dependency-review.yaml # Reviews dependencies changed by a PR
@@ -46,8 +46,10 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Purpose**: Checks that YAML, Makefile, shell, and Markdown files follow the
   formatting rules, and that the README matches `action.yaml`
 - **Jobs**: Runs `make format`, then fails if `git diff` shows changes. Then
-  runs `make check-readme`, which fails when the inputs, the outputs or the
-  defaults of `action.yaml` differ from the README tables
+  runs `make lint-markdown`, `make lint-shell` and `make lint-yaml` (configured
+  by `.markdownlint.json` and `.yamllint.yaml`), and `make check-readme`, which
+  fails when the inputs, the outputs or the defaults of `action.yaml` differ
+  from the README tables
 - **Permissions**: `contents: read`
 
 #### Test Action (ci-action.yaml)
@@ -106,7 +108,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **bot-pin-action.yaml**: Wednesdays at 8:00 AM UTC, opens a PR that pins
   actions to commit SHAs with ratchet
 - **bot-sync-shared-makefile.yaml**: Wednesdays at 6:00 AM UTC, opens a PR that
-  syncs the `.make` subtree from durandtibo/shared-makefiles
+  syncs the `.make` subtree from durandtibo/shared-makefiles (runs
+  `make update-subtree` twice, in case the target itself is updated)
 
 ### Validation Workflows
 
@@ -167,7 +170,7 @@ both are needed is not decided.
 ```text
 ci.yaml
 ├─→ lib-get-test-matrix.yaml (OS and Python versions)
-├─→ ci-format.yaml (make format + git diff)
+├─→ ci-format.yaml (make format + git diff, lint, README check)
 └─→ ci-action.yaml (test with current code)
 
 nightly.yaml
