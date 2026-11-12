@@ -1,4 +1,5 @@
-# Checks that YAML, Makefile, shell, and Markdown files follow the repo's formatting rules,
+# Formatting and linting workflow.
+# Checks that the YAML, Makefile, shell and Markdown files follow the repo's formatting rules,
 # and that the README documents the inputs and outputs of action.yaml.
 
 name: Format
@@ -12,7 +13,7 @@ jobs:
   format:
     permissions:
       contents: read
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
@@ -20,10 +21,25 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
 
       - name: Format
-        run: make format
+        run: |
+          make format
 
       - name: Check for changes
-        run: git diff --exit-code
+        run: |
+          git diff --exit-code
+
+      - name: Lint Markdown files
+        run: |
+          make lint-markdown
+
+      - name: Lint shell scripts
+        run: |
+          make lint-shell
+
+      - name: Lint YAML files
+        run: |
+          make lint-yaml
 
       - name: Check that the README documents the inputs and outputs
-        run: make check-readme
+        run: |
+          make check-readme
