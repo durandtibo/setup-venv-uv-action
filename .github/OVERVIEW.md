@@ -21,7 +21,6 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 │   ├── security-scorecard.yaml        # OSSF Scorecard analysis
 │   ├── security-dependency-review.yaml # Reviews dependencies changed by a PR
 │   ├── bot-cancel-stale-queued-runs.yaml # Cleans up queued workflow runs
-│   ├── bot-report-queued-runs.yaml    # Hourly report of the queued runs
 │   ├── bot-format-files.yaml          # Weekly formatting PR
 │   ├── bot-pin-action.yaml            # Weekly PR pinning actions to SHAs
 │   └── bot-sync-shared-makefile.yaml  # Weekly PR syncing the .make subtree
@@ -111,8 +110,6 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **bot-sync-shared-makefile.yaml**: Wednesdays at 6:00 AM UTC, opens a PR that
   syncs the `.make` subtree from durandtibo/shared-makefiles (runs
   `make update-subtree` twice, in case the target itself is updated)
-- **bot-report-queued-runs.yaml**: Hourly, writes in the job summary the number
-  of queued runs of each public repository of a user
 
 ### Validation Workflows
 
