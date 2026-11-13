@@ -242,6 +242,30 @@ jobs:
           python -c "import myproject; print(myproject)"
           uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$" || (echo "expected the locked invoke-tasklib 0.0.8" && exit 1)
 
+  test-tasklib-self:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout invoke-tasklib, a project that is invoke-tasklib itself
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+        with:
+          repository: durandtibo/invoke-tasklib
+          path: invoke-tasklib
+
+      - name: Setup python environment
+        uses: ./
+        with:
+          working-directory: invoke-tasklib
+
+      - name: Test that the project is installed in editable mode
+        working-directory: invoke-tasklib
+        run: |
+          uv pip show invoke-tasklib | grep -q "^Editable project location:" || (echo "expected an editable invoke-tasklib" && exit 1)
+          inv --list
+
   test-tasklib-missing:
     permissions:
       contents: read

@@ -67,7 +67,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   - installation inputs: `install-args`, the `package-*` inputs (including
     the `package-installed` output and the skipped versions), `extra-packages`
   - `invoke-tasklib`: the version read from `uv.lock`, a missing entry, a
-    dependency group that is excluded
+    dependency group that is excluded, the project that is `invoke-tasklib`
+    itself (installed in editable mode)
   - project location: `working-directory` and the missing project files
   - `enable-cache` and the `cache-hit` output
   - validation: one matrix case per invalid value, and the ignored inputs
