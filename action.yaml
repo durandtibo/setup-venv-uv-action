@@ -230,13 +230,22 @@ runs:
     # 'uv export --frozen' neither resolves nor modifies the lock file
     # The export is assigned on its own line, so that a failure of uv fails the
     # step (the failure is not hidden by the search of the requirement)
-    # It fails when invoke-tasklib is not in the lock file of the project
-    # The requirement is used in step 3.2
+    # When the project is invoke-tasklib itself, it is not a dependency (the
+    # export omits the project): the project is installed in editable mode in
+    # step 3.2, which provides 'inv', and no requirement is read
+    # Otherwise, it fails when invoke-tasklib is not in the lock file
+    # The requirement or the editable flag is used in step 3.2
     - name: Read the locked invoke-tasklib version
       id: tasklib
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
+        project="$(uv version --frozen)"
+        if [ "${project%% *}" = "invoke-tasklib" ]; then
+          echo "The project is invoke-tasklib: it is installed in editable mode."
+          echo "editable=true" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
         requirements="$(uv export --frozen --no-hashes --no-emit-project --all-groups --all-extras)"
         requirement="$(awk '/^invoke-tasklib==/ { print $1; exit }' <<< "${requirements}")"
         if [ -z "${requirement}" ]; then
@@ -246,6 +255,8 @@ runs:
         echo "requirement=${requirement}" >> "${GITHUB_OUTPUT}"
 
     # Step 3.2: Install invoke-tasklib
+    # The locked version, or the project itself in editable mode when the project
+    # is invoke-tasklib
     # It runs in the working-directory input, so that 'uv pip install' reads the
     # 'uv.toml' of the project (e.g., its index settings) like the next steps
     - name: Install invoke-tasklib
@@ -253,8 +264,13 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         REQUIREMENT: ${{ steps.tasklib.outputs.requirement }}
+        EDITABLE: ${{ steps.tasklib.outputs.editable }}
       run: |
-        uv pip install "${REQUIREMENT}"
+        if [ "${EDITABLE}" = "true" ]; then
+          uv pip install --editable .
+        else
+          uv pip install "${REQUIREMENT}"
+        fi
 
     # Step 4: Install project dependencies using the env.install task
     # The task is executed in the working-directory input

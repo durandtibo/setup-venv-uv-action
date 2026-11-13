@@ -200,7 +200,9 @@ This action performs the following steps:
    It fails when `invoke-tasklib` is not in `uv.lock`
    (see [Error: `Missing invoke-tasklib`](#error-missing-invoke-tasklib)). These
    steps run in `working-directory`, so `uv` reads the `uv.toml` of the project
-   (for example its index settings)
+   (for example its index settings). When the project is `invoke-tasklib`
+   itself, nothing is read from `uv.lock` and the project is installed in
+   editable mode instead
 4. **Installs Dependencies**: Runs `inv env.install ${install-args}` to run
    `uv sync --frozen` and install the current project in editable mode
 5. **Optional Package**: If `package-name` is set, installs that specific
