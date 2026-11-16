@@ -14,14 +14,17 @@ there.
 ## Environment
 
 - Use the virtual environment in `.venv`: `.venv/bin/python`, `.venv/bin/inv`.
-- Use the `Makefile` (`make help` lists the targets). `.make/` is a shared
-  subtree synced by a bot (`bot-sync-shared-makefile.yaml`): do not edit it
-  here.
+- Use the `Makefile`; run `make help` to list the targets.
+- Do not edit `.make/`: it is a shared subtree synced by
+  `bot-sync-shared-makefile.yaml`.
 - Format and lint before committing: `make format` and `make lint` (yamllint,
   markdownlint, prettier, ...). Fix the issues they raise. Disabling a rule is
   not fixing it.
-- Workflows cannot be run locally. Say so in the PR instead of claiming they
-  pass.
+- `scripts/check_readme_inputs.py` (run by `make check-readme`) only uses the
+  standard library. Keep it that way, so that it runs without installing
+  anything.
+- Some workflows cannot be run locally (the action and the CI jobs need GitHub
+  runners). Say so in the PR instead of claiming they pass.
 
 ## Workflow
 
@@ -30,14 +33,21 @@ there.
 - Name the branch `<type>/<short-description>` in lowercase kebab-case, with one
   of these types: `feat`, `bugfix`, `hotfix`, `docs`, `refactor`, `perf`,
   `test`, `chore`, `ci`.
+- Write commit messages and PR titles as a short imperative sentence starting
+  with a verb such as `Add`, `Fix`, `Update`, `Remove` or `Improve`. Do not use
+  conventional-commit prefixes like `docs:` or `feat:` (the type prefix is only
+  for branch names). The squash-merge appends the PR number, so do not add one.
 - In the PR description, say what was changed, what was deliberately not
   changed, and any behaviour change (for example a changed input, default or
   output of the action).
 - When a PR conflicts with `main`, merge `origin/main` into the branch (do not
   rebase and force-push).
-- Update `README.md` and `.github/OVERVIEW.md` when inputs or workflows change. `make check-readme`
-  (part of `make lint`) fails when the inputs, outputs or defaults of the README
-  tables differ from `action.yaml`.
+- Update `README.md` and `.github/OVERVIEW.md` when inputs, behaviour or
+  workflows change. `make check-readme` (part of `make lint`) fails when the
+  inputs, outputs or defaults of the README tables differ from `action.yaml`.
+- Releases are immutable exact version tags (`v0.3.1`, ...). Do not create or
+  move floating tags (`v0`, `latest`) and do not document them as an option.
+  The README examples and `nightly-test-released.yaml` pin an exact release.
 
 ## Action (`action.yaml`)
 
@@ -56,6 +66,15 @@ inputs.* }}` in `run:`.
 - Every `run:` step sets `shell: bash` (required in composite actions).
 - Reporting steps (show config, packages, tree, check) use `continue-on-error:
 true`. Installation steps must fail the action.
+- Only ship what the action needs at runtime. Files the action itself uses
+  (`action.yaml`, `LICENSE`, and any file it reads through
+  `${{ github.action_path }}`) are exported, and `.gitattributes` marks
+  everything else `export-ignore` (the dummy project `pyproject.toml`,
+  `tasks.py`, `invoke.yaml`, `src/`, `scripts/`, `.github/`, tests, docs).
+  Today the action reads no file of this repository. When it starts using one,
+  un-ignore it in `.gitattributes`. Never make the action read the dummy
+  project or other repo files that are not exported. Check the exported set
+  with `git archive --worktree-attributes HEAD | tar t`.
 - Validate every input in the validation steps (the first steps of the action)
   when it is possible to do so, so that an invalid value fails early with an
   `::error title=Invalid input::` message, before anything is installed,
@@ -90,11 +109,14 @@ Files are prefixed by role:
 
 Conventions:
 
-- Set least-privilege `permissions` (explicit, never broader than needed) and
-  `timeout-minutes` on jobs. `bot-*.yaml` workflows use `permissions: {}` at the
-  workflow level and grant per job. So do `ci.yaml` and its callees.
-- Reusable workflows without inputs (`ci-format.yaml`) also have `workflow_dispatch`, so they
-  can be run alone.
+- Every workflow has `permissions: {}` at the workflow level (it grants
+  nothing, never a grant). Set explicit least-privilege `permissions` on every
+  job (including jobs that call a reusable workflow), never broader than
+  needed, and set `timeout-minutes` on jobs.
+- Each reusable workflow without inputs (`ci-format.yaml`,
+  `lib-get-test-matrix.yaml`) is a `workflow_call` workflow that also has
+  `workflow_dispatch`, so it can be run alone. Add a new check as a new
+  `ci-<name>.yaml` plus a job in `ci.yaml`.
 - Put `make` targets in the steps rather than duplicating commands, so local
   runs and CI match.
 - Start each file with a comment saying what it does, and update it when the
@@ -126,6 +148,6 @@ numpy.__version__ == '2.4.0'`), and pass matrix values to scripts through
 
 ## Reporting
 
-- Report faithfully: say which checks were run (`make lint`, `make format`),
-  which were not, and that the workflows and CI were not awaited.
-- Mention failures that already exist on `main` instead of hiding them.
+- State which checks ran (`make lint`, `make format`) and which did not.
+- Note that the workflows and CI were not awaited.
+- Report failures that already exist on `main` rather than hiding them.
