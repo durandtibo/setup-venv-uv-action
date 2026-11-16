@@ -66,6 +66,15 @@ inputs.* }}` in `run:`.
 - Every `run:` step sets `shell: bash` (required in composite actions).
 - Reporting steps (show config, packages, tree, check) use `continue-on-error:
 true`. Installation steps must fail the action.
+- Only ship what the action needs at runtime. Files the action itself uses
+  (`action.yaml`, `LICENSE`, and any file it reads through
+  `${{ github.action_path }}`) are exported, and `.gitattributes` marks
+  everything else `export-ignore` (the dummy project `pyproject.toml`,
+  `tasks.py`, `invoke.yaml`, `src/`, `scripts/`, `.github/`, tests, docs).
+  Today the action reads no file of this repository. When it starts using one,
+  un-ignore it in `.gitattributes`. Never make the action read the dummy
+  project or other repo files that are not exported. Check the exported set
+  with `git archive --worktree-attributes HEAD | tar t`.
 - Validate every input in the validation steps (the first steps of the action)
   when it is possible to do so, so that an invalid value fails early with an
   `::error title=Invalid input::` message, before anything is installed,
