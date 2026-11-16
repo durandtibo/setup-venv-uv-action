@@ -23,6 +23,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 │   ├── bot-cancel-stale-queued-runs.yaml # Cleans up queued workflow runs
 │   ├── bot-format-files.yaml          # Weekly formatting PR
 │   ├── bot-pin-action.yaml            # Weekly PR pinning actions to SHAs
+│   ├── bot-report-queued-runs.yaml    # Hourly report of the queued runs
 │   └── bot-sync-shared-makefile.yaml  # Weekly PR syncing the .make subtree
 ├── CODEOWNERS                         # Code owners
 ├── dependabot.yml                     # Dependabot configuration
@@ -108,9 +109,12 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   drifted out of format
 - **bot-pin-action.yaml**: Wednesdays at 8:00 AM UTC, opens a PR that pins
   actions to commit SHAs with ratchet
+- **bot-report-queued-runs.yaml**: Hourly, lists the queued workflow runs of
+  each public repository of a user in the job summary (the token comes from
+  the GitHub App, so the job has no `GITHUB_TOKEN` permission)
 - **bot-sync-shared-makefile.yaml**: Wednesdays at 6:00 AM UTC, opens a PR that
   syncs the `.make` subtree from durandtibo/shared-makefiles (runs
-  `make update-subtree` twice, in case the target itself is updated)
+  `make self-update` twice, in case the target itself is updated)
 
 ### Validation Workflows
 
