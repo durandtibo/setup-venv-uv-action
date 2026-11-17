@@ -3,7 +3,6 @@
 # Called from ci.yaml with the test matrix loaded once by lib-get-test-matrix.yaml.
 
 name: Test Action
-
 on:
   workflow_call:
     inputs:
@@ -29,10 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         uses: ./
-
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
@@ -59,13 +56,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         id: setup
         uses: ./
         with:
           python-version: ${{ matrix.python-version }}
-
       - name: Test environment
         env:
           EXPECTED_VERSION: ${{ matrix.python-version }}
@@ -89,7 +84,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Set the Python version of the project
         env:
           PROJECT_VERSION: ${{ matrix.python-version }}
@@ -100,7 +94,6 @@ jobs:
       - name: Setup python environment
         id: setup
         uses: ./
-
       - name: Test that the version of .python-version is used
         env:
           EXPECTED_VERSION: ${{ matrix.python-version }}
@@ -119,12 +112,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         uses: ./
         with:
           install-args: "--no-optional-deps"
-
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
@@ -138,13 +129,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         uses: ./
         with:
           package-name: numpy
           package-version: 2.4.0
-
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
@@ -159,12 +148,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         uses: ./
         with:
           package-name: numpy
-
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
@@ -179,14 +166,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         uses: ./
         with:
           package-name: numpy
           package-version: 2.4.0
           package-install-args: "--dry-run"
-
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
@@ -206,13 +191,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         uses: ./
         with:
           package-name: "requests[socks]"
           package-version: 2.32.5
-
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
@@ -229,14 +212,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Lock a pinned invoke-tasklib version in the project
         run: |
           pipx run uv add --no-sync --group dev "invoke-tasklib==0.0.8"
-
       - name: Setup python environment
         uses: ./
-
       - name: Test that the version of uv.lock is installed
         run: |
           python -c "import myproject; print(myproject)"
@@ -251,18 +231,15 @@ jobs:
     steps:
       - name: Checkout the action
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Checkout invoke-tasklib, a project that is invoke-tasklib itself
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
         with:
           repository: durandtibo/invoke-tasklib
           path: invoke-tasklib
-
       - name: Setup python environment
         uses: ./
         with:
           working-directory: invoke-tasklib
-
       - name: Test that the project is installed in editable mode
         working-directory: invoke-tasklib
         run: |
@@ -278,16 +255,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Remove invoke-tasklib from the project dependencies
         run: |
           pipx run uv remove --no-sync --group dev invoke-tasklib
-
       - name: Setup python environment without invoke-tasklib in uv.lock
         id: setup
         uses: ./
         continue-on-error: true
-
       - name: Test that the action failed while reading the locked version
         env:
           OUTCOME: ${{ steps.setup.outcome }}
@@ -316,18 +290,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Move the project to a subfolder
         run: |
           mkdir subproject
           mv pyproject.toml uv.lock tasks.py invoke.yaml src subproject/
-
       - name: Setup python environment
         id: setup
         uses: ./
         with:
           working-directory: subproject
-
       - name: Test environment
         env:
           OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
@@ -354,25 +325,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Test that uv is not installed before the action
         run: |
           if command -v uv; then
             echo "uv is already installed, the test is not valid"
             exit 1
           fi
-
       - name: Remove a project file
         env:
           MISSING_FILE: ${{ matrix.file }}
         run: |
           rm "${MISSING_FILE}"
-
       - name: Setup python environment without a project file
         id: setup
         uses: ./
         continue-on-error: true
-
       - name: Test that the action failed in the validation
         env:
           OUTCOME: ${{ steps.setup.outcome }}
@@ -397,13 +364,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         id: setup
         uses: ./
         with:
           enable-cache: ${{ matrix.enable-cache }}
-
       - name: Test environment
         env:
           ENABLE_CACHE: ${{ matrix.enable-cache }}
@@ -429,7 +394,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment
         uses: ./
         with:
@@ -438,7 +402,6 @@ jobs:
 
             attrs>=24.0
               iniconfig
-
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
@@ -532,7 +495,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
       - name: Setup python environment with inputs that are ignored without package-name
         uses: ./
         with:
@@ -785,7 +747,6 @@ jobs:
       - name: Setup python environment
         id: setup
         uses: ./
-
       - name: Test environment
         env:
           OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
@@ -820,7 +781,6 @@ jobs:
         uses: ./
         with:
           uv-version: ${{ matrix.uv-version }}
-
       - name: Test environment
         env:
           PATTERN: ${{ matrix.pattern }}
@@ -880,7 +840,6 @@ jobs:
           python-version: "3.14"
           package-name: numpy
           package-version: "2.4.*"
-
       - name: Test environment
         env:
           PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
