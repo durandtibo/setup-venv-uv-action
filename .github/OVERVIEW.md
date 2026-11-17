@@ -46,11 +46,11 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Trigger**: Called by CI workflow, manual dispatch
 - **Purpose**: Checks that YAML, Makefile, shell, and Markdown files follow the
   formatting rules, and that the README matches `action.yaml`
-- **Jobs**: Runs `make format`, then fails if `git diff` shows changes. Then
-  runs `make lint-markdown`, `make lint-shell` and `make lint-yaml` (configured
-  by `.markdownlint.json` and `.yamllint.yaml`), and `make check-readme`, which
-  fails when the inputs, the outputs or the defaults of `action.yaml` differ
-  from the README tables
+- **Jobs**: `format` runs `make format`, then fails if `git diff` shows
+  changes. `lint` runs `make lint` (yamllint, checkmake, shellcheck,
+  markdownlint and actionlint, configured by `.yamllint.yaml` and
+  `.markdownlint.json`), then `make check-readme`, which fails when the inputs,
+  the outputs or the defaults of `action.yaml` differ from the README tables
 - **Permissions**: `contents: read`
 
 #### Test Action (ci-action.yaml)
