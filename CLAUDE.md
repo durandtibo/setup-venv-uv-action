@@ -15,7 +15,7 @@ there.
 
 - Use the virtual environment in `.venv`: `.venv/bin/python`, `.venv/bin/inv`.
 - Use the `Makefile`; run `make help` to list the targets. `make test` runs
-  the checks of this repository (`make check-readme`).
+  the checks of this repository (`make check-readme`, `make check-export`).
 - Do not edit `.make/`: it is a shared subtree synced by
   `bot-sync-shared-makefile.yaml`.
 - Format and lint before committing: `make format` and `make lint` (yamllint,
@@ -96,6 +96,8 @@ Files are prefixed by role:
   - `lib-get-test-matrix.yaml`: loads the OS and Python version lists from
     `durandtibo/workflow-config-action` once, and passes them to the callers.
   - `ci-format.yaml`: YAML, Makefile, shell and Markdown format check.
+  - `ci-export.yaml`: `make check-export`, the exported set is what the action
+    needs.
   - `ci-action.yaml`: tests the action from this checkout (`uses: ./`), i.e.
     the version not released yet.
 - `nightly.yaml`: scheduled entry point that calls

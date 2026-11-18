@@ -1,6 +1,26 @@
 # Workflow testing the action from the current repository code (uses: ./), i.e. the
-# version not released yet, on multiple operating systems and Python versions.
-# Called from ci.yaml with the test matrix loaded once by lib-get-test-matrix.yaml.
+# version not released yet. Called from ci.yaml with the test matrix loaded once by
+# lib-get-test-matrix.yaml (durandtibo/workflow-config-action): no OS or Python version
+# list is written here.
+#
+# nightly-test-released.yaml runs the same jobs against the latest release. The two files
+# must stay identical except for the header comment, the name and the `uses:` lines. The
+# exception is a job that tests an input added after the latest release: it only exists
+# here until the release is bumped (today: test-tasklib-self).
+#
+# Two levels of tests (docs: CLAUDE.md, "Testing strategy"):
+#   - General behaviour, on the full matrix. The same matrix runs on pull requests, pushes
+#     and the schedule. Cells per run, with N_os = len(os_matrix) and
+#     N_py = len(python_versions_standard):
+#       test                    N_os
+#       test-python-version     N_os x N_py
+#       test-usage-package      N_os
+#   - Edge cases, on one runner (ubuntu-latest): one job per input, per invalid value and
+#     per unusual situation. They do not cross the OS or Python matrix.
+#
+# A failure path uses `continue-on-error`, an `id`, and a step that asserts the outcome and
+# that the failure came from the expected step (for example that uv is not installed after a
+# validation failure, which is checked before the action runs too).
 
 name: Test Action
 on:
@@ -14,6 +34,8 @@ on:
 permissions: {}
 
 jobs:
+  # General behaviour: the default usage and the main documented usages, on every OS of
+  # the matrix (and on every Python version for test-python-version).
   test:
     permissions:
       contents: read
@@ -29,7 +51,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Setup python environment
+        id: setup
         uses: ./
+      - name: Test the outputs
+        env:
+          CACHE_HIT: ${{ steps.setup.outputs.cache-hit }}
+          UV_VERSION: ${{ steps.setup.outputs.uv-version }}
+          PYTHON_VERSION: ${{ steps.setup.outputs.python-version }}
+          PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+        run: |
+          # 'auto' enables the cache on the GitHub-hosted runners
+          [[ "${CACHE_HIT}" =~ ^(true|false)$ ]] || (echo "unexpected cache-hit '${CACHE_HIT}'" && exit 1)
+          [[ "${UV_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || (echo "unexpected uv-version '${UV_VERSION}'" && exit 1)
+          uv --version | grep -qE "^uv ${UV_VERSION//./\\.}( |$)" || (echo "uv does not match '${UV_VERSION}'" && exit 1)
+          [[ "${PYTHON_VERSION}" =~ ^3\.14\.[0-9]+$ ]] || (echo "unexpected python-version '${PYTHON_VERSION}'" && exit 1)
+          python -c "import platform, os; v = os.environ['PYTHON_VERSION']; assert v == platform.python_version(), v"
+          test "${PACKAGE_INSTALLED}" = "false" || (echo "expected package-installed false, got '${PACKAGE_INSTALLED}'" && exit 1)
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
@@ -71,32 +108,61 @@ jobs:
           python -c "import sys, os; v = os.environ['EXPECTED_VERSION']; assert f'{sys.version_info[0]}.{sys.version_info[1]}' == v, sys.version"
           python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
 
+  # Main documented usage (README, "With Specific Package Installation"): a package version
+  # in a compatibility test, on every OS
+  test-usage-package:
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.test-matrix).os_matrix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+      - name: Setup python environment with numpy
+        id: setup
+        uses: ./
+        with:
+          python-version: "3.12"
+          package-name: numpy
+          package-version: 1.26.0
+      - name: Test environment
+        env:
+          PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+        run: |
+          python -c "import myproject; print(myproject)"
+          python -c "import sys; assert sys.version_info[:2] == (3, 12), sys.version"
+          python -c "import numpy; assert numpy.__version__ == '1.26.0', numpy.__version__"
+          test "${PACKAGE_INSTALLED}" = "true" || (echo "expected package-installed true, got '${PACKAGE_INSTALLED}'" && exit 1)
+
+  # Edge cases: one runner, one input or one unusual situation per job
   test-python-version-file:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ${{ fromJson(inputs.test-matrix).python_versions_standard }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Set the Python version of the project
         env:
-          PROJECT_VERSION: ${{ matrix.python-version }}
+          PROJECT_VERSION: "3.12"
         run: |
           echo "${PROJECT_VERSION}" > .python-version
-
       # python-version is not set: the default (empty) follows .python-version
       - name: Setup python environment
         id: setup
         uses: ./
       - name: Test that the version of .python-version is used
         env:
-          EXPECTED_VERSION: ${{ matrix.python-version }}
+          # not the default Python version (3.14), so the file is what decides
+          EXPECTED_VERSION: "3.12"
           OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
         run: |
           python -c "import myproject; print(myproject)"
@@ -318,6 +384,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
+      max-parallel: 8
       fail-fast: false
       matrix:
         file: ["pyproject.toml", "uv.lock", "tasks.py"]
@@ -357,6 +424,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
+      max-parallel: 8
       fail-fast: false
       matrix:
         enable-cache: ["true", "false", "auto"]
@@ -399,7 +467,6 @@ jobs:
         with:
           extra-packages: |
             six==1.17.0
-
             attrs>=24.0
               iniconfig
       - name: Test environment
@@ -414,6 +481,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
+      max-parallel: 8
       fail-fast: false
       matrix:
         include:
@@ -457,6 +525,7 @@ jobs:
           - name: package-version-option
             package-name: "numpy"
             package-version: "2.4.0 --pre"
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
@@ -486,6 +555,7 @@ jobs:
             echo "uv is installed: the action did not fail in the validation"
             exit 1
           fi
+
   test-ignored-inputs:
     permissions:
       contents: read
@@ -501,18 +571,18 @@ jobs:
           package-version: 2.4.0
           package-install-args: "--upgrade"
       - name: Test environment
-
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import importlib.util as u; assert u.find_spec('numpy') is None, 'numpy should not be installed'"
+
   test-tasklib-not-in-groups:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     steps:
       - name: Checkout
-
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Setup python environment without the dependency groups
         uses: ./
@@ -523,31 +593,29 @@ jobs:
         run: |
           python -c "import myproject; print(myproject)"
           # the environment is consistent whether or not sync kept invoke-tasklib
-
           uv pip check
+
   test-package-python-specifier:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-
     timeout-minutes: 5
+
     steps:
       - name: Checkout
-
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Setup python environment with a Python version range
         uses: ./
         with:
           python-version: ">=3.12,<3.14"
-
           package-name: numpy
           package-version: 2.4.0
       - name: Test environment
-        run: |2
-
+        run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), sys.version"
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
+
   test-install-args-glob:
     permissions:
       contents: read
@@ -558,25 +626,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Create a file that matches the glob pattern of the argument
-        run: |2
-
+        run: |
           touch ./--no-optional-deps
       - name: Setup python environment with a glob character in install-args
         id: setup
         uses: ./
         continue-on-error: true
-
         with:
           install-args: "--no-optional-dep?"
       - name: Test that the argument was not expanded
         env:
           OUTCOME: ${{ steps.setup.outcome }}
-
         run: |
           # expanded to the valid flag '--no-optional-deps', the action would succeed;
           # passed as is, 'inv env.install' rejects the unknown flag
-
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+
   test-uv-version:
     permissions:
       contents: read
@@ -588,7 +653,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Setup python environment with a pinned uv version
         id: setup
-
         uses: ./
         with:
           uv-version: "0.12.0"
@@ -597,32 +661,29 @@ jobs:
           OUTPUT_VERSION: ${{ steps.setup.outputs.uv-version }}
         run: |
           python -c "import myproject; print(myproject)"
-
           uv --version
           # the pinned version is installed, not the latest one
           uv --version | grep -qE "^uv 0\.12\.0( |$)" || (echo "expected uv 0.12.0" && exit 1)
-
           # the output is the installed version
           test "${OUTPUT_VERSION}" = "0.12.0" || (echo "expected output 0.12.0, got '${OUTPUT_VERSION}'" && exit 1)
+
   test-working-directory-uv-config:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-
     timeout-minutes: 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Move the project to a subfolder with a restrictive uv.toml
         run: |
           mkdir subproject
-
           mv pyproject.toml uv.lock tasks.py invoke.yaml src subproject/
           # 'uv pip install' only finds invoke-tasklib if it ignores this file
           printf '[pip]\nno-index = true\n' > subproject/uv.toml
       - name: Setup python environment
         id: setup
-
         uses: ./
         continue-on-error: true
         with:
@@ -630,8 +691,7 @@ jobs:
       - name: Test that uv read the uv.toml of the working directory
         env:
           OUTCOME: ${{ steps.setup.outcome }}
-        run: |2
-
+        run: |
           if [ "${OUTCOME}" != "failure" ]; then
             echo "expected the action to fail, got '${OUTCOME}'"
             exit 1
@@ -642,31 +702,28 @@ jobs:
           python --version
           # step 3.2 ran in 'subproject', read its uv.toml and found no index:
           # invoke-tasklib is not installed
-
           if uv pip show --quiet invoke-tasklib; then
             echo "invoke-tasklib is installed: step 3.2 ignored the uv.toml"
             exit 1
           fi
           # the dependencies were not installed: step 4 did not run
-
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
-
           fi
+
   test-package-installed:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     strategy:
+      max-parallel: 8
       fail-fast: false
       matrix:
         include:
           # installed: the version exists for the Python version
           - package-name: numpy
-
             package-version: "2.4.0"
             expected: "true"
           # installed: the latest version
@@ -681,6 +738,7 @@ jobs:
           - package-name: ""
             package-version: ""
             expected: "false"
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
@@ -690,7 +748,6 @@ jobs:
         with:
           python-version: "3.14"
           package-name: ${{ matrix.package-name }}
-
           package-version: ${{ matrix.package-version }}
       - name: Test the package-installed output
         env:
@@ -705,18 +762,19 @@ jobs:
           installed = importlib.util.find_spec('numpy') is not None
           assert installed == (os.environ['EXPECTED'] == 'true'), installed
           "
+
   test-python-version-invalid:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       # python-version is not validated by the action: uv rejects it
       - name: Setup python environment with a Python version that does not exist
         id: setup
-
         uses: ./
         continue-on-error: true
         with:
@@ -727,21 +785,21 @@ jobs:
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
           if python -c "import myproject" 2> /dev/null; then
-
             echo "myproject is installed: the action did not stop earlier"
             exit 1
           fi
+
   test-python-version-no-hint:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Remove the .python-version file of the project
-        run: |2
-
+        run: |
           rm .python-version
       # no input and no .python-version: uv follows requires-python (>=3.10)
       - name: Setup python environment
@@ -750,18 +808,18 @@ jobs:
       - name: Test environment
         env:
           OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
-
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.version_info[:2] >= (3, 10), sys.version"
           python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
+
   test-uv-version-range:
     permissions:
       contents: read
-
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
+      max-parallel: 8
       fail-fast: false
       matrix:
         include:
@@ -777,59 +835,57 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Setup python environment with a uv version request
         id: setup
-
         uses: ./
         with:
           uv-version: ${{ matrix.uv-version }}
       - name: Test environment
         env:
           PATTERN: ${{ matrix.pattern }}
-
           OUTPUT_VERSION: ${{ steps.setup.outputs.uv-version }}
         run: |
           python -c "import myproject; print(myproject)"
           # the output is the resolved version and matches the request
-
           [[ "${OUTPUT_VERSION}" =~ ${PATTERN} ]] || (echo "unexpected uv-version '${OUTPUT_VERSION}'" && exit 1)
           # the installed uv is the one reported by the output
           uv --version | grep -qE "^uv ${OUTPUT_VERSION//./\\.}( |$)" || (echo "uv does not match '${OUTPUT_VERSION}'" && exit 1)
+
   test-working-directory-paths:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-
     timeout-minutes: 5
     strategy:
+      max-parallel: 8
       fail-fast: false
       matrix:
         working-directory: ["sub/project", "./sub/project/", "my project"]
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       - name: Move the project to the working directory
         env:
           WORKING_DIRECTORY: ${{ matrix.working-directory }}
-        run: |2
-
+        run: |
           mkdir -p "${WORKING_DIRECTORY}"
           mv pyproject.toml uv.lock tasks.py invoke.yaml src .python-version "${WORKING_DIRECTORY}/"
       - name: Setup python environment
-
         uses: ./
         with:
           working-directory: ${{ matrix.working-directory }}
       - name: Test environment
-        run: |2
-
+        run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.prefix.endswith('/.venv') and not sys.prefix.endswith('/setup-venv-uv-action/.venv'), sys.prefix"
           # nothing was created at the root of the workspace
           test ! -e .venv || (echo "the virtual environment is at the workspace root" && exit 1)
+
   test-package-version-wildcard:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
@@ -843,16 +899,17 @@ jobs:
       - name: Test environment
         env:
           PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
-
         run: |
           python -c "import myproject; print(myproject)"
           test "${PACKAGE_INSTALLED}" = "true" || (echo "expected package-installed true, got '${PACKAGE_INSTALLED}'" && exit 1)
           python -c "import numpy; assert numpy.__version__.startswith('2.4.'), numpy.__version__"
+
   test-package-and-extra-packages:
     permissions:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
@@ -860,15 +917,12 @@ jobs:
         uses: ./
         with:
           package-name: numpy
-
           package-version: 2.4.0
           extra-packages: |
             six==1.17.0
       - name: Test environment
-        run: |2
-
+        run: |
           python -c "import myproject; print(myproject)"
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
           python -c "import importlib.metadata as m; assert m.version('six') == '1.17.0', m.version('six')"
-
           uv pip check
