@@ -65,7 +65,8 @@ tests.
   steps. A group of related steps (for example the validation) is numbered
   `N.M` (`1.1`, `1.2`, ...). A step does one thing: validate one input, run one
   report command.
-- Pin every third-party action to a commit SHA followed by a `#
+- Pin every third-party action, in `action.yaml` and in the workflows, to a commit SHA followed
+  by a `#
 ratchet:<owner>/<repo>@<tag>` comment, as the existing steps do. Do not use a
   tag or a branch.
 - Pass inputs to shell scripts through `env:`, never by interpolating `${{
@@ -116,7 +117,8 @@ Files are prefixed by role:
   schedule and manual runs. It holds no steps, only jobs that call the reusable
   workflows below.
   - `lib-get-test-matrix.yaml`: loads the OS and Python version lists from
-    `durandtibo/workflow-config-action` once, and passes them to the callers.
+    `durandtibo/workflow-config-action` once. The callers pass the result down
+    through the `test-matrix` input of `ci-action.yaml`.
   - `ci-format.yaml`: YAML, Makefile, shell and Markdown format check.
   - `ci-export.yaml`: `make check-export`, the exported set is what the action
     needs.
@@ -228,7 +230,8 @@ Rules:
   `steps.<id>.outcome`. Assert that the failure came from the validation (for
   example that `uv` was not installed), not a message text. A negative test
   must not be able to pass for the wrong reason: check the precondition (for
-  example that `uv` is not installed before the action runs).
+  example that `uv` is not installed before the action runs), and when the
+  case allows it, run a positive case on the same runner before it.
 - Assert the value or the format of outputs (`cache-hit`, `uv-version`,
   `python-version`, `package-installed`), never just print them.
 - Tests have no side effect outside the runner: throwaway files in the
