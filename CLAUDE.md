@@ -9,7 +9,10 @@ This repository is a GitHub composite action (`action.yaml`) that installs
 env.install` task of `invoke-tasklib`. `pyproject.toml`, `tasks.py`,
 `invoke.yaml` and `src/` form a minimal dummy project (`myproject`) that the
 workflows use to test the action. They are not a library: do not add features
-there.
+there. `scripts/` holds the maintainer checks, which are not part of the action:
+`check_readme_inputs.py` (README against `action.yaml`) and `check_export.sh`
+(the exported set). `review/target_state.md` holds the design ideas behind the
+tests.
 
 ## Environment
 
@@ -24,10 +27,12 @@ there.
 - `scripts/check_readme_inputs.py` (run by `make check-readme`) only uses the
   standard library. Keep it that way, so that it runs without installing
   anything.
+- Run `make test` before committing when `action.yaml`, `README.md` or
+  `.gitattributes` change.
 - Some workflows cannot be run locally (the action and the CI jobs need GitHub
   runners). Say so in the PR instead of claiming they pass.
 
-## Workflow
+## Git workflow
 
 - One branch and one pull request per logical change. Branch from an up to date
   `main`, and do not commit or push to `main`.
@@ -50,7 +55,7 @@ there.
   move floating tags (`v0`, `latest`) and do not document them as an option.
   The README examples and `nightly-test-released.yaml` pin an exact release.
 
-## Action (`action.yaml`)
+## Action rules (`action.yaml`)
 
 - Keep the input names, defaults and descriptions consistent with `README.md`.
   Renaming or removing an input is a breaking change: call it out in the PR.
@@ -85,6 +90,17 @@ true`. Installation steps must fail the action.
   and say in the PR which inputs are not validated and why. Document the rule
   of each validated input in `README.md` (the validation steps and the
   `Invalid input` section).
+
+## Shell script rules (`scripts/check_export.sh`, inline `run:` steps)
+
+- Quote all variables. Code must pass `shellcheck` and `shfmt` via `make lint`
+  / `make format`.
+- Fail early with a clear `::error` message (`::error title=Invalid input::` for
+  an input).
+- `scripts/check_export.sh` lists the files the action needs (`EXPECTED`). When
+  the action starts using a new file, add it there and un-ignore it in
+  `.gitattributes`.
+- Keep `scripts/check_readme_inputs.py` standard-library only.
 
 ## Workflow structure (`.github/workflows/`)
 
@@ -161,9 +177,9 @@ input. The design ideas behind it are in `review/target_state.md`.
 Three levels:
 
 1. **Code**: the logic of a script, tested alone without GitHub. This
-   repository has no such code to test: the only script,
-   `scripts/check_readme_inputs.py`, is run by `make check-readme`, and the
-   action runs shell inline.
+   repository has no such code to test: the scripts, `check_readme_inputs.py`
+   (`make check-readme`) and `check_export.sh` (`make check-export`), are
+   checks run by `make test`, and the action runs shell inline.
 2. **Local action**: the action from this checkout (`uses: ./`) in a real
    workflow (`ci-action.yaml`).
 3. **Released action**: the latest stable release, run nightly with the same
