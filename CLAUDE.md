@@ -181,8 +181,11 @@ the input `use-released`: `false` (called by `ci.yaml`) runs the checkout
   `assert numpy.__version__ == '2.4.0'`), and pass matrix values to scripts
   through `env:`.
 - Keep each job independent and short; set `timeout-minutes`.
-- Test-stable runs the released version, so new checks may fail there for a real
-  reason. Report it instead of weakening the check.
+- The nightly run tests the released version, so a new check may fail there for
+  a real reason. Report it instead of weakening the check.
+- Cases that only differ by their inputs are rows of one matrix job
+  (`test-package`, `test-invalid-inputs`, `test-uv-version-range`), not one job
+  each: a new case is a row.
 - Every bug fix needs a regression test (a job or a matrix row) that fails
   without the fix.
 
@@ -190,7 +193,8 @@ the input `use-released`: `false` (called by `ci.yaml`) runs the checkout
 
 The strategy is shared by the action repositories of `durandtibo`. This
 repository follows it: the local and released runs are one workflow file with
-a `use-released` input (see [Tests](#tests)). The design ideas behind it are in `review/target_state.md`.
+a `use-released` input (see [Tests](#tests)). The design ideas behind it are in
+`review/target_state.md`.
 
 Three levels:
 
@@ -217,8 +221,8 @@ Rules:
   one runner (`ubuntu-latest`), or on `os_latest` (the `*-latest` runners, Linux
   and macOS) when the case depends on the OS (paths, glob expansion, whitespace
   handling: `test-working-directory-paths`, `test-install-args-glob`,
-  `test-extra-packages`). There is no reduced matrix on pull requests: the same matrix runs on pull
-  requests, pushes and the schedule.
+  `test-extra-packages`). There is no reduced matrix on pull requests: the same
+  matrix runs on pull requests, pushes and the schedule.
 - Supported platforms: Linux and macOS (`os_matrix` is the `os_unix` list of
   `durandtibo/workflow-config-action`), as the README says. Windows is not
   supported and not tested. Every OS and Python version the README claims is in
