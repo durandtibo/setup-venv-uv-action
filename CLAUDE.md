@@ -141,8 +141,10 @@ Conventions:
   needed, and set `timeout-minutes` on jobs.
 - Each reusable workflow without inputs (`ci-format.yaml`,
   `lib-get-test-matrix.yaml`) is a `workflow_call` workflow that also has
-  `workflow_dispatch`, so it can be run alone. Add a new check as a new
-  `ci-<name>.yaml` plus a job in `ci.yaml`.
+  `workflow_dispatch`, so it can be run alone. `ci-action.yaml` has inputs but
+  also `workflow_dispatch` (with `use-released`): its `get-matrix` job, which
+  only runs on a manual dispatch, loads the matrix that the callers pass
+  otherwise. Add a new check as a new `ci-<name>.yaml` plus a job in `ci.yaml`.
 - Put `make` targets in the steps rather than duplicating commands, so local
   runs and CI match.
 - Start each file with a comment saying what it does, and update it when the
@@ -214,6 +216,10 @@ Rules:
   one runner (`ubuntu-latest`), or on `os_macos` when the case depends on the
   OS. There is no reduced matrix on pull requests: the same matrix runs on pull
   requests, pushes and the schedule.
+- Supported platforms: Linux and macOS (`os_matrix` is the `os_unix` list of
+  `durandtibo/workflow-config-action`), as the README says. Windows is not
+  supported and not tested. Every OS and Python version the README claims is in
+  a matrix, and every cell of a matrix is claimed.
 - Never write an OS or a Python version in a workflow to select a runner or an
   interpreter matrix: read the lists from `durandtibo/workflow-config-action`
   through `lib-get-test-matrix.yaml`. A version that a test asserts (the
@@ -231,7 +237,8 @@ Rules:
 - Check what is shipped: the exported set
   (`git archive --worktree-attributes HEAD | tar t`) must contain every file
   the action needs, because `uses: ./` runs the whole checkout and hides a
-  missing file.
+  missing file. `make check-export` lists the set, and the `test-export` job of
+  `ci-action.yaml` runs the action from the exported archive.
 - Set `timeout-minutes` on every job and `fail-fast: false` on matrix jobs.
 - Keep the README inputs and outputs in step with `action.yaml`
   (`make check-readme`, `scripts/check_readme_inputs.py`).

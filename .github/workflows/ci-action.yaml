@@ -9,7 +9,8 @@
 # steps that follow read `steps.local.outputs.x || steps.released.outputs.x`: the step that was
 # skipped has no outputs. Called from ci.yaml and nightly.yaml with the test matrix loaded once
 # by lib-get-test-matrix.yaml (durandtibo/workflow-config-action): no OS or Python version list
-# is written here.
+# is written here. It can also be run alone (workflow_dispatch, with the `use-released` input):
+# the `get-matrix` job then loads the matrix itself.
 #
 # A job that tests an input added after the latest release has `if: ${{ !inputs.use-released }}`
 # on the job: it only runs against the checkout. Remove the `if` when the pinned release has the
@@ -22,6 +23,9 @@
 #       test                    N_os
 #       test-python-version     N_os x N_py
 #       test-usage-package      N_os
+#     and test-export (checkout only, one runner), which runs the action from the exported
+#     archive (`git archive --worktree-attributes HEAD`) to check that what consumers get is
+#     what is tested.
 #   - Edge cases, on one runner (ubuntu-latest): one job per input, per invalid value and
 #     per unusual situation. They do not cross the OS or Python matrix.
 #
@@ -42,13 +46,30 @@ on:
         required: false
         type: boolean
         default: false
+  workflow_dispatch:
+    inputs:
+      use-released:
+        description: "Test the latest released action instead of the current checkout"
+        required: false
+        type: boolean
+        default: false
 
 permissions: {}
 
 jobs:
+  # Only for a manual run (workflow_dispatch): the callers pass the matrix through the
+  # `test-matrix` input instead, loaded once.
+  get-matrix:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: ./.github/workflows/lib-get-test-matrix.yaml
+    permissions:
+      contents: read
+
   # General behaviour: the default usage and the main documented usages, on every OS of
   # the matrix (and on every Python version for test-python-version).
   test:
+    needs: get-matrix
+    if: ${{ !cancelled() && (needs.get-matrix.result == 'success' || needs.get-matrix.result == 'skipped') }}
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -57,7 +78,7 @@ jobs:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: ${{ fromJson(inputs.test-matrix).os_matrix }}
+        os: ${{ fromJson(inputs.test-matrix || needs.get-matrix.outputs.test_matrix).os_matrix }}
 
     steps:
       - name: Checkout
@@ -96,6 +117,8 @@ jobs:
           uv pip check
 
   test-python-version:
+    needs: get-matrix
+    if: ${{ !cancelled() && (needs.get-matrix.result == 'success' || needs.get-matrix.result == 'skipped') }}
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -104,8 +127,8 @@ jobs:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: ${{ fromJson(inputs.test-matrix).os_matrix }}
-        python-version: ${{ fromJson(inputs.test-matrix).python_versions_standard }}
+        os: ${{ fromJson(inputs.test-matrix || needs.get-matrix.outputs.test_matrix).os_matrix }}
+        python-version: ${{ fromJson(inputs.test-matrix || needs.get-matrix.outputs.test_matrix).python_versions_standard }}
 
     steps:
       - name: Checkout
@@ -135,6 +158,8 @@ jobs:
   # Main documented usage (README, "With Specific Package Installation"): a package version
   # in a compatibility test, on every OS
   test-usage-package:
+    needs: get-matrix
+    if: ${{ !cancelled() && (needs.get-matrix.result == 'success' || needs.get-matrix.result == 'skipped') }}
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -143,7 +168,7 @@ jobs:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: ${{ fromJson(inputs.test-matrix).os_matrix }}
+        os: ${{ fromJson(inputs.test-matrix || needs.get-matrix.outputs.test_matrix).os_matrix }}
 
     steps:
       - name: Checkout
@@ -1181,3 +1206,39 @@ jobs:
           python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
           python -c "import importlib.metadata as m; assert m.version('six') == '1.17.0', m.version('six')"
           uv pip check
+
+  # Shipped = tested: `uses: ./` runs the whole checkout and hides a file that .gitattributes
+  # marks export-ignore. Here the action runs from the exported archive (what a consumer gets),
+  # so a file the action needs but does not ship makes this job fail. Only the checkout can be
+  # exported: the released action is what consumers already get. `make check-export` lists the
+  # exported files, this job proves that the action works with them.
+  test-export:
+    if: ${{ !inputs.use-released }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+      - name: Export the action
+        run: |
+          mkdir "${RUNNER_TEMP}/exported"
+          git archive --worktree-attributes HEAD | tar x -C "${RUNNER_TEMP}/exported"
+          # the exported archive must not contain the dummy project (precondition of the test)
+          test -f "${RUNNER_TEMP}/exported/action.yaml"
+          test ! -e "${RUNNER_TEMP}/exported/pyproject.toml"
+          mv "${RUNNER_TEMP}/exported" ./exported
+      - name: Setup python environment (exported)
+        id: exported
+        uses: ./exported
+      - name: Test environment
+        env:
+          UV_VERSION: ${{ steps.exported.outputs.uv-version }}
+          PYTHON_VERSION: ${{ steps.exported.outputs.python-version }}
+        run: |
+          [[ "${UV_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || (echo "unexpected uv-version '${UV_VERSION}'" && exit 1)
+          [[ "${PYTHON_VERSION}" =~ ^3\.14\.[0-9]+$ ]] || (echo "unexpected python-version '${PYTHON_VERSION}'" && exit 1)
+          python -c "import myproject; print(myproject)"
+          python -c "import sys; assert sys.prefix != sys.base_prefix, 'venv not active'"
