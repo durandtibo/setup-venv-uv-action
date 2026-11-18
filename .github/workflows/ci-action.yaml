@@ -27,7 +27,9 @@
 #     archive (`git archive --worktree-attributes HEAD`) to check that what consumers get is
 #     what is tested.
 #   - Edge cases, on one runner (ubuntu-latest): one job per input, per invalid value and
-#     per unusual situation. They do not cross the OS or Python matrix.
+#     per unusual situation. They do not cross the OS or Python matrix. Cases that only differ
+#     by their inputs are rows of one matrix job (test-package, test-invalid-inputs,
+#     test-uv-version-range), not one job each: a new case is a row.
 #
 # A failure path uses `continue-on-error`, an `id`, and a step that asserts the outcome and
 # that the failure came from the expected step (for example that uv is not installed after a
@@ -232,6 +234,9 @@ jobs:
           python -c "import sys, os; v = os.environ['EXPECTED_VERSION']; assert f'{sys.version_info[0]}.{sys.version_info[1]}' == v, sys.version"
           python -c "import platform, os; v = os.environ['OUTPUT_VERSION']; assert v == platform.python_version(), v"
 
+  # The effect of install-args is not observable here: the dummy project has no extra and the
+  # action installs invoke-tasklib itself. The wiring is proven by a valid flag (this job, the
+  # action succeeds) and by an unknown flag (test-install-args-glob, the action fails).
   test-install-args:
     permissions:
       contents: read
@@ -256,60 +261,6 @@ jobs:
       - name: Test environment
         run: |
           python -c "import myproject; print(myproject)"
-
-  test-package:
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment (local)
-        id: local
-        if: ${{ !inputs.use-released }}
-        uses: ./
-        with:
-          package-name: numpy
-          package-version: 2.4.0
-      - name: Setup python environment (released)
-        id: released
-        if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
-        with:
-          package-name: numpy
-          package-version: 2.4.0
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
-
-  test-package-latest:
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment (local)
-        id: local
-        if: ${{ !inputs.use-released }}
-        uses: ./
-        with:
-          package-name: numpy
-      - name: Setup python environment (released)
-        id: released
-        if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
-        with:
-          package-name: numpy
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          python -c "import numpy; print(numpy.__version__)"
 
   test-package-args:
     permissions:
@@ -785,37 +736,6 @@ jobs:
           # the environment is consistent whether or not sync kept invoke-tasklib
           uv pip check
 
-  test-package-python-specifier:
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with a Python version range (local)
-        id: local
-        if: ${{ !inputs.use-released }}
-        uses: ./
-        with:
-          python-version: ">=3.12,<3.14"
-          package-name: numpy
-          package-version: 2.4.0
-      - name: Setup python environment with a Python version range (released)
-        id: released
-        if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
-        with:
-          python-version: ">=3.12,<3.14"
-          package-name: numpy
-          package-version: 2.4.0
-      - name: Test environment
-        run: |
-          python -c "import myproject; print(myproject)"
-          python -c "import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), sys.version"
-          python -c "import numpy; assert numpy.__version__ == '2.4.0', numpy.__version__"
-
   test-install-args-glob:
     permissions:
       contents: read
@@ -935,7 +855,12 @@ jobs:
             exit 1
           fi
 
-  test-package-installed:
+  # Main documented usage (README, "With Specific Package Installation") and the package
+  # inputs, as rows: only the inputs and the expected result differ, so a new case is a row.
+  # `expected-installed` is the expected `package-installed` output. `numpy-version` is a regex
+  # for the installed numpy (empty: numpy must not be installed), `python-version-pattern` a
+  # regex for the interpreter.
+  test-package:
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -946,53 +871,94 @@ jobs:
       matrix:
         include:
           # installed: the version exists for the Python version
-          - package-name: numpy
+          - name: version
+            python-version: "3.14"
+            package-name: numpy
             package-version: "2.4.0"
-            expected: "true"
+            expected-installed: "true"
+            numpy-version: '^2\.4\.0$'
+            python-version-pattern: '^3\.14\.[0-9]+$'
           # installed: the latest version
-          - package-name: numpy
+          - name: latest
+            python-version: "3.14"
+            package-name: numpy
             package-version: ""
-            expected: "true"
+            expected-installed: "true"
+            numpy-version: '^[0-9]+\.[0-9]+\.[0-9]+'
+            python-version-pattern: '^3\.14\.[0-9]+$'
+          # installed: a wildcard version
+          - name: wildcard
+            python-version: "3.14"
+            package-name: numpy
+            package-version: "2.4.*"
+            expected-installed: "true"
+            numpy-version: '^2\.4\.[0-9]+$'
+            python-version-pattern: '^3\.14\.[0-9]+$'
+          # installed: a Python version range, resolved by uv
+          - name: python-range
+            python-version: ">=3.12,<3.14"
+            package-name: numpy
+            package-version: "2.4.0"
+            expected-installed: "true"
+            numpy-version: '^2\.4\.0$'
+            python-version-pattern: '^3\.1[23]\.[0-9]+$'
           # skipped: numpy 1.24 does not exist for Python 3.14, the action succeeds
-          - package-name: numpy
+          - name: version-not-available
+            python-version: "3.14"
+            package-name: numpy
             package-version: "1.24.0"
-            expected: "false"
+            expected-installed: "false"
+            numpy-version: ""
+            python-version-pattern: '^3\.14\.[0-9]+$'
           # no package requested
-          - package-name: ""
+          - name: no-package
+            python-version: "3.14"
+            package-name: ""
             package-version: ""
-            expected: "false"
+            expected-installed: "false"
+            numpy-version: ""
+            python-version-pattern: '^3\.14\.[0-9]+$'
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment (local)
+      - name: Setup python environment (${{ matrix.name }}) (local)
         id: local
         if: ${{ !inputs.use-released }}
         uses: ./
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python-version }}
           package-name: ${{ matrix.package-name }}
           package-version: ${{ matrix.package-version }}
-      - name: Setup python environment (released)
+      - name: Setup python environment (${{ matrix.name }}) (released)
         id: released
         if: ${{ inputs.use-released }}
         uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python-version }}
           package-name: ${{ matrix.package-name }}
           package-version: ${{ matrix.package-version }}
-      - name: Test the package-installed output
+      - name: Test the environment and the package-installed output
         env:
-          EXPECTED: ${{ matrix.expected }}
+          EXPECTED_INSTALLED: ${{ matrix.expected-installed }}
+          NUMPY_VERSION: ${{ matrix.numpy-version }}
+          PYTHON_VERSION_PATTERN: ${{ matrix.python-version-pattern }}
           PACKAGE_INSTALLED: ${{ steps.local.outputs.package-installed || steps.released.outputs.package-installed }}
+          OUTPUT_PYTHON_VERSION: ${{ steps.local.outputs.python-version || steps.released.outputs.python-version }}
         run: |
           python -c "import myproject; print(myproject)"
-          test "${PACKAGE_INSTALLED}" = "${EXPECTED}" || (echo "expected package-installed '${EXPECTED}', got '${PACKAGE_INSTALLED}'" && exit 1)
-          # the output matches what is installed
+          test "${PACKAGE_INSTALLED}" = "${EXPECTED_INSTALLED}" || (echo "expected package-installed '${EXPECTED_INSTALLED}', got '${PACKAGE_INSTALLED}'" && exit 1)
+          [[ "${OUTPUT_PYTHON_VERSION}" =~ ${PYTHON_VERSION_PATTERN} ]] || (echo "unexpected python-version '${OUTPUT_PYTHON_VERSION}'" && exit 1)
           python -c "
-          import importlib.util, os
-          installed = importlib.util.find_spec('numpy') is not None
-          assert installed == (os.environ['EXPECTED'] == 'true'), installed
+          import importlib.metadata as m, importlib.util as u, os, platform, re
+          assert os.environ['OUTPUT_PYTHON_VERSION'] == platform.python_version()
+          pattern = os.environ['NUMPY_VERSION']
+          if pattern:
+              assert re.search(pattern, m.version('numpy')), m.version('numpy')
+          else:
+              assert u.find_spec('numpy') is None, 'numpy should not be installed'
+          # the output matches what is installed
+          assert (u.find_spec('numpy') is not None) == (os.environ['EXPECTED_INSTALLED'] == 'true')
           "
 
   test-python-version-invalid:
@@ -1139,39 +1105,6 @@ jobs:
           python -c "import sys; assert sys.prefix.endswith('/.venv') and not sys.prefix.endswith('/setup-venv-uv-action/.venv'), sys.prefix"
           # nothing was created at the root of the workspace
           test ! -e .venv || (echo "the virtual environment is at the workspace root" && exit 1)
-
-  test-package-version-wildcard:
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with a wildcard package version (local)
-        id: local
-        if: ${{ !inputs.use-released }}
-        uses: ./
-        with:
-          python-version: "3.14"
-          package-name: numpy
-          package-version: "2.4.*"
-      - name: Setup python environment with a wildcard package version (released)
-        id: released
-        if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
-        with:
-          python-version: "3.14"
-          package-name: numpy
-          package-version: "2.4.*"
-      - name: Test environment
-        env:
-          PACKAGE_INSTALLED: ${{ steps.local.outputs.package-installed || steps.released.outputs.package-installed }}
-        run: |
-          python -c "import myproject; print(myproject)"
-          test "${PACKAGE_INSTALLED}" = "true" || (echo "expected package-installed true, got '${PACKAGE_INSTALLED}'" && exit 1)
-          python -c "import numpy; assert numpy.__version__.startswith('2.4.'), numpy.__version__"
 
   test-package-and-extra-packages:
     permissions:

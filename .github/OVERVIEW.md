@@ -75,7 +75,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   - versions: the `.python-version` file of the project (empty
     `python-version`), `uv-version`
   - installation inputs: `install-args`, the `package-*` inputs (including
-    the `package-installed` output and the skipped versions), `extra-packages`
+    the `package-installed` output and the skipped versions, as the rows of
+    the `test-package` matrix), `extra-packages`
   - `invoke-tasklib`: the version read from `uv.lock`, a missing entry, a
     dependency group that is excluded, the project that is `invoke-tasklib`
     itself (installed in editable mode)
