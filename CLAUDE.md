@@ -14,7 +14,8 @@ there.
 ## Environment
 
 - Use the virtual environment in `.venv`: `.venv/bin/python`, `.venv/bin/inv`.
-- Use the `Makefile`; run `make help` to list the targets.
+- Use the `Makefile`; run `make help` to list the targets. `make test` runs
+  the checks of this repository (`make check-readme`).
 - Do not edit `.make/`: it is a shared subtree synced by
   `bot-sync-shared-makefile.yaml`.
 - Format and lint before committing: `make format` and `make lint` (yamllint,
@@ -145,9 +146,66 @@ numpy.__version__ == '2.4.0'`), and pass matrix values to scripts through
 - Keep each job independent and short; set `timeout-minutes`.
 - Test-stable runs the released version, so new checks may fail there for a real
   reason. Report it instead of weakening the check.
+- Every bug fix needs a regression test (a job or a matrix row) that fails
+  without the fix.
+
+## Testing strategy
+
+The strategy is shared by the action repositories of `durandtibo`. This
+repository follows it, with one difference: the local and released runs are two
+workflow files (see [Tests](#tests)), not one workflow with a `use-released`
+input. The design ideas behind it are in `review/target_state.md`.
+
+Three levels:
+
+1. **Code**: the logic of a script, tested alone without GitHub. This
+   repository has no such code to test: the only script,
+   `scripts/check_readme_inputs.py`, is run by `make check-readme`, and the
+   action runs shell inline.
+2. **Local action**: the action from this checkout (`uses: ./`) in a real
+   workflow (`ci-action.yaml`).
+3. **Released action**: the latest stable release, run nightly with the same
+   cases as level 2 (`nightly-test-released.yaml`). Never run it on pull
+   requests.
+
+Rules:
+
+- Test a behaviour at the cheapest level that can show it. The action tests
+  check the contract and the wiring: inputs reach the step that uses them,
+  outputs are set, the action fails on an invalid input. Do not duplicate in a
+  job what `make check-readme` already checks.
+- Split the action tests in two. **General behaviour** (the default usage and
+  the main documented usage) runs on the full matrix: `os_matrix`, and
+  `python_versions_standard` or `python_versions` when the action depends on
+  Python. **Edge cases** (one input, one invalid value, an unusual file) run on
+  one runner (`ubuntu-latest`), or on `os_macos` when the case depends on the
+  OS. There is no reduced matrix on pull requests: the same matrix runs on pull
+  requests, pushes and the schedule.
+- Never write an OS or a Python version in a workflow to select a runner or an
+  interpreter matrix: read the lists from `durandtibo/workflow-config-action`
+  through `lib-get-test-matrix.yaml`. A version that a test asserts (the
+  default Python, a pinned package) is an expected value, not a matrix.
+- Failure paths use `continue-on-error: true`, an `id`, and a step that asserts
+  `steps.<id>.outcome`. Assert that the failure came from the validation (for
+  example that `uv` was not installed), not a message text. A negative test
+  must not be able to pass for the wrong reason: check the precondition (for
+  example that `uv` is not installed before the action runs).
+- Assert the value or the format of outputs (`cache-hit`, `uv-version`,
+  `python-version`, `package-installed`), never just print them.
+- Tests have no side effect outside the runner: throwaway files in the
+  checkout, no push, no change to a repository. If something cannot be tested
+  in CI, write down which check covers it.
+- Check what is shipped: the exported set
+  (`git archive --worktree-attributes HEAD | tar t`) must contain every file
+  the action needs, because `uses: ./` runs the whole checkout and hides a
+  missing file.
+- Set `timeout-minutes` on every job and `fail-fast: false` on matrix jobs.
+- Keep the README inputs and outputs in step with `action.yaml`
+  (`make check-readme`, `scripts/check_readme_inputs.py`).
 
 ## Reporting
 
-- State which checks ran (`make lint`, `make format`) and which did not.
+- State which checks ran (`make lint`, `make format`, `make test`) and which
+  did not.
 - Note that the workflows and CI were not awaited.
 - Report failures that already exist on `main` rather than hiding them.
