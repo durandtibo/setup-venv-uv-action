@@ -96,6 +96,11 @@ true`. Installation steps must fail the action.
 
 - Quote all variables. Code must pass `shellcheck` and `shfmt` via `make lint`
   / `make format`.
+- Keep the scripts short and readable: `scripts/check_export.sh` uses
+  `set -euo pipefail` and no functions. If a script grows functions, end a
+  function that can fail with an explicit `return 1` (`cmd || { echo ...;
+return 1; }`) and do not rely on `set -e`: a caller in an `||` list turns it
+  off.
 - Fail early with a clear `::error` message (`::error title=Invalid input::` for
   an input).
 - `scripts/check_export.sh` lists the files the action needs (`EXPECTED`). When
@@ -122,7 +127,7 @@ Files are prefixed by role:
   `use-released: true`, which tests the last release (the current code is
   tested nightly by `ci.yaml`).
 - `ci-verify-workflows.yaml`: lints the workflow files themselves. It has its
-  own triggers and is not called from `ci.yaml`.
+  own triggers and is not called from `ci.yaml`, so it can be a required check.
 - `bot-*.yaml`: scheduled automation that opens PRs or acts on runs (format
   files, pin actions, sync `.make/`, cancel stale runs, report queued runs).
 - `security-dependency-review.yaml`: dependency review on pull requests.
@@ -149,6 +154,8 @@ The action is tested by one workflow, `.github/workflows/ci-action.yaml`, with
 the input `use-released`: `false` (called by `ci.yaml`) runs the checkout
 (`uses: ./`), `true` (called by `nightly.yaml`) runs the last release.
 
+- One behaviour per job. Cover the success, the failure and the edge cases
+  (empty value, unusual value) of an input.
 - Every step that runs the action exists twice in a job: a `local` step
   (`if: ${{ !inputs.use-released }}`, `uses: ./`) and a `released` step
   (`if: ${{ inputs.use-released }}`, pinned to the release SHA with a
@@ -228,6 +235,9 @@ Rules:
 - Set `timeout-minutes` on every job and `fail-fast: false` on matrix jobs.
 - Keep the README inputs and outputs in step with `action.yaml`
   (`make check-readme`, `scripts/check_readme_inputs.py`).
+- Put an assertion in one place: a check shared by the `local` and `released`
+  steps reads the merged outputs (`steps.local.outputs.x ||
+steps.released.outputs.x`) in one step, not in two copies.
 
 ## Reporting
 
