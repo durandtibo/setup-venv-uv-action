@@ -208,6 +208,11 @@ Each job has a `local` and a `released` step, selected by `if`, so the two modes
 cannot drift apart. A job that tests an input added after the last release has
 `if: ${{ !inputs.use-released }}` until the release is bumped.
 
+The general behaviour runs on the full OS matrix (and the Python versions where
+it applies). The edge cases run on one runner, or on `os_latest` (Linux and
+macOS) when they depend on the OS. Both lists come from
+`durandtibo/workflow-config-action` through `lib-get-test-matrix.yaml`.
+
 ## Permissions
 
 All workflows follow the principle of least privilege:

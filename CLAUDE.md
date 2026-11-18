@@ -214,8 +214,10 @@ Rules:
   the main documented usage) runs on the full matrix: `os_matrix`, and
   `python_versions_standard` or `python_versions` when the action depends on
   Python. **Edge cases** (one input, one invalid value, an unusual file) run on
-  one runner (`ubuntu-latest`), or on `os_macos` when the case depends on the
-  OS. There is no reduced matrix on pull requests: the same matrix runs on pull
+  one runner (`ubuntu-latest`), or on `os_latest` (the `*-latest` runners, Linux
+  and macOS) when the case depends on the OS (paths, glob expansion, whitespace
+  handling: `test-working-directory-paths`, `test-install-args-glob`,
+  `test-extra-packages`). There is no reduced matrix on pull requests: the same matrix runs on pull
   requests, pushes and the schedule.
 - Supported platforms: Linux and macOS (`os_matrix` is the `os_unix` list of
   `durandtibo/workflow-config-action`), as the README says. Windows is not
