@@ -765,6 +765,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+      - name: Test that uv is not installed before the action
+        run: |
+          if command -v uv; then
+            echo "uv is already installed, the test is not valid"
+            exit 1
+          fi
       - name: Create a file that matches the glob pattern of the argument
         run: |
           touch ./--no-optional-deps
@@ -789,6 +795,14 @@ jobs:
           # expanded to the valid flag '--no-optional-deps', the action would succeed;
           # passed as is, 'inv env.install' rejects the unknown flag
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+          # the failure is in step 4, not in the validation or the setup: uv and
+          # invoke-tasklib are installed, the project dependencies are not
+          uv --version
+          uv pip show --quiet invoke-tasklib
+          if python -c "import myproject" 2> /dev/null; then
+            echo "myproject is installed: the action did not fail in step 4"
+            exit 1
+          fi
 
   test-uv-version:
     permissions:
@@ -990,6 +1004,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+      - name: Test that the project is not installed before the action
+        run: |
+          if command -v inv; then
+            echo "inv is already installed, the test is not valid"
+            exit 1
+          fi
+          if python -c "import myproject" 2> /dev/null; then
+            echo "myproject is already installed, the test is not valid"
+            exit 1
+          fi
       # python-version is not validated by the action: uv rejects it
       - name: Setup python environment with a Python version that does not exist (local)
         id: local
@@ -1010,6 +1034,11 @@ jobs:
           OUTCOME: ${{ steps.local.outcome == 'skipped' && steps.released.outcome || steps.local.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
+          # step 2 failed: invoke-tasklib (step 3.2) was not installed
+          if command -v inv; then
+            echo "inv is installed: the action did not fail in step 2"
+            exit 1
+          fi
           if python -c "import myproject" 2> /dev/null; then
             echo "myproject is installed: the action did not stop earlier"
             exit 1
