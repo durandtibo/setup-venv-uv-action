@@ -23,11 +23,15 @@
 #       test                    N_os
 #       test-python-version     N_os x N_py
 #       test-usage-package      N_os
+#     and the OS-sensitive edge cases, on N_latest = len(os_latest) runners (Linux and macOS):
+#       test-working-directory-paths (3 paths), test-install-args-glob, test-extra-packages
 #     and test-export (checkout only, one runner), which runs the action from the exported
 #     archive (`git archive --worktree-attributes HEAD`) to check that what consumers get is
 #     what is tested.
 #   - Edge cases, on one runner (ubuntu-latest): one job per input, per invalid value and
-#     per unusual situation. They do not cross the OS or Python matrix. Cases that only differ
+#     per unusual situation. They do not cross the OS or Python matrix. The cases that depend on
+#     the OS (paths, glob expansion, whitespace handling: test-working-directory-paths,
+#     test-install-args-glob, test-extra-packages) run on `os_latest` (Linux and macOS) instead. Cases that only differ
 #     by their inputs are rows of one matrix job (test-package, test-invalid-inputs,
 #     test-uv-version-range), not one job each: a new case is a row.
 #
@@ -553,11 +557,19 @@ jobs:
             [ "${CACHE_HIT}" != "true" ] || (echo "expected no cache hit when the cache is disabled" && exit 1)
           fi
 
+  # OS-sensitive edge case (whitespace and blank lines, bash 3.2 on macOS): os_latest
   test-extra-packages:
+    needs: get-matrix
+    if: ${{ !cancelled() && (needs.get-matrix.result == 'success' || needs.get-matrix.result == 'skipped') }}
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.test-matrix || needs.get-matrix.outputs.test_matrix).os_latest }}
 
     steps:
       - name: Checkout
@@ -736,11 +748,19 @@ jobs:
           # the environment is consistent whether or not sync kept invoke-tasklib
           uv pip check
 
+  # OS-sensitive edge case (glob expansion of the arguments, bash 3.2 on macOS): os_latest
   test-install-args-glob:
+    needs: get-matrix
+    if: ${{ !cancelled() && (needs.get-matrix.result == 'success' || needs.get-matrix.result == 'skipped') }}
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.test-matrix || needs.get-matrix.outputs.test_matrix).os_latest }}
 
     steps:
       - name: Checkout
@@ -1067,15 +1087,19 @@ jobs:
           # the installed uv is the one reported by the output
           uv --version | grep -qE "^uv ${OUTPUT_VERSION//./\\.}( |$)" || (echo "uv does not match '${OUTPUT_VERSION}'" && exit 1)
 
+  # OS-sensitive edge case (paths, spaces in a path): os_latest
   test-working-directory-paths:
+    needs: get-matrix
+    if: ${{ !cancelled() && (needs.get-matrix.result == 'success' || needs.get-matrix.result == 'skipped') }}
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
       max-parallel: 8
       fail-fast: false
       matrix:
+        os: ${{ fromJson(inputs.test-matrix || needs.get-matrix.outputs.test_matrix).os_latest }}
         working-directory: ["sub/project", "./sub/project/", "my project"]
 
     steps:
