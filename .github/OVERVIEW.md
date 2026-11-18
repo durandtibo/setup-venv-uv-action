@@ -14,6 +14,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 │   ├── ci.yaml                        # Main CI pipeline (format + tests)
 │   ├── lib-get-test-matrix.yaml       # Loads the OS and Python version matrices
 │   ├── ci-format.yaml                 # Formatting checks
+│   ├── ci-export.yaml                 # Checks the files shipped to the consumers
 │   ├── ci-action.yaml                 # Tests the action of this repository
 │   ├── nightly-test-released.yaml     # Tests the last stable release
 │   ├── nightly.yaml                   # Scheduled nightly test runs
@@ -38,7 +39,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 - **Trigger**: Push/PR to main branch, nightly schedule, manual dispatch
 - **Purpose**: Main continuous integration pipeline
-- **Jobs**: Calls lib-get-test-matrix, ci-format and ci-action workflows
+- **Jobs**: Calls lib-get-test-matrix, ci-format, ci-export and ci-action workflows
 - **Permissions**: set per job (`contents: read`)
 
 #### Format (ci-format.yaml)
@@ -60,11 +61,16 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 - **Purpose**: Tests the action using the current repository code (`uses: ./`)
 - **Config**: The OS and Python version lists come from
   `durandtibo/workflow-config-action`
-- **Jobs**: One job per input or behavior of the action, in these groups (the
-  workflow file is the list of jobs):
-  - defaults and versions: default inputs on every Unix OS of the config, the
-    Python versions of the config, the `.python-version` file of the project
-    (empty `python-version`), `uv-version`
+- **Jobs**: split in two levels, as described in `CLAUDE.md` (the workflow file
+  is the list of jobs):
+  - **general behaviour**, on the full matrix, the same on pull requests, pushes
+    and the schedule: `test` (default usage and the four outputs, on every OS of
+    the config), `test-python-version` (every OS x every standard Python version
+    of the config), `test-usage-package` (a package version, on every OS)
+  - **edge cases**, on one runner (`ubuntu-latest`), one job per input, invalid
+    value or unusual situation, in these groups:
+  - versions: the `.python-version` file of the project (empty
+    `python-version`), `uv-version`
   - installation inputs: `install-args`, the `package-*` inputs (including
     the `package-installed` output and the skipped versions), `extra-packages`
   - `invoke-tasklib`: the version read from `uv.lock`, a missing entry, a
@@ -73,6 +79,15 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   - project location: `working-directory` and the missing project files
   - `enable-cache` and the `cache-hit` output
   - validation: one matrix case per invalid value, and the ignored inputs
+- **Permissions**: `contents: read`
+
+#### Check Export (ci-export.yaml)
+
+- **Trigger**: Called by CI workflow, manual dispatch
+- **Purpose**: `make check-export` checks that `git archive` (what consumers of
+  a release get) contains exactly the files the action needs (`action.yaml`,
+  `LICENSE`), because `uses: ./` runs the whole checkout and hides a file that
+  `.gitattributes` ignores by mistake
 - **Permissions**: `contents: read`
 
 #### Test Released Action (nightly-test-released.yaml)
@@ -176,6 +191,7 @@ both are needed is not decided.
 ci.yaml
 ├─→ lib-get-test-matrix.yaml (OS and Python versions)
 ├─→ ci-format.yaml (make format + git diff, lint, README check)
+├─→ ci-export.yaml (exported files)
 └─→ ci-action.yaml (test with current code)
 
 nightly.yaml
