@@ -65,15 +65,14 @@ tests.
   steps. A group of related steps (for example the validation) is numbered
   `N.M` (`1.1`, `1.2`, ...). A step does one thing: validate one input, run one
   report command.
-- Pin every third-party action, in `action.yaml` and in the workflows, to a commit SHA followed
-  by a `#
-ratchet:<owner>/<repo>@<tag>` comment, as the existing steps do. Do not use a
-  tag or a branch.
-- Pass inputs to shell scripts through `env:`, never by interpolating `${{
-inputs.* }}` in `run:`.
+- Pin every third-party action, in `action.yaml` and in the workflows, to a
+  commit SHA followed by a `# ratchet:<owner>/<repo>@<tag>` comment, as the
+  existing steps do. Do not use a tag or a branch.
+- Pass inputs to shell scripts through `env:`, never by interpolating
+  `${{ inputs.* }}` in `run:`.
 - Every `run:` step sets `shell: bash` (required in composite actions).
-- Reporting steps (show config, packages, tree, check) use `continue-on-error:
-true`. Installation steps must fail the action.
+- Reporting steps (show config, packages, tree, check) use
+  `continue-on-error: true`. Installation steps must fail the action.
 - Only ship what the action needs at runtime. Files the action itself uses
   (`action.yaml`, `LICENSE`, and any file it reads through
   `${{ github.action_path }}`) are exported, and `.gitattributes` marks
@@ -99,9 +98,9 @@ true`. Installation steps must fail the action.
   / `make format`.
 - Keep the scripts short and readable: `scripts/check_export.sh` uses
   `set -euo pipefail` and no functions. If a script grows functions, end a
-  function that can fail with an explicit `return 1` (`cmd || { echo ...;
-return 1; }`) and do not rely on `set -e`: a caller in an `||` list turns it
-  off.
+  function that can fail with an explicit `return 1`
+  (`cmd || { echo ...; return 1; }`) and do not rely on `set -e`: a caller in
+  an `||` list turns it off.
 - Fail early with a clear `::error` message (`::error title=Invalid input::` for
   an input).
 - `scripts/check_export.sh` lists the files the action needs (`EXPECTED`). When
@@ -178,9 +177,9 @@ the input `use-released`: `false` (called by `ci.yaml`) runs the checkout
   example by checking that nothing was installed, not only that it failed.
 - Read OS and Python version lists from `durandtibo/workflow-config-action`
   outputs; do not hardcode them.
-- Assert the expected value with an explicit check (for example `assert
-numpy.__version__ == '2.4.0'`), and pass matrix values to scripts through
-  `env:`.
+- Assert the expected value with an explicit check (for example
+  `assert numpy.__version__ == '2.4.0'`), and pass matrix values to scripts
+  through `env:`.
 - Keep each job independent and short; set `timeout-minutes`.
 - Test-stable runs the released version, so new checks may fail there for a real
   reason. Report it instead of weakening the check.
