@@ -1,12 +1,19 @@
-# Workflow testing the action from the current repository code (uses: ./), i.e. the
-# version not released yet. Called from ci.yaml with the test matrix loaded once by
-# lib-get-test-matrix.yaml (durandtibo/workflow-config-action): no OS or Python version
-# list is written here.
+# Workflow testing the action in a real workflow. One file tests both versions, so the local
+# and the released runs cannot drift apart:
+#   - use-released: false (default, called by ci.yaml): the action from the current checkout
+#     (uses: ./), i.e. the version that is not released yet.
+#   - use-released: true (called by nightly.yaml): the latest released action, to catch
+#     regressions in what consumers pick up. Update the pinned release of the `released` steps
+#     when a new version is released (bot-pin-action.yaml does it). Never run it on pull requests.
+# Every step that runs the action exists twice, `local` and `released`, selected by `if`. The
+# steps that follow read `steps.local.outputs.x || steps.released.outputs.x`: the step that was
+# skipped has no outputs. Called from ci.yaml and nightly.yaml with the test matrix loaded once
+# by lib-get-test-matrix.yaml (durandtibo/workflow-config-action): no OS or Python version list
+# is written here.
 #
-# nightly-test-released.yaml runs the same jobs against the latest release. The two files
-# must stay identical except for the header comment, the name and the `uses:` lines. The
-# exception is a job that tests an input added after the latest release: it only exists
-# here until the release is bumped (today: test-tasklib-self).
+# A job that tests an input added after the latest release has `if: ${{ !inputs.use-released }}`
+# on the job: it only runs against the checkout. Remove the `if` when the pinned release has the
+# feature (today: test-tasklib-self).
 #
 # Two levels of tests (docs: CLAUDE.md, "Testing strategy"):
 #   - General behaviour, on the full matrix. The same matrix runs on pull requests, pushes
@@ -30,6 +37,11 @@ on:
         description: "JSON test matrix from lib-get-test-matrix.yaml, loaded once by the caller"
         required: true
         type: string
+      use-released:
+        description: "Test the latest released action instead of the current checkout"
+        required: false
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -50,15 +62,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
-        id: setup
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
       - name: Test the outputs
         env:
-          CACHE_HIT: ${{ steps.setup.outputs.cache-hit }}
-          UV_VERSION: ${{ steps.setup.outputs.uv-version }}
-          PYTHON_VERSION: ${{ steps.setup.outputs.python-version }}
-          PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+          CACHE_HIT: ${{ steps.local.outputs.cache-hit || steps.released.outputs.cache-hit }}
+          UV_VERSION: ${{ steps.local.outputs.uv-version || steps.released.outputs.uv-version }}
+          PYTHON_VERSION: ${{ steps.local.outputs.python-version || steps.released.outputs.python-version }}
+          PACKAGE_INSTALLED: ${{ steps.local.outputs.package-installed || steps.released.outputs.package-installed }}
         run: |
           # 'auto' enables the cache on the GitHub-hosted runners
           [[ "${CACHE_HIT}" =~ ^(true|false)$ ]] || (echo "unexpected cache-hit '${CACHE_HIT}'" && exit 1)
@@ -93,15 +110,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
-        id: setup
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Test environment
         env:
           EXPECTED_VERSION: ${{ matrix.python-version }}
-          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
+          OUTPUT_VERSION: ${{ steps.local.outputs.python-version || steps.released.outputs.python-version }}
         run: |
           python --version
           python -c "import myproject; print(myproject)"
@@ -124,16 +148,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with numpy
-        id: setup
+      - name: Setup python environment with numpy (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          python-version: "3.12"
+          package-name: numpy
+          package-version: 1.26.0
+      - name: Setup python environment with numpy (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           python-version: "3.12"
           package-name: numpy
           package-version: 1.26.0
       - name: Test environment
         env:
-          PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+          PACKAGE_INSTALLED: ${{ steps.local.outputs.package-installed || steps.released.outputs.package-installed }}
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.version_info[:2] == (3, 12), sys.version"
@@ -156,14 +189,19 @@ jobs:
         run: |
           echo "${PROJECT_VERSION}" > .python-version
       # python-version is not set: the default (empty) follows .python-version
-      - name: Setup python environment
-        id: setup
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
       - name: Test that the version of .python-version is used
         env:
           # not the default Python version (3.14), so the file is what decides
           EXPECTED_VERSION: "3.12"
-          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
+          OUTPUT_VERSION: ${{ steps.local.outputs.python-version || steps.released.outputs.python-version }}
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys, os; v = os.environ['EXPECTED_VERSION']; assert f'{sys.version_info[0]}.{sys.version_info[1]}' == v, sys.version"
@@ -178,8 +216,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          install-args: "--no-optional-deps"
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           install-args: "--no-optional-deps"
       - name: Test environment
@@ -195,8 +241,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          package-name: numpy
+          package-version: 2.4.0
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           package-name: numpy
           package-version: 2.4.0
@@ -214,8 +269,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          package-name: numpy
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           package-name: numpy
       - name: Test environment
@@ -232,8 +295,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          package-name: numpy
+          package-version: 2.4.0
+          package-install-args: "--dry-run"
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           package-name: numpy
           package-version: 2.4.0
@@ -257,8 +330,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          package-name: "requests[socks]"
+          package-version: 2.32.5
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           package-name: "requests[socks]"
           package-version: 2.32.5
@@ -281,14 +363,22 @@ jobs:
       - name: Lock a pinned invoke-tasklib version in the project
         run: |
           pipx run uv add --no-sync --group dev "invoke-tasklib==0.0.8"
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
       - name: Test that the version of uv.lock is installed
         run: |
           python -c "import myproject; print(myproject)"
           uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$" || (echo "expected the locked invoke-tasklib 0.0.8" && exit 1)
 
+  # Not released yet: runs against the checkout only (see the header)
   test-tasklib-self:
+    if: ${{ !inputs.use-released }}
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -302,8 +392,16 @@ jobs:
         with:
           repository: durandtibo/invoke-tasklib
           path: invoke-tasklib
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          working-directory: invoke-tasklib
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           working-directory: invoke-tasklib
       - name: Test that the project is installed in editable mode
@@ -324,13 +422,19 @@ jobs:
       - name: Remove invoke-tasklib from the project dependencies
         run: |
           pipx run uv remove --no-sync --group dev invoke-tasklib
-      - name: Setup python environment without invoke-tasklib in uv.lock
-        id: setup
+      - name: Setup python environment without invoke-tasklib in uv.lock (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        continue-on-error: true
+      - name: Setup python environment without invoke-tasklib in uv.lock (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         continue-on-error: true
       - name: Test that the action failed while reading the locked version
         env:
-          OUTCOME: ${{ steps.setup.outcome }}
+          OUTCOME: ${{ steps.local.outcome == 'skipped' && steps.released.outcome || steps.local.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
           # uv and the virtual environment (step 2) are available: the failure
@@ -360,14 +464,21 @@ jobs:
         run: |
           mkdir subproject
           mv pyproject.toml uv.lock tasks.py invoke.yaml src subproject/
-      - name: Setup python environment
-        id: setup
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          working-directory: subproject
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           working-directory: subproject
       - name: Test environment
         env:
-          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
+          OUTPUT_VERSION: ${{ steps.local.outputs.python-version || steps.released.outputs.python-version }}
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.prefix.endswith('/subproject/.venv'), sys.prefix"
@@ -403,13 +514,19 @@ jobs:
           MISSING_FILE: ${{ matrix.file }}
         run: |
           rm "${MISSING_FILE}"
-      - name: Setup python environment without a project file
-        id: setup
+      - name: Setup python environment without a project file (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        continue-on-error: true
+      - name: Setup python environment without a project file (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         continue-on-error: true
       - name: Test that the action failed in the validation
         env:
-          OUTCOME: ${{ steps.setup.outcome }}
+          OUTCOME: ${{ steps.local.outcome == 'skipped' && steps.released.outcome || steps.local.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
           # the validation (step 1.3) failed: uv was not installed yet
@@ -432,15 +549,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
-        id: setup
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          enable-cache: ${{ matrix.enable-cache }}
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           enable-cache: ${{ matrix.enable-cache }}
       - name: Test environment
         env:
           ENABLE_CACHE: ${{ matrix.enable-cache }}
-          CACHE_HIT: ${{ steps.setup.outputs.cache-hit }}
+          CACHE_HIT: ${{ steps.local.outputs.cache-hit || steps.released.outputs.cache-hit }}
         run: |
           python -c "import myproject; print(myproject)"
           echo "cache-hit='${CACHE_HIT}'"
@@ -462,8 +586,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          extra-packages: |
+            six==1.17.0
+            attrs>=24.0
+              iniconfig
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           extra-packages: |
             six==1.17.0
@@ -535,9 +670,21 @@ jobs:
             echo "uv is already installed, the test is not valid"
             exit 1
           fi
-      - name: Setup python environment with an invalid input (${{ matrix.name }})
-        id: setup
+      - name: Setup python environment with an invalid input (${{ matrix.name }}) (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        continue-on-error: true
+        with:
+          enable-cache: ${{ matrix.enable-cache || 'auto' }}
+          working-directory: ${{ matrix.working-directory || '.' }}
+          extra-packages: ${{ matrix.extra-packages }}
+          package-name: ${{ matrix.package-name }}
+          package-version: ${{ matrix.package-version }}
+      - name: Setup python environment with an invalid input (${{ matrix.name }}) (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         continue-on-error: true
         with:
           enable-cache: ${{ matrix.enable-cache || 'auto' }}
@@ -547,7 +694,7 @@ jobs:
           package-version: ${{ matrix.package-version }}
       - name: Test that the action failed in the validation
         env:
-          OUTCOME: ${{ steps.setup.outcome }}
+          OUTCOME: ${{ steps.local.outcome == 'skipped' && steps.released.outcome || steps.local.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
           # the validation failed: uv was not installed yet
@@ -565,8 +712,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with inputs that are ignored without package-name
+      - name: Setup python environment with inputs that are ignored without package-name (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          package-version: 2.4.0
+          package-install-args: "--upgrade"
+      - name: Setup python environment with inputs that are ignored without package-name (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           package-version: 2.4.0
           package-install-args: "--upgrade"
@@ -584,8 +740,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment without the dependency groups
+      - name: Setup python environment without the dependency groups (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          # an empty list of groups: invoke-tasklib is not synced from the lock
+          install-args: "--groups="
+      - name: Setup python environment without the dependency groups (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           # an empty list of groups: invoke-tasklib is not synced from the lock
           install-args: "--groups="
@@ -604,8 +769,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with a Python version range
+      - name: Setup python environment with a Python version range (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          python-version: ">=3.12,<3.14"
+          package-name: numpy
+          package-version: 2.4.0
+      - name: Setup python environment with a Python version range (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           python-version: ">=3.12,<3.14"
           package-name: numpy
@@ -628,15 +803,23 @@ jobs:
       - name: Create a file that matches the glob pattern of the argument
         run: |
           touch ./--no-optional-deps
-      - name: Setup python environment with a glob character in install-args
-        id: setup
+      - name: Setup python environment with a glob character in install-args (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        continue-on-error: true
+        with:
+          install-args: "--no-optional-dep?"
+      - name: Setup python environment with a glob character in install-args (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         continue-on-error: true
         with:
           install-args: "--no-optional-dep?"
       - name: Test that the argument was not expanded
         env:
-          OUTCOME: ${{ steps.setup.outcome }}
+          OUTCOME: ${{ steps.local.outcome == 'skipped' && steps.released.outcome || steps.local.outcome }}
         run: |
           # expanded to the valid flag '--no-optional-deps', the action would succeed;
           # passed as is, 'inv env.install' rejects the unknown flag
@@ -651,14 +834,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with a pinned uv version
-        id: setup
+      - name: Setup python environment with a pinned uv version (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          uv-version: "0.12.0"
+      - name: Setup python environment with a pinned uv version (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           uv-version: "0.12.0"
       - name: Test environment
         env:
-          OUTPUT_VERSION: ${{ steps.setup.outputs.uv-version }}
+          OUTPUT_VERSION: ${{ steps.local.outputs.uv-version || steps.released.outputs.uv-version }}
         run: |
           python -c "import myproject; print(myproject)"
           uv --version
@@ -682,15 +872,23 @@ jobs:
           mv pyproject.toml uv.lock tasks.py invoke.yaml src subproject/
           # 'uv pip install' only finds invoke-tasklib if it ignores this file
           printf '[pip]\nno-index = true\n' > subproject/uv.toml
-      - name: Setup python environment
-        id: setup
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        continue-on-error: true
+        with:
+          working-directory: subproject
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         continue-on-error: true
         with:
           working-directory: subproject
       - name: Test that uv read the uv.toml of the working directory
         env:
-          OUTCOME: ${{ steps.setup.outcome }}
+          OUTCOME: ${{ steps.local.outcome == 'skipped' && steps.released.outcome || steps.local.outcome }}
         run: |
           if [ "${OUTCOME}" != "failure" ]; then
             echo "expected the action to fail, got '${OUTCOME}'"
@@ -742,9 +940,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment
-        id: setup
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          python-version: "3.14"
+          package-name: ${{ matrix.package-name }}
+          package-version: ${{ matrix.package-version }}
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           python-version: "3.14"
           package-name: ${{ matrix.package-name }}
@@ -752,7 +959,7 @@ jobs:
       - name: Test the package-installed output
         env:
           EXPECTED: ${{ matrix.expected }}
-          PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+          PACKAGE_INSTALLED: ${{ steps.local.outputs.package-installed || steps.released.outputs.package-installed }}
         run: |
           python -c "import myproject; print(myproject)"
           test "${PACKAGE_INSTALLED}" = "${EXPECTED}" || (echo "expected package-installed '${EXPECTED}', got '${PACKAGE_INSTALLED}'" && exit 1)
@@ -773,15 +980,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
       # python-version is not validated by the action: uv rejects it
-      - name: Setup python environment with a Python version that does not exist
-        id: setup
+      - name: Setup python environment with a Python version that does not exist (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        continue-on-error: true
+        with:
+          python-version: "3.99"
+      - name: Setup python environment with a Python version that does not exist (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         continue-on-error: true
         with:
           python-version: "3.99"
       - name: Test that the action failed before installing the project
         env:
-          OUTCOME: ${{ steps.setup.outcome }}
+          OUTCOME: ${{ steps.local.outcome == 'skipped' && steps.released.outcome || steps.local.outcome }}
         run: |
           test "${OUTCOME}" = "failure" || (echo "expected the action to fail, got '${OUTCOME}'" && exit 1)
           if python -c "import myproject" 2> /dev/null; then
@@ -802,12 +1017,17 @@ jobs:
         run: |
           rm .python-version
       # no input and no .python-version: uv follows requires-python (>=3.10)
-      - name: Setup python environment
-        id: setup
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
       - name: Test environment
         env:
-          OUTPUT_VERSION: ${{ steps.setup.outputs.python-version }}
+          OUTPUT_VERSION: ${{ steps.local.outputs.python-version || steps.released.outputs.python-version }}
         run: |
           python -c "import myproject; print(myproject)"
           python -c "import sys; assert sys.version_info[:2] >= (3, 10), sys.version"
@@ -833,15 +1053,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with a uv version request
-        id: setup
+      - name: Setup python environment with a uv version request (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          uv-version: ${{ matrix.uv-version }}
+      - name: Setup python environment with a uv version request (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           uv-version: ${{ matrix.uv-version }}
       - name: Test environment
         env:
           PATTERN: ${{ matrix.pattern }}
-          OUTPUT_VERSION: ${{ steps.setup.outputs.uv-version }}
+          OUTPUT_VERSION: ${{ steps.local.outputs.uv-version || steps.released.outputs.uv-version }}
         run: |
           python -c "import myproject; print(myproject)"
           # the output is the resolved version and matches the request
@@ -869,8 +1096,16 @@ jobs:
         run: |
           mkdir -p "${WORKING_DIRECTORY}"
           mv pyproject.toml uv.lock tasks.py invoke.yaml src .python-version "${WORKING_DIRECTORY}/"
-      - name: Setup python environment
+      - name: Setup python environment (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          working-directory: ${{ matrix.working-directory }}
+      - name: Setup python environment (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           working-directory: ${{ matrix.working-directory }}
       - name: Test environment
@@ -889,16 +1124,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with a wildcard package version
-        id: setup
+      - name: Setup python environment with a wildcard package version (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          python-version: "3.14"
+          package-name: numpy
+          package-version: "2.4.*"
+      - name: Setup python environment with a wildcard package version (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           python-version: "3.14"
           package-name: numpy
           package-version: "2.4.*"
       - name: Test environment
         env:
-          PACKAGE_INSTALLED: ${{ steps.setup.outputs.package-installed }}
+          PACKAGE_INSTALLED: ${{ steps.local.outputs.package-installed || steps.released.outputs.package-installed }}
         run: |
           python -c "import myproject; print(myproject)"
           test "${PACKAGE_INSTALLED}" = "true" || (echo "expected package-installed true, got '${PACKAGE_INSTALLED}'" && exit 1)
@@ -913,8 +1157,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-      - name: Setup python environment with a package and extra packages
+      - name: Setup python environment with a package and extra packages (local)
+        id: local
+        if: ${{ !inputs.use-released }}
         uses: ./
+        with:
+          package-name: numpy
+          package-version: 2.4.0
+          extra-packages: |
+            six==1.17.0
+      - name: Setup python environment with a package and extra packages (released)
+        id: released
+        if: ${{ inputs.use-released }}
+        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
         with:
           package-name: numpy
           package-version: 2.4.0
