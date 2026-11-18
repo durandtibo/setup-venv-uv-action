@@ -56,8 +56,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 #### Test Action (ci-action.yaml)
 
 - **Trigger**: Called by the CI workflow (`use-released: false`) and by the
-  nightly workflow (`use-released: true`); it has inputs, so it has no manual
-  dispatch of its own
+  nightly workflow (`use-released: true`), and manual dispatch with the
+  `use-released` input (the `get-matrix` job then loads the matrix itself)
 - **Purpose**: Tests the action using the current repository code (`uses: ./`),
   or the last published release with `use-released: true`
 - **Config**: The OS and Python version lists come from
@@ -68,6 +68,8 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
     and the schedule: `test` (default usage and the four outputs, on every OS of
     the config), `test-python-version` (every OS x every standard Python version
     of the config), `test-usage-package` (a package version, on every OS)
+  - **shipped = tested**: `test-export` runs the action from the exported
+    archive (`git archive --worktree-attributes HEAD`), on the checkout only
   - **edge cases**, on one runner (`ubuntu-latest`), one job per input, invalid
     value or unusual situation, in these groups:
   - versions: the `.python-version` file of the project (empty
@@ -217,7 +219,8 @@ All workflows follow the principle of least privilege:
 
 Workflows that are entry points, and reusable workflows without inputs
 (`ci-format.yaml`, `lib-get-test-matrix.yaml`), support manual triggering via
-`workflow_dispatch`. Reusable workflows with inputs (`ci-action.yaml`) do not. Manual
+`workflow_dispatch`. `ci-action.yaml` also has `workflow_dispatch`, with the
+`use-released` input, and loads the matrix itself in that case. Manual
 triggering enables:
 
 - On-demand testing during development
