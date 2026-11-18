@@ -53,7 +53,8 @@ tests.
   inputs, outputs or defaults of the README tables differ from `action.yaml`.
 - Releases are immutable exact version tags (`v0.3.1`, ...). Do not create or
   move floating tags (`v0`, `latest`) and do not document them as an option.
-  The README examples and `nightly-test-released.yaml` pin an exact release.
+  The README examples and the `released` steps of `ci-action.yaml` pin an exact
+  release.
 
 ## Action rules (`action.yaml`)
 
@@ -114,11 +115,12 @@ Files are prefixed by role:
   - `ci-format.yaml`: YAML, Makefile, shell and Markdown format check.
   - `ci-export.yaml`: `make check-export`, the exported set is what the action
     needs.
-  - `ci-action.yaml`: tests the action from this checkout (`uses: ./`), i.e.
-    the version not released yet.
-- `nightly.yaml`: scheduled entry point that calls
-  `nightly-test-released.yaml`, which tests the last release (the current code
-  is tested nightly by `ci.yaml`).
+  - `ci-action.yaml`: tests the action, with the input `use-released`
+    (default `false`): the checkout (`uses: ./`), i.e. the version not
+    released yet, or the last release.
+- `nightly.yaml`: scheduled entry point that calls `ci-action.yaml` with
+  `use-released: true`, which tests the last release (the current code is
+  tested nightly by `ci.yaml`).
 - `ci-verify-workflows.yaml`: lints the workflow files themselves. It has its
   own triggers and is not called from `ci.yaml`.
 - `bot-*.yaml`: scheduled automation that opens PRs or acts on runs (format
@@ -143,14 +145,21 @@ Conventions:
 
 ## Tests
 
-The action is tested by `.github/workflows/ci-action.yaml` (`uses: ./`) and
-`.github/workflows/nightly-test-released.yaml` (the last release).
+The action is tested by one workflow, `.github/workflows/ci-action.yaml`, with
+the input `use-released`: `false` (called by `ci.yaml`) runs the checkout
+(`uses: ./`), `true` (called by `nightly.yaml`) runs the last release.
 
-- The two files must stay identical except for the header comment, the `name`
-  and the `uses:` line. Change one, then apply the same change to the other.
-  Exception: a job that tests an input added after the latest release goes only
-  in `ci-action.yaml`, because the stable release does not know the input. Add
-  it to `nightly-test-released.yaml` when its release is bumped.
+- Every step that runs the action exists twice in a job: a `local` step
+  (`if: ${{ !inputs.use-released }}`, `uses: ./`) and a `released` step
+  (`if: ${{ inputs.use-released }}`, pinned to the release SHA with a
+  `ratchet` comment), with the same `with:`. The steps after them read
+  `steps.local.outputs.x || steps.released.outputs.x` (a skipped step has no
+  outputs) and, for a failure path,
+  `steps.local.outcome == 'skipped' && steps.released.outcome || steps.local.outcome`.
+  Change both steps together.
+- A job that tests an input added after the latest release has
+  `if: ${{ !inputs.use-released }}` on the job, because the stable release does
+  not know the input. Remove the `if` when its release is bumped.
 - Every input of the action needs a job that sets it and asserts its effect (not
   only that the action succeeds). Add a job when adding an input.
 - Every validated input needs a test that passes an invalid value and asserts
@@ -170,9 +179,8 @@ numpy.__version__ == '2.4.0'`), and pass matrix values to scripts through
 ## Testing strategy
 
 The strategy is shared by the action repositories of `durandtibo`. This
-repository follows it, with one difference: the local and released runs are two
-workflow files (see [Tests](#tests)), not one workflow with a `use-released`
-input. The design ideas behind it are in `review/target_state.md`.
+repository follows it: the local and released runs are one workflow file with
+a `use-released` input (see [Tests](#tests)). The design ideas behind it are in `review/target_state.md`.
 
 Three levels:
 
@@ -183,7 +191,7 @@ Three levels:
 2. **Local action**: the action from this checkout (`uses: ./`) in a real
    workflow (`ci-action.yaml`).
 3. **Released action**: the latest stable release, run nightly with the same
-   cases as level 2 (`nightly-test-released.yaml`). Never run it on pull
+   cases as level 2 (`ci-action.yaml` with `use-released: true`). Never run it on pull
    requests.
 
 Rules:

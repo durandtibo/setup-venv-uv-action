@@ -151,8 +151,8 @@ The action is tested through GitHub Actions workflows. To test locally:
 
 The project includes several test workflows:
 
-- **ci-action.yaml**: Tests the action from the local repository
-- **nightly-test-released.yaml**: Tests the published stable version (nightly)
+- **ci-action.yaml**: Tests the action, from the local repository or, with
+  `use-released`, the published stable version (nightly)
 - **ci-format.yaml**: Validates code formatting (markdown, YAML)
 - **ci.yaml**: Main CI pipeline that runs all checks
 

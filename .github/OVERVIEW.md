@@ -15,8 +15,7 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 │   ├── lib-get-test-matrix.yaml       # Loads the OS and Python version matrices
 │   ├── ci-format.yaml                 # Formatting checks
 │   ├── ci-export.yaml                 # Checks the files shipped to the consumers
-│   ├── ci-action.yaml                 # Tests the action of this repository
-│   ├── nightly-test-released.yaml     # Tests the last stable release
+│   ├── ci-action.yaml                 # Tests the action (checkout or last release)
 │   ├── nightly.yaml                   # Scheduled nightly test runs
 │   ├── ci-verify-workflows.yaml       # Validates workflow file syntax
 │   ├── security-scorecard.yaml        # OSSF Scorecard analysis
@@ -56,9 +55,11 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
 
 #### Test Action (ci-action.yaml)
 
-- **Trigger**: Called by CI workflow (it has inputs, so it has no manual
-  dispatch of its own)
-- **Purpose**: Tests the action using the current repository code (`uses: ./`)
+- **Trigger**: Called by the CI workflow (`use-released: false`) and by the
+  nightly workflow (`use-released: true`); it has inputs, so it has no manual
+  dispatch of its own
+- **Purpose**: Tests the action using the current repository code (`uses: ./`),
+  or the last published release with `use-released: true`
 - **Config**: The OS and Python version lists come from
   `durandtibo/workflow-config-action`
 - **Jobs**: split in two levels, as described in `CLAUDE.md` (the workflow file
@@ -90,24 +91,15 @@ behavior of this repository's automation, issue tracking, and CI/CD pipelines.
   `.gitattributes` ignores by mistake
 - **Permissions**: `contents: read`
 
-#### Test Released Action (nightly-test-released.yaml)
-
-- **Trigger**: Called by the nightly workflow (it has inputs, so it has no
-  manual dispatch of its own)
-- **Purpose**: Tests the last published release, which is what consumers run,
-  to detect regressions caused by upstream changes (`uv`, `setup-uv`,
-  `invoke-tasklib`)
-- **Jobs**: Same as ci-action, except for the jobs of inputs added after that
-  release, which only exist in ci-action until the release is bumped
-- **Permissions**: `contents: read`
-
 ### Scheduled Workflows
 
 #### Nightly Tests (nightly.yaml)
 
 - **Trigger**: Daily at 10:30 AM UTC, manual dispatch
 - **Purpose**: Regular testing to catch issues early
-- **Jobs**: Calls nightly-test-released (ci.yaml runs the current code nightly
+- **Jobs**: Calls ci-action with `use-released: true`, which tests the last
+  published release, what consumers run, to detect regressions caused by
+  upstream changes (`uv`, `setup-uv`, `invoke-tasklib`) (ci.yaml runs the current code nightly
   at 9:10 AM UTC; no format check: formatting does not change with time)
 - **Permissions**: `contents: read`
 
@@ -192,25 +184,26 @@ ci.yaml
 ├─→ lib-get-test-matrix.yaml (OS and Python versions)
 ├─→ ci-format.yaml (make format + git diff, lint, README check)
 ├─→ ci-export.yaml (exported files)
-└─→ ci-action.yaml (test with current code)
+└─→ ci-action.yaml (use-released: false, test with current code)
 
 nightly.yaml
 ├─→ lib-get-test-matrix.yaml
-└─→ nightly-test-released.yaml (test with published version)
+└─→ ci-action.yaml (use-released: true, test with published version)
 ```
 
 ## Testing Strategy
 
-The action is tested by two workflows with different roles:
+The action is tested by one workflow, `ci-action.yaml`, in two modes selected by
+its input `use-released`:
 
-1. **Current code** (`ci-action.yaml`): Tests the code under review with
+1. **Current code** (`use-released: false`): Tests the code under review with
    `uses: ./`, on every pull request, push and nightly run of `ci.yaml`
-2. **Last release** (`nightly-test-released.yaml`): Tests the published action
-   version, to detect regressions caused by upstream changes
+2. **Last release** (`use-released: true`, called by `nightly.yaml`): Tests the
+   published action version, to detect regressions caused by upstream changes
 
-The two files are identical except for the header comment, the `name` and the
-`uses:` line. A job that tests an input added after the last release exists only
-in `ci-action.yaml` until the release is bumped.
+Each job has a `local` and a `released` step, selected by `if`, so the two modes
+cannot drift apart. A job that tests an input added after the last release has
+`if: ${{ !inputs.use-released }}` until the release is bumped.
 
 ## Permissions
 
@@ -224,8 +217,8 @@ All workflows follow the principle of least privilege:
 
 Workflows that are entry points, and reusable workflows without inputs
 (`ci-format.yaml`, `lib-get-test-matrix.yaml`), support manual triggering via
-`workflow_dispatch`. Reusable workflows with inputs (`ci-action.yaml`,
-`nightly-test-released.yaml`) do not. Manual triggering enables:
+`workflow_dispatch`. Reusable workflows with inputs (`ci-action.yaml`) do not. Manual
+triggering enables:
 
 - On-demand testing during development
 - Manual verification before releases
