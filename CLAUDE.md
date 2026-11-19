@@ -11,8 +11,9 @@ env.install` task of `invoke-tasklib`. `pyproject.toml`, `tasks.py`,
 workflows use to test the action. They are not a library: do not add features
 there. `scripts/` holds the maintainer checks, which are not part of the action:
 `check_readme_inputs.py` (README against `action.yaml`) and `check_export.sh`
-(the exported set). `review/target_state.md` holds the design ideas behind the
-tests.
+(the exported set). `review/` holds the design documents, not part of the action:
+`target_state.md` (the design ideas of this action) and `testing.md` (the testing
+strategy shared by the action repositories).
 
 ## Environment
 
@@ -196,8 +197,9 @@ the input `use-released`: `false` (called by `ci.yaml`) runs the checkout
 
 The strategy is shared by the action repositories of `durandtibo`. This
 repository follows it: the local and released runs are one workflow file with
-a `use-released` input (see [Tests](#tests)). The design ideas behind it are in
-`review/target_state.md`.
+a `use-released` input (see [Tests](#tests)). The full reasoning and the
+properties (T1 to T16) are in `review/testing.md`; the design ideas of this
+action are in `review/target_state.md`.
 
 Three levels:
 
@@ -250,7 +252,8 @@ Rules:
   the action needs, because `uses: ./` runs the whole checkout and hides a
   missing file. `make check-export` lists the set, and the `test-export` job of
   `ci-action.yaml` runs the action from the exported archive.
-- Set `timeout-minutes` on every job and `fail-fast: false` on matrix jobs.
+- Set `timeout-minutes` on every job, and `fail-fast: false` and `max-parallel`
+  on matrix jobs.
 - Keep the README inputs and outputs in step with `action.yaml`
   (`make check-readme`, `scripts/check_readme_inputs.py`).
 - Put an assertion in one place: a check shared by the `local` and `released`
