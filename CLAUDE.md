@@ -46,6 +46,9 @@ tests.
 - In the PR description, say what was changed, what was deliberately not
   changed, and any behaviour change (for example a changed input, default or
   output of the action).
+- Do not escape special characters such as the backtick in PR titles and
+  descriptions (no backslash before it): the escape characters are not rendered
+  well. Write them as plain Markdown.
 - When a PR conflicts with `main`, merge `origin/main` into the branch (do not
   rebase and force-push).
 - Update `README.md` and `.github/OVERVIEW.md` when inputs, behaviour or
