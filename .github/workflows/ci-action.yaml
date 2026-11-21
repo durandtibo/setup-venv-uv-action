@@ -14,7 +14,7 @@
 #
 # A job that tests an input added after the latest release has `if: ${{ !inputs.use-released }}`
 # on the job: it only runs against the checkout. Remove the `if` when the pinned release has the
-# feature (today: test-tasklib-self).
+# feature (today: no such job).
 #
 # Two levels of tests (docs: CLAUDE.md, "Testing strategy"):
 #   - General behaviour, on the full matrix. The same matrix runs on pull requests, pushes
@@ -96,7 +96,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
       - name: Test the outputs
         env:
           CACHE_HIT: ${{ steps.local.outputs.cache-hit || steps.released.outputs.cache-hit }}
@@ -148,7 +148,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Test environment
@@ -190,7 +190,7 @@ jobs:
       - name: Setup python environment with numpy (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           python-version: "3.12"
           package-name: numpy
@@ -227,7 +227,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
       - name: Test that the version of .python-version is used
         env:
           # not the default Python version (3.14), so the file is what decides
@@ -259,7 +259,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           install-args: "--no-optional-deps"
       - name: Test environment
@@ -286,7 +286,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           package-name: numpy
           package-version: 2.4.0
@@ -320,7 +320,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           package-name: "requests[socks]"
           package-version: 2.32.5
@@ -350,15 +350,13 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
       - name: Test that the version of uv.lock is installed
         run: |
           python -c "import myproject; print(myproject)"
           uv pip show invoke-tasklib | grep -q "^Version: 0\.0\.8$" || (echo "expected the locked invoke-tasklib 0.0.8" && exit 1)
 
-  # Not released yet: runs against the checkout only (see the header)
   test-tasklib-self:
-    if: ${{ !inputs.use-released }}
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -381,7 +379,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           working-directory: invoke-tasklib
       - name: Test that the project is installed in editable mode
@@ -410,7 +408,7 @@ jobs:
       - name: Setup python environment without invoke-tasklib in uv.lock (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         continue-on-error: true
       - name: Test that the action failed while reading the locked version
         env:
@@ -453,7 +451,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           working-directory: subproject
       - name: Test environment
@@ -502,7 +500,7 @@ jobs:
       - name: Setup python environment without a project file (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         continue-on-error: true
       - name: Test that the action failed in the validation
         env:
@@ -538,7 +536,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           enable-cache: ${{ matrix.enable-cache }}
       - name: Test environment
@@ -586,7 +584,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           extra-packages: |
             six==1.17.0
@@ -672,7 +670,7 @@ jobs:
       - name: Setup python environment with an invalid input (${{ matrix.name }}) (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         continue-on-error: true
         with:
           enable-cache: ${{ matrix.enable-cache || 'auto' }}
@@ -710,7 +708,7 @@ jobs:
       - name: Setup python environment with inputs that are ignored without package-name (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           package-version: 2.4.0
           package-install-args: "--upgrade"
@@ -738,7 +736,7 @@ jobs:
       - name: Setup python environment without the dependency groups (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           # an empty list of groups: invoke-tasklib is not synced from the lock
           install-args: "--groups="
@@ -784,7 +782,7 @@ jobs:
       - name: Setup python environment with a glob character in install-args (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         continue-on-error: true
         with:
           install-args: "--no-optional-dep?"
@@ -822,7 +820,7 @@ jobs:
       - name: Setup python environment with a pinned uv version (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           uv-version: "0.12.0"
       - name: Test environment
@@ -861,7 +859,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         continue-on-error: true
         with:
           working-directory: subproject
@@ -967,7 +965,7 @@ jobs:
       - name: Setup python environment (${{ matrix.name }}) (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           python-version: ${{ matrix.python-version }}
           package-name: ${{ matrix.package-name }}
@@ -1025,7 +1023,7 @@ jobs:
       - name: Setup python environment with a Python version that does not exist (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         continue-on-error: true
         with:
           python-version: "3.99"
@@ -1064,7 +1062,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
       - name: Test environment
         env:
           OUTPUT_VERSION: ${{ steps.local.outputs.python-version || steps.released.outputs.python-version }}
@@ -1102,7 +1100,7 @@ jobs:
       - name: Setup python environment with a uv version request (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           uv-version: ${{ matrix.uv-version }}
       - name: Test environment
@@ -1149,7 +1147,7 @@ jobs:
       - name: Setup python environment (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           working-directory: ${{ matrix.working-directory }}
       - name: Test environment
@@ -1180,7 +1178,7 @@ jobs:
       - name: Setup python environment with a package and extra packages (released)
         id: released
         if: ${{ inputs.use-released }}
-        uses: durandtibo/setup-venv-uv-action@a592cf6a2b2788f2e5846e4e29151f8895e1c643 # ratchet:durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@6142e28631bebf642f8ff7087c8c8702f5d99c63 # ratchet:durandtibo/setup-venv-uv-action@v0.3.2
         with:
           package-name: numpy
           package-version: 2.4.0

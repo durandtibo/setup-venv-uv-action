@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@v0.3.2
 
       - name: Run tests
         run: |
@@ -57,7 +57,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     python-version: "3.11"
 ```
@@ -66,7 +66,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment with a Python version range
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     python-version: ">=3.12,<3.14"
 ```
@@ -75,7 +75,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment with a pinned uv version
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     uv-version: "0.9.0"
 ```
@@ -84,7 +84,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment with numpy
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     python-version: "3.12"
     package-name: "numpy"
@@ -95,7 +95,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment without optional dependencies
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     install-args: "--no-optional-deps"
 ```
@@ -104,7 +104,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment and upgrade a specific package
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     package-name: "numpy"
     package-install-args: "--upgrade"
@@ -114,7 +114,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment for a project in a subfolder
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     working-directory: "python"
 ```
@@ -123,7 +123,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment with extra tools
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     extra-packages: |
       pytest-xdist
@@ -134,7 +134,7 @@ project (the committed `.python-version` file, then `requires-python`).
 
 ```yaml
 - name: Setup Python environment without the uv cache
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
   with:
     enable-cache: "false"
 ```
@@ -171,7 +171,7 @@ Example:
 ```yaml
 - name: Setup Python environment
   id: setup
-  uses: durandtibo/setup-venv-uv-action@v0.3.0
+  uses: durandtibo/setup-venv-uv-action@v0.3.2
 
 - name: Show the Python and uv versions
   run: |
@@ -250,7 +250,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@v0.3.2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -272,7 +272,7 @@ jobs:
 
       - name: Setup with specific dependency version
         id: setup
-        uses: durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@v0.3.2
         with:
           package-name: "requests"
           package-version: ${{ matrix.package-version }}
@@ -302,7 +302,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup Python environment
-        uses: durandtibo/setup-venv-uv-action@v0.3.0
+        uses: durandtibo/setup-venv-uv-action@v0.3.2
 
       - name: Run tests
         run: python -m pytest
