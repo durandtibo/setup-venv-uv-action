@@ -58,7 +58,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: durandtibo/cancel-queued-runs-action@b5f191982afc3b7cbe8797f1a2033bdd634324ce # ratchet:durandtibo/cancel-queued-runs-action@v2.0.0
+      - uses: durandtibo/cancel-queued-runs-action@0ba2e858302a043106df9d58f05bb083b9695236 # ratchet:durandtibo/cancel-queued-runs-action@v3.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           repo: ${{ github.repository }}
