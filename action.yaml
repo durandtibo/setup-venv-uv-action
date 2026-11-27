@@ -230,6 +230,9 @@ runs:
     # 'uv export --frozen' neither resolves nor modifies the lock file
     # The export is assigned on its own line, so that a failure of uv fails the
     # step (the failure is not hidden by the search of the requirement)
+    # The requirement is searched through a pipe, not a here-string, which can
+    # need a temporary file that bash may fail to create on a runner. awk reads
+    # the whole input: with an early exit, printf could fail on a broken pipe
     # When the project is invoke-tasklib itself, it is not a dependency (the
     # export omits the project): the project is installed in editable mode in
     # step 3.2, which provides 'inv', and no requirement is read
@@ -247,7 +250,7 @@ runs:
           exit 0
         fi
         requirements="$(uv export --frozen --no-hashes --no-emit-project --all-groups --all-extras)"
-        requirement="$(awk '/^invoke-tasklib==/ { print $1; exit }' <<< "${requirements}")"
+        requirement="$(printf '%s\n' "${requirements}" | awk '/^invoke-tasklib==/ && !found { print $1; found = 1 }')"
         if [ -z "${requirement}" ]; then
           echo "::error title=Missing invoke-tasklib::'invoke-tasklib' is not in 'uv.lock'. Add it to a dependency group of 'pyproject.toml' (for example 'dev = [\"invoke-tasklib >=0.0.8,<1.0.0\"]'), then run 'uv lock' and commit the result."
           exit 1
